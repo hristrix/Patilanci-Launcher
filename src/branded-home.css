@@ -1,0 +1,663 @@
+/* Home uses the shared Patilanci palette and control treatments. */
+.is-home .home-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(252px, 23vw, 320px);
+  gap: 16px 22px;
+  align-items: stretch;
+}
+
+.home-overview > .account-panel {
+  display: contents;
+}
+
+.is-home .home-world-banner {
+  grid-column: 1;
+  grid-row: 1;
+  align-items: flex-start;
+  min-height: 420px;
+  padding: 38px 32px 180px;
+  border: 1px solid #554332;
+  border-radius: 6px;
+  background: #24241f;
+  box-shadow:
+    inset 0 1px #f2b63214,
+    0 8px 24px #0003;
+}
+
+.is-home .home-world-banner .world-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+}
+
+.is-home .home-world-banner::after {
+  border-left: 3px solid var(--gold);
+  background: linear-gradient(0deg, #141214b8, transparent 48%);
+}
+
+.is-home .home-banner-shade {
+  background: linear-gradient(90deg, #131113ef, #171416a8 45%, #17141610 85%);
+}
+
+.is-home .home-banner-copy {
+  z-index: 1;
+  max-width: 420px;
+}
+
+.is-home .home-banner-eyebrow {
+  color: var(--gold);
+  font-size: var(--text-caption);
+  letter-spacing: 0.13em;
+}
+
+.is-home .home-banner-copy h2 {
+  margin: 9px 0 12px;
+  color: var(--cream);
+  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.8rem, 2.8vw, 3.3rem);
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+}
+
+.home-modpack-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 15px;
+  border: 1px solid #a77d3b55;
+  border-radius: var(--control-radius);
+  background: #8c64222b;
+  color: #e2c68c;
+  font-size: var(--text-caption);
+}
+
+.home-pack-description {
+  margin-top: 18px;
+  max-width: 330px;
+  color: #ded0bc;
+  font-size: var(--text-small);
+  line-height: 1.65;
+}
+
+.is-home .home-pack-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  color: #e3bd78;
+  font-size: var(--text-caption);
+}
+
+.is-home .launch-controls {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: end;
+  z-index: 2;
+  min-width: 0;
+  padding: 0 32px 27px;
+}
+
+.is-home .launch-controls .play-area {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+}
+
+.is-home .launch-controls .play-button {
+  flex-shrink: 0;
+  min-height: 55px;
+  padding: 11px 24px;
+}
+
+.is-home .launch-controls .play-button > svg:last-child,
+.is-home .install-state-icon,
+.is-home .install-state small {
+  display: none;
+}
+
+.is-home .install-state strong {
+  font-size: var(--text-caption);
+  color: #c9b590;
+  font-weight: 500;
+}
+
+.is-home .launch-controls .progress-summary {
+  margin-top: 16px;
+  color: #c8b89d;
+  line-height: 1.5;
+}
+
+.is-home .launch-controls .progress-track {
+  background: #d4b26a1a;
+}
+
+.is-home .launch-controls .progress-track > div {
+  background: var(--gold);
+}
+
+.login-card {
+  min-width: 0;
+}
+
+.is-home .login-card {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-self: stretch;
+  padding: 16px 22px 20px;
+  border: 1px solid #493a30;
+  border-radius: 6px;
+  background:
+    radial-gradient(ellipse at 50% 0%, #a4763020, transparent 60%), #151416;
+  box-shadow: inset 0 1px #f2b63214;
+}
+
+.login-avatar-stage {
+  height: 140px;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.player-voxel-avatar {
+  height: 100%;
+  max-width: 145px;
+  filter: drop-shadow(0 6px 15px #0005);
+}
+
+.login-avatar-stage .skin-preview {
+  min-height: 0;
+  overflow: hidden;
+  max-width: 200px;
+  background: radial-gradient(ellipse at 50% 80%, #f2b6321a, transparent 65%);
+}
+
+.login-avatar-stage .skin-preview::before,
+.login-avatar-stage .skin-hint {
+  display: none;
+}
+
+.login-accent {
+  flex-shrink: 0;
+  height: 2px;
+  margin: 0 6px 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.login-player-heading {
+  text-align: center;
+  overflow-wrap: anywhere;
+  margin-bottom: 15px;
+}
+
+.login-player-heading strong {
+  display: block;
+  color: var(--cream);
+  font-size: var(--text-subtitle);
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.login-player-heading > span {
+  display: block;
+  font-size: var(--text-caption);
+  color: #b3a28a;
+  margin-top: 5px;
+}
+
+.is-home .login-card .section-heading {
+  display: none;
+}
+
+.is-home .login-card .account-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  margin-bottom: 12px;
+}
+
+.is-home .login-card .account-tabs button {
+  flex: 1 1 0;
+  flex-wrap: nowrap;
+  min-width: 0;
+  padding: 7px 8px;
+  font-size: var(--text-caption);
+  border-color: var(--control-border);
+}
+
+.is-home .login-card .account-tabs button.is-selected {
+  background: var(--control-selected);
+  color: #ead8bd;
+  border-color: #715334;
+}
+
+.is-home .login-card .account-tabs button:disabled {
+  opacity: 1;
+}
+
+.is-home .login-card.is-signed-in .account-tabs {
+  justify-content: center;
+}
+
+.is-home .login-card.is-signed-in .account-tabs button {
+  flex: initial;
+  min-height: 28px;
+  padding: 3px 9px;
+  background: #bd8e3420;
+  border-color: #a77d3b40;
+  box-shadow: none;
+}
+
+.manage-account-button,
+.player-community-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 10px;
+  width: 100%;
+  min-height: 37px;
+  border-radius: 4px;
+  font-size: var(--text-caption);
+}
+
+.manage-account-button {
+  margin-top: 2px;
+}
+
+.player-community-button {
+  margin-top: 8px;
+}
+
+.account-management {
+  margin: 9px 0;
+  color: #c8b89d;
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+
+.is-home .login-card .account-details {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  padding: 0;
+  gap: 10px;
+}
+
+.is-home .login-card .account-details > div:not(.account-symbol) {
+  flex: initial;
+}
+
+.is-home .login-card .account-symbol,
+.is-home .login-card .account-details strong {
+  display: none;
+}
+
+.is-home .login-card .account-details p {
+  font-size: var(--text-caption);
+  text-align: center;
+  color: #b5a68f;
+  margin: 0 0 10px;
+}
+
+.is-home .login-card:has(.manage-account-button) .account-details p {
+  display: none;
+}
+
+.is-home .login-card .account-details > .outline-button {
+  width: 100%;
+  margin: 0;
+  min-height: 35px;
+  font-size: var(--text-caption);
+}
+
+.is-home .login-card .account-details > [aria-label='Sign out of Microsoft'],
+.is-home .login-card .offline-profile > button[type='button'] {
+  border: 0;
+  color: #b2a18c;
+  background: transparent;
+  box-shadow: none;
+  margin: 10px auto 0;
+  padding: 4px;
+  font-size: var(--text-caption);
+}
+
+.is-home .login-card .offline-profile {
+  padding: 0;
+}
+
+.is-home .login-card .offline-sign-in {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+  font-size: var(--text-caption);
+}
+
+.is-home .login-card.is-signed-in .offline-fields,
+.is-home .login-card.is-signed-in #offline-pin-help {
+  display: none;
+}
+
+.is-home .login-card .offline-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.is-home .login-card .offline-fields > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.is-home .login-card input {
+  min-width: 0;
+  width: 100%;
+  padding: 8px 10px;
+  min-height: 36px;
+  font-size: var(--text-caption);
+  background: #100f11;
+  border-color: #514133;
+}
+
+.is-home .login-card label {
+  margin-bottom: 4px;
+  font-size: var(--text-caption);
+}
+
+.is-home .login-card #offline-pin-help {
+  display: block;
+  font-size: var(--text-caption);
+  color: #bdab8f;
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
+.is-home .home-quick-status {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  gap: 12px;
+}
+
+.is-home .home-quick-status .home-presence {
+  margin: 0;
+  font-size: var(--text-caption);
+}
+
+.is-home .home-quick-status > button {
+  width: auto;
+  min-height: 30px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: #b9a68b;
+  font-size: var(--text-caption);
+}
+
+.community-grid .login-avatar-stage,
+.community-grid .login-accent,
+.community-grid .login-player-heading,
+.community-grid .manage-account-button,
+.community-grid .player-community-button {
+  display: none;
+}
+
+.community-grid .launch-controls {
+  margin-top: 12px;
+}
+
+.is-home .home-dashboard {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.home-detail-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid #3c322b;
+  border-radius: 6px;
+  background: linear-gradient(130deg, #211c192e, #131214);
+  box-shadow: inset 0 1px #f2b63208;
+}
+
+.home-detail-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #c49b59;
+}
+
+.home-detail-heading h3 {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--cream);
+}
+
+.home-detail-heading > :last-child:not(h3) {
+  opacity: 0.7;
+}
+
+.home-detail-value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  color: #e9c57b;
+  font: 500 1.85rem/1.2 var(--font-display);
+  overflow-wrap: anywhere;
+}
+
+.home-detail-value > span {
+  font: 400 var(--text-caption)/1.5 var(--font-sans);
+  color: #b8a88d;
+}
+
+.home-detail-body {
+  flex: 1;
+  min-width: 0;
+  margin: 12px 0 16px;
+  font-size: var(--text-caption);
+  color: #b6a58e;
+  line-height: 1.65;
+}
+
+.home-detail-body p {
+  overflow-wrap: anywhere;
+}
+
+.home-server-capacity {
+  height: 3px;
+  margin: 0 0 12px;
+  background: #30291f;
+}
+
+.home-server-capacity > span {
+  display: block;
+  height: 100%;
+  background: #aa8d4f;
+}
+
+.home-player-sample {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.home-player-sample > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #d7c9b4;
+}
+
+.home-player-sample i {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 23px;
+  height: 23px;
+  background: #433324;
+  border: 1px solid #765736;
+  font-style: normal;
+  color: #e9c57b;
+}
+
+.home-player-sample > small {
+  font-size: var(--text-caption);
+}
+
+.home-pack-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 8px;
+}
+
+.home-pack-specs b {
+  margin-left: 4px;
+  color: #dbc69f;
+  font-weight: 600;
+}
+
+.home-detail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 2px 0;
+  color: #dfb569;
+  font-size: var(--text-caption);
+}
+
+.home-detail-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.home-setup-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.home-setup-actions .outline-button {
+  flex: 1;
+  min-height: 33px;
+  padding: 6px 9px;
+  font-size: var(--text-caption);
+}
+
+@media (min-height: 781px) and (max-height: 900px) {
+  .home-detail-card {
+    padding: 12px 15px;
+  }
+  .home-detail-body {
+    display: none;
+  }
+  .home-detail-value {
+    margin: 7px 0 10px;
+    font-size: 1.45rem;
+  }
+}
+
+@media (max-height: 780px) {
+  .is-home .home-dashboard {
+    display: none;
+  }
+}
+
+@media (max-width: 1000px) and (min-height: 781px) {
+  .is-home .home-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1150px), (max-height: 780px) {
+  .is-home .home-overview {
+    grid-template-columns: minmax(0, 1fr) 252px;
+    gap: 12px;
+  }
+  .is-home .home-world-banner {
+    min-height: 397px;
+    padding: 25px 24px 165px;
+  }
+  .is-home .home-banner-copy h2 {
+    font-size: 1.9rem;
+  }
+  .is-home .home-pack-description {
+    margin-top: 13px;
+    font-size: var(--text-caption);
+    max-width: 280px;
+  }
+  .is-home .launch-controls {
+    padding: 0 24px 21px;
+  }
+  .is-home .launch-controls .play-area {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .is-home .launch-controls .play-button {
+    min-height: 46px;
+    padding: 10px 16px;
+  }
+  .is-home .launch-controls .progress-summary {
+    margin-top: 12px;
+  }
+  .is-home .login-card {
+    padding: 10px 17px 14px;
+  }
+  .is-home .login-avatar-stage {
+    height: 100px;
+  }
+  .is-home .login-player-heading {
+    margin-bottom: 10px;
+  }
+  .is-home .login-card:has(#offline-pin-confirm) .login-avatar-stage {
+    height: 36px;
+  }
+  .is-home .login-card:has(#offline-pin-confirm) .login-player-heading > span {
+    display: none;
+  }
+  .is-home .page-footer {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+}
+
+@media (max-width: 850px) {
+  .is-home .home-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .is-home .login-card {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .is-home .home-quick-status {
+    grid-row: 3;
+  }
+}

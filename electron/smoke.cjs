@@ -1,0 +1,1126 @@
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  nativeImage,
+  safeStorage,
+} = require('electron');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
+const Zip = require('adm-zip');
+const { lockWindowZoom } = require('./window-zoom.cjs');
+const { verifyResponsiveText } = require('./responsive-check.cjs');
+const {
+  createStartupUpdate,
+  createStartupFlow,
+} = require('./startup-update.cjs');
+const { createOfflineProfiles } = require('./offline-profiles.cjs');
+const { createSessionStore } = require('./sessions.cjs');
+const { EventEmitter } = require('node:events');
+const { createGameProcess } = require('./game-process.cjs');
+const {
+  windowState,
+  windowAction,
+  observeWindowState,
+} = require('./window-controls.cjs');
+const {
+  listMods,
+  recordBundledMods,
+  addLocalMods,
+  removePersonalMod,
+} = require('./mods.cjs');
+
+let fixtureDirectory;
+let fixtureInstance;
+let fixtureImport;
+let showModFixture = true;
+let fixtureFreeMemoryGb = 10;
+let finishStartup;
+let startupChecks = 0;
+let startupFailure = false;
+let retryUpdates = 0;
+let fixtureProfiles;
+let fixtureSessions;
+let fixtureGameStarts = 0;
+let fixtureAccount = null;
+let fixtureSkinRequests = 0;
+let fixtureSkin;
+let fixtureOfflineSkinAvailable = true;
+let fixtureWindow;
+let finishGameStop;
+const fixtureGame = createGameProcess({
+  onChange: (state) => fixtureWindow?.webContents.send('gameState', state),
+  kill: (child) =>
+    new Promise((resolve) => {
+      finishGameStop = () => {
+        child.emit('exit', 0);
+        resolve();
+      };
+    }),
+});
+ipcMain.handle('gameState', () => fixtureGame.state());
+ipcMain.handle('stopMinecraft', () => fixtureGame.stop());
+ipcMain.handle('windowState', () => windowState(fixtureWindow));
+ipcMain.handle('windowAction', (event, action) =>
+  windowAction(fixtureWindow, event.sender, action),
+);
+ipcMain.handle('login', () => {
+  fixtureAccount = {
+    id: 'a'.repeat(32),
+    name: 'Adventurer1234567',
+    skin: { model: 'default' },
+  };
+  return fixtureAccount;
+});
+ipcMain.handle('logout', async () => {
+  await fixtureSessions.clear();
+  fixtureAccount = null;
+});
+ipcMain.handle('skin', async (_, request) => {
+  if (request?.mode === 'offline') {
+    assert.equal(
+      (await fixtureSessions.read()).offlineName?.toLowerCase(),
+      request.name.toLowerCase(),
+      'Offline skin lookup needs a signed-in profile',
+    );
+    fixtureSkinRequests += 1;
+    if (!fixtureOfflineSkinAvailable) return null;
+    return { dataUrl: fixtureSkin, model: 'default', source: 'Ely.by' };
+  }
+  assert.ok(
+    fixtureAccount,
+    'Skins must only load for signed-in Microsoft profiles',
+  );
+  fixtureSkinRequests += 1;
+  return { dataUrl: fixtureSkin, model: 'default' };
+});
+ipcMain.handle('offlineProfile', async (_, name) => ({
+  ...(await fixtureProfiles.status(name)),
+  remembered:
+    (await fixtureSessions.read()).offlineName?.toLowerCase() ===
+    name.toLowerCase(),
+}));
+ipcMain.handle('loginOffline', async (_, request) => {
+  assert.equal(fixtureGame.state().running, false);
+  const profile = await fixtureProfiles.authorize(request);
+  await fixtureSessions.write({ mode: 'offline', offlineName: profile.name });
+  return profile;
+});
+ipcMain.handle('play', async (_, request) => {
+  assert.equal(
+    fixtureGame.state().running,
+    false,
+    'A second game must never launch',
+  );
+  assert.equal(request.mode, 'offline');
+  const session = await fixtureSessions.read();
+  assert.equal(session.mode, 'offline');
+  assert.equal(session.offlineName?.toLowerCase(), request.name.toLowerCase());
+  fixtureGameStarts += 1;
+  fixtureGame.track(
+    Object.assign(new EventEmitter(), {
+      pid: fixtureGameStarts + 100,
+      exitCode: null,
+      signalCode: null,
+    }),
+  );
+  return true;
+});
+const fixturePack = {
+  fileId: 9225884,
+  releaseName: 'Patilanci_Adventures_CurseForge_2.2.1.zip',
+  version: '2.2.0',
+  minecraft: '1.21.10',
+  mods: 27,
+};
+ipcMain.handle('install', () => {
+  retryUpdates += 1;
+  return fixturePack;
+});
+const startupUpdate = createStartupUpdate(async () => {
+  startupChecks += 1;
+  await new Promise((resolve) => {
+    finishStartup = resolve;
+  });
+});
+ipcMain.handle('startupUpdate', async (event) => {
+  if (startupFailure) throw new Error('Fixture: CurseForge is unreachable.');
+  event.sender.send('progress', {
+    message: 'Downloading startup update fixture…',
+    percent: 35,
+  });
+  await startupUpdate();
+  return null;
+});
+let fixtureLauncherUpdate = { status: 'current', version: '1.0.0' };
+let fixtureLauncherInstalls = 0;
+function makeFixtureStartupFlow() {
+  return createStartupFlow({
+    checkLauncher: async () => fixtureLauncherUpdate,
+    restoreAccount: async () => ({
+      status: 'ready',
+      message: 'Fixture account restored',
+    }),
+    updatePack: async () => {
+      if (startupFailure)
+        throw new Error('Fixture: CurseForge is unreachable.');
+      fixtureWindow.webContents.send('progress', {
+        message: 'Downloading startup update fixture…',
+        percent: 35,
+      });
+      await startupUpdate();
+      return fixturePack;
+    },
+    onState: (state) => fixtureWindow.webContents.send('startupState', state),
+  });
+}
+let fixtureStartupFlow = makeFixtureStartupFlow();
+ipcMain.handle('startup', () => fixtureStartupFlow.run());
+ipcMain.handle('retryStartup', () => fixtureStartupFlow.retry());
+ipcMain.handle('checkLauncherUpdate', () => fixtureLauncherUpdate);
+ipcMain.handle('installLauncherUpdate', () => {
+  fixtureLauncherInstalls++;
+});
+ipcMain.handle('memoryInfo', () => ({
+  totalBytes: 16 * 1024 ** 3,
+  availableBytes: fixtureFreeMemoryGb * 1024 ** 3,
+  sampledAt: Date.now(),
+}));
+
+ipcMain.handle('mods', async () =>
+  showModFixture
+    ? { ...(await listMods(fixtureInstance)), canModify: true }
+    : { installed: false, bundled: [], personal: [], canModify: true },
+);
+ipcMain.handle('addMods', async () => {
+  const added = await addLocalMods(fixtureInstance, [fixtureImport]);
+  return { ...(await listMods(fixtureInstance)), canModify: true, added };
+});
+ipcMain.handle('removeMod', async (_, fileName) => {
+  await removePersonalMod(fixtureInstance, fileName);
+  return { ...(await listMods(fixtureInstance)), canModify: true };
+});
+
+async function prepareModsFixture() {
+  // Synthetic PNG fixture for the real WebGL renderer; no player data or network.
+  const pixels = Buffer.alloc(64 * 64 * 4);
+  for (let y = 0; y < 64; y += 1) {
+    for (let x = 0; x < 64; x += 1) {
+      const offset = (y * 64 + x) * 4;
+      const color =
+        y < 16 ? [105, 161, 210] : y < 32 ? [130, 125, 40] : [100, 65, 55];
+      pixels.set([...color, 255], offset);
+    }
+  }
+  fixtureSkin = nativeImage
+    .createFromBitmap(pixels, { width: 64, height: 64 })
+    .toDataURL();
+  fixtureDirectory = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'patilanci-ui-mods-'),
+  );
+  assert.equal(path.dirname(fixtureDirectory), path.resolve(os.tmpdir()));
+  assert.ok(path.basename(fixtureDirectory).startsWith('patilanci-ui-mods-'));
+  fixtureInstance = path.join(fixtureDirectory, 'instance');
+  fixtureProfiles = createOfflineProfiles(
+    path.join(fixtureDirectory, 'offline-profiles.json'),
+  );
+  fixtureSessions = createSessionStore(
+    path.join(fixtureDirectory, 'session.enc'),
+    safeStorage,
+  );
+  await fs.mkdir(path.join(fixtureInstance, 'mods'), { recursive: true });
+  await fs.writeFile(
+    path.join(fixtureInstance, 'patilanci-install.json'),
+    JSON.stringify({ minecraft: '1.21.10', version: 'UI test fixture' }),
+  );
+
+  function jar(id, name) {
+    const archive = new Zip();
+    archive.addFile(
+      'fabric.mod.json',
+      Buffer.from(
+        JSON.stringify({ schemaVersion: 1, id, name, version: '1.0.0' }),
+      ),
+    );
+    return archive.toBuffer();
+  }
+
+  await fs.writeFile(
+    path.join(fixtureInstance, 'mods', 'required-fixture.jar'),
+    jar('required_fixture', 'Required mod fixture'),
+  );
+  await recordBundledMods(fixtureInstance);
+  fixtureImport = path.join(fixtureDirectory, 'extra-fixture.jar');
+  await fs.writeFile(fixtureImport, jar('extra_fixture', 'Player mod fixture'));
+}
+
+async function waitForRenderer(window, expression) {
+  await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+    const deadline = Date.now() + 5000;
+    const timer = setInterval(() => {
+      if (${expression}) { clearInterval(timer); resolve(); }
+      else if (Date.now() > deadline) { clearInterval(timer); reject(new Error('UI state timed out')); }
+    }, 20);
+  })`);
+  await waitForPaint(window);
+}
+
+async function fillInput(window, selector, value) {
+  await window.webContents.executeJavaScript(`(() => {
+    const input = document.querySelector(${JSON.stringify(selector)});
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(input, ${JSON.stringify(value)});
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await waitForPaint(window);
+}
+
+// Keep UI checks deterministic without accessing accounts or downloading files.
+ipcMain.handle('config', async () => ({
+  memory: 6,
+  javaPath: 'java',
+  installed: fixturePack,
+  account: fixtureAccount,
+  game: fixtureGame.state(),
+  session: {
+    mode: fixtureAccount ? 'microsoft' : (await fixtureSessions.read()).mode,
+    name: (await fixtureSessions.read()).offlineName,
+    authenticated: Boolean(
+      fixtureAccount || (await fixtureSessions.read()).offlineName,
+    ),
+  },
+}));
+ipcMain.handle('status', () => ({ online: false, players: [] }));
+
+async function waitForPaint(window) {
+  await window.webContents.executeJavaScript(`(async () => {
+    await document.fonts.ready;
+    await Promise.all(Array.from(document.images, image => image.decode()));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  })()`);
+  await new Promise((resolve) => setTimeout(resolve, 150));
+}
+async function stopFixtureGame(window) {
+  await waitForRenderer(
+    window,
+    `document.querySelector('[aria-label="Stop Minecraft"]')?.disabled === false`,
+  );
+  await window.webContents.executeJavaScript(
+    `document.querySelector('[aria-label="Stop Minecraft"]').click()`,
+  );
+  await waitForRenderer(
+    window,
+    `document.querySelector('[aria-label="Stopping Minecraft"]')?.disabled === true`,
+  );
+  assert.equal(
+    fixtureGame.state().running,
+    true,
+    'Minecraft stays running until its process exits',
+  );
+  finishGameStop();
+  await waitForRenderer(
+    window,
+    `document.querySelector('[aria-label="Play Minecraft"]')?.disabled === false`,
+  );
+}
+
+async function checkLayout(window, expectedHeading) {
+  await waitForPaint(window);
+  const layout = await window.webContents.executeJavaScript(`({
+    title: document.title,
+    heading: document.querySelector('h1')?.textContent,
+    hasHorizontalOverflow: document.documentElement.scrollWidth > innerWidth,
+    logoLoaded: document.querySelector('.brand-logo')?.naturalWidth > 0,
+    selectedPage: document.querySelector('[aria-current="page"]')?.textContent,
+  })`);
+
+  assert.equal(layout.heading, expectedHeading);
+  assert.equal(layout.hasHorizontalOverflow, false);
+  assert.equal(layout.logoLoaded, true);
+  assert.equal(window.webContents.getZoomFactor(), 1);
+  assert.equal(
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').getBoundingClientRect().bottom <= innerHeight`,
+    ),
+    true,
+    'Settings navigation must remain visible after adding the Mods tab',
+  );
+  return layout;
+}
+
+async function capture(window, filename) {
+  const screenshot = await window.webContents.capturePage(
+    {},
+    { stayHidden: true, stayAwake: true },
+  );
+  await fs.writeFile(
+    path.join(__dirname, '../artifacts', filename),
+    screenshot.toPNG(),
+  );
+}
+
+app.whenReady().then(async () => {
+  try {
+    await prepareModsFixture();
+    const window = new BrowserWindow({
+      show: false,
+      width: 1360,
+      height: 900,
+      frame: false,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.cjs'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        backgroundThrottling: false,
+        offscreen: true,
+      },
+    });
+    lockWindowZoom(window);
+    fixtureWindow = window;
+    observeWindowState(window);
+    window.setContentSize(1344, 835);
+
+    await fs.mkdir(path.join(__dirname, '../artifacts'), { recursive: true });
+    await window.loadFile(path.join(__dirname, '../dist/index.html'));
+    await waitForRenderer(
+      window,
+      `document.querySelector('.splash-progress')?.textContent.includes('Downloading startup update fixture')`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.app-shell') === null`,
+      ),
+      true,
+      'Play must wait for the startup update to finish',
+    );
+    await capture(window, 'launcher-startup-splash.png');
+    finishStartup();
+    await waitForRenderer(
+      window,
+      `!document.querySelector('.play-button').disabled && document.querySelector('.progress-summary')?.textContent.includes('Latest modpack ready')`,
+    );
+    const home = await checkLayout(window, 'Welcome to Patilanci.');
+    assert.deepEqual(
+      await window.webContents.executeJavaScript(`({
+        drag: getComputedStyle(document.querySelector('.window-titlebar')).getPropertyValue('-webkit-app-region'),
+        controls: getComputedStyle(document.querySelector('.window-controls')).getPropertyValue('-webkit-app-region'),
+        buttons: document.querySelectorAll('.window-control').length,
+        maximize: Boolean(document.querySelector('[aria-label="Maximize window"]')),
+      })`),
+      { drag: 'drag', controls: 'no-drag', buttons: 4, maximize: true },
+      'The custom title bar must be draggable while window controls remain clickable',
+    );
+    for (const keyCode of ['+', '=', '-', '0', 'numadd', 'numsub']) {
+      window.webContents.sendInputEvent({
+        type: 'keyDown',
+        keyCode,
+        modifiers: ['control'],
+      });
+      window.webContents.sendInputEvent({
+        type: 'keyUp',
+        keyCode,
+        modifiers: ['control'],
+      });
+    }
+    window.webContents.sendInputEvent({
+      type: 'mouseWheel',
+      x: 400,
+      y: 300,
+      deltaY: 120,
+      modifiers: ['control'],
+    });
+    await waitForPaint(window);
+    assert.equal(
+      window.webContents.getZoomFactor(),
+      1,
+      'Zoom shortcuts must keep 100% zoom',
+    );
+    const wheelBehavior = await window.webContents.executeJavaScript(`(() => {
+      const zoomWheel = new WheelEvent('wheel', { ctrlKey: true, deltaY: -120, bubbles: true, cancelable: true });
+      const normalWheel = new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true });
+      window.dispatchEvent(zoomWheel);
+      window.dispatchEvent(normalWheel);
+      return { zoomBlocked: zoomWheel.defaultPrevented, normalBlocked: normalWheel.defaultPrevented, scale: visualViewport.scale };
+    })()`);
+    assert.deepEqual(wheelBehavior, {
+      zoomBlocked: true,
+      normalBlocked: false,
+      scale: 1,
+    });
+    window.webContents.setZoomFactor(1.25);
+    await window.loadFile(path.join(__dirname, '../dist/index.html'));
+    await waitForRenderer(
+      window,
+      `!document.querySelector('.play-button').disabled`,
+    );
+    assert.equal(startupChecks, 1, 'Reload must reuse the startup update');
+    await checkLayout(window, 'Welcome to Patilanci.');
+    assert.equal(
+      window.webContents.getZoomFactor(),
+      1,
+      'Reload must restore 100% zoom',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+      ),
+      true,
+      'The Play button must be visible without scrolling',
+    );
+    await capture(window, 'launcher-desktop.png');
+
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Sign in with Microsoft"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-skin-state="ready"]') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.home-player-name').textContent`,
+      ),
+      'Adventurer1234567',
+    );
+    assert.equal(fixtureSkinRequests, 1);
+    const skinBounds = await window.webContents.executeJavaScript(`(() => {
+      const bounds = document.querySelector('.skin-preview').getBoundingClientRect();
+      return { x: Math.ceil(bounds.x), y: Math.ceil(bounds.y), width: Math.floor(bounds.width), height: Math.floor(bounds.height) };
+    })()`);
+    const staticSkin = (
+      await window.webContents.capturePage(skinBounds)
+    ).toPNG();
+    const dragX = skinBounds.x + Math.floor(skinBounds.width / 2);
+    const dragY = skinBounds.y + Math.floor(skinBounds.height / 2);
+    window.webContents.sendInputEvent({
+      type: 'mouseDown',
+      x: dragX,
+      y: dragY,
+      button: 'left',
+      clickCount: 1,
+    });
+    window.webContents.sendInputEvent({
+      type: 'mouseMove',
+      x: dragX + 40,
+      y: dragY + 10,
+      modifiers: ['leftButtonDown'],
+    });
+    window.webContents.sendInputEvent({
+      type: 'mouseUp',
+      x: dragX + 40,
+      y: dragY + 10,
+      button: 'left',
+      clickCount: 1,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    assert.deepEqual(
+      (await window.webContents.capturePage(skinBounds)).toPNG(),
+      staticSkin,
+      'The 3D skin stays fixed over time and after dragging',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.skin-hint') === null && getComputedStyle(document.querySelector('.skin-preview canvas')).pointerEvents === 'none'`,
+      ),
+      true,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelectorAll('.account-tabs button').length === 1 && !document.querySelector('.account-tabs').textContent.includes('Offline')`,
+      ),
+      true,
+      'Premium sign-in hides the offline account choice',
+    );
+    await capture(window, 'launcher-microsoft-skin-fixture.png');
+    for (const [width, height] of [
+      [1034, 675],
+      [1280, 720],
+      [1920, 1080],
+      [3840, 2160],
+    ]) {
+      window.setContentSize(width, height);
+      await waitForPaint(window);
+      assert.equal(
+        await window.webContents.executeJavaScript(
+          `document.documentElement.scrollWidth <= innerWidth`,
+        ),
+        true,
+      );
+      assert.equal(
+        await window.webContents.executeJavaScript(
+          `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+        ),
+        true,
+      );
+      if (width === 1034) {
+        assert.equal(
+          await window.webContents.executeJavaScript(
+            `document.documentElement.scrollHeight <= innerHeight + 1`,
+          ),
+          true,
+          'The signed-in Microsoft home must fit the compact window',
+        );
+        await capture(window, 'launcher-microsoft-skin-compact-fixture.png');
+      }
+    }
+    window.setContentSize(1344, 835);
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Sign out of Microsoft"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.skin-preview') === null`,
+    );
+
+    // Exercise the offline profile form and each navigation destination.
+    await window.webContents.executeJavaScript(`
+      Array.from(document.querySelectorAll('.account-tabs button'))
+        .find(button => button.textContent.includes('Offline')).click();
+    `);
+    await waitForPaint(window);
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#minecraft-username')?.maxLength`,
+      ),
+      16,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+      ),
+      true,
+      'The offline Play button must be visible without scrolling',
+    );
+
+    await fillInput(window, '#minecraft-username', 'ProtectedPlayer');
+    await waitForRenderer(
+      window,
+      `document.querySelector('#offline-pin-confirm') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.home-player-name').textContent`,
+      ),
+      'ProtectedPlayer',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.skin-preview') === null`,
+      ),
+      true,
+    );
+    assert.equal(
+      fixtureSkinRequests,
+      1,
+      'Unsigned offline profiles must not request a skin',
+    );
+    window.setContentSize(1034, 675);
+    await waitForPaint(window);
+    await capture(window, 'launcher-offline-pin-compact.png');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.documentElement.scrollHeight <= innerHeight + 1`,
+      ),
+      true,
+      'PIN creation must fit the compact home screen',
+    );
+    window.setContentSize(1344, 835);
+    await fillInput(window, '#offline-pin', '654321');
+    await fillInput(window, '#offline-pin-confirm', '123456');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.offline-sign-in').disabled`,
+      ),
+      true,
+      'Mismatched PINs cannot be confirmed',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.play-button').disabled`,
+      ),
+      true,
+    );
+    await fillInput(window, '#offline-pin-confirm', '654321');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.offline-profile').requestSubmit()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#offline-pin') === null && document.querySelector('#offline-pin-help')?.textContent.includes('session is saved')`,
+    );
+    assert.equal(
+      fixtureGameStarts,
+      0,
+      'PIN confirmation saves a session without launching',
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-skin-state="ready"]') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.skin-preview canvas').getAttribute('aria-label').includes('ProtectedPlayer')`,
+      ),
+      true,
+      'Signed-in offline profiles get a static public skin preview',
+    );
+    await capture(window, 'launcher-offline-public-skin-fixture.png');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelectorAll('.account-tabs button').length === 1 && !document.querySelector('.account-tabs').textContent.includes('Microsoft') && document.querySelector('#minecraft-username').disabled`,
+      ),
+      true,
+      'Offline sign-in hides Microsoft and locks the profile name',
+    );
+
+    // A renderer restart restores the encrypted session and selected offline name.
+    await window.reload();
+    await waitForRenderer(
+      window,
+      `document.querySelector('#minecraft-username')?.value === 'ProtectedPlayer' && document.querySelector('#offline-pin') === null && !document.querySelector('.play-button').disabled`,
+    );
+    assert.equal(
+      fixtureGameStarts,
+      0,
+      'Restoring a session does not launch Minecraft',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.play-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.play-button')?.textContent.includes('STOP MINECRAFT')`,
+    );
+    assert.equal(fixtureGameStarts, 1);
+    await window.reload();
+    await waitForRenderer(
+      window,
+      `document.querySelector('.play-button')?.textContent.includes('STOP MINECRAFT')`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.play-button').textContent.includes('STOP MINECRAFT')`,
+      ),
+      true,
+      'Reload retains the running-game Stop action',
+    );
+    await stopFixtureGame(window);
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.play-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `!document.querySelector('.play-button').disabled`,
+    );
+    assert.equal(
+      fixtureGameStarts,
+      2,
+      'A saved session can play without entering a PIN',
+    );
+    await stopFixtureGame(window);
+    await window.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('button')).find(button => button.textContent.includes('Sign out of saved sessions')).click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#offline-pin') !== null && document.querySelector('.play-button').disabled`,
+    );
+    assert.deepEqual(
+      await fixtureSessions.read(),
+      {},
+      'Sign-out clears the saved session',
+    );
+
+    await fillInput(window, '#offline-pin', '123456');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.offline-sign-in').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[role="alert"]')?.textContent.includes('Incorrect local profile PIN')`,
+    );
+    assert.equal(
+      fixtureGameStarts,
+      2,
+      'An incorrect PIN must not reach game launch',
+    );
+    assert.deepEqual(
+      await fixtureSessions.read(),
+      {},
+      'Incorrect PINs cannot save a session',
+    );
+    assert.equal(
+      (await fixtureProfiles.status('ProtectedPlayer')).attemptsRemaining,
+      4,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Dismiss error"]').click()`,
+    );
+    await fillInput(window, '#offline-pin', '654321');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.offline-sign-in').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#offline-pin') === null && !document.querySelector('.play-button').disabled`,
+    );
+    assert.equal(
+      fixtureGameStarts,
+      2,
+      'The existing PIN must unlock the profile',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.play-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.play-button')?.textContent.includes('STOP MINECRAFT')`,
+    );
+    assert.equal(fixtureGameStarts, 3);
+    await stopFixtureGame(window);
+    fixtureOfflineSkinAvailable = false;
+    await window.reload();
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-skin-state="missing"] .player-voxel-avatar') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.skin-placeholder').textContent.includes('No public skin found')`,
+      ),
+      true,
+      'Missing public skins keep the neutral avatar',
+    );
+    fixtureOfflineSkinAvailable = true;
+    await window.reload();
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-skin-state="ready"]') !== null`,
+    );
+
+    await window.webContents.executeJavaScript(
+      `document.querySelectorAll('.nav-item')[1].click()`,
+    );
+    await checkLayout(window, 'Familiar survival. More possibilities.');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.pack-update').dataset.updateStatus`,
+      ),
+      'ready',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.pack-facts dd').textContent`,
+      ),
+      fixturePack.releaseName,
+      'Show the CurseForge release name even when its manifest version differs',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.pack-retry') === null && !document.querySelector('.pack-activity').open`,
+      ),
+      true,
+      'Automatic updates need no manual install button and activity starts collapsed',
+    );
+    await capture(window, 'launcher-modpack.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.pack-links .outline-button').click()`,
+    );
+    await checkLayout(window, 'The essentials. And your extras.');
+
+    await window.webContents.executeJavaScript(
+      `document.querySelectorAll('.nav-item')[2].click()`,
+    );
+    await checkLayout(window, 'Your next adventure has company.');
+
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').click()`,
+    );
+    await checkLayout(window, 'Ready for your setup.');
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-memory-severity="ok"]') !== null`,
+    );
+    fixtureFreeMemoryGb = 3;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Refresh memory information"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-memory-severity="warning"]') !== null`,
+    );
+    assert.match(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#memory-assessment').textContent`,
+      ),
+      /Only 3 GB is free/,
+    );
+    fixtureFreeMemoryGb = 10;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Refresh memory information"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-memory-severity="ok"]') !== null`,
+    );
+    await window.webContents.executeJavaScript(`(() => {
+      const slider = document.querySelector('#memory');
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(slider, '16');
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-memory-severity="danger"]') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.preferences-actions .play-button').disabled`,
+      ),
+      false,
+      'Memory warnings must not block saving preferences',
+    );
+    await capture(window, 'launcher-memory-warning.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.memory-recommendation button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-memory-severity="ok"]') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `Number(document.querySelector('#memory').value)`,
+      ),
+      6,
+    );
+
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="mods"]').click()`,
+    );
+    await checkLayout(window, 'The essentials. And your extras.');
+    await waitForRenderer(
+      window,
+      `document.querySelectorAll('[data-origin="bundled"]').length === 1`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('[data-origin="bundled"] .remove-mod-button') === null`,
+      ),
+      true,
+    );
+    assert.match(
+      await window.webContents.executeJavaScript(
+        `window.launcher.removeMod('required-fixture.jar').then(() => 'unexpected success', error => error.message)`,
+      ),
+      /protected/,
+    );
+
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.mods-heading .play-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelectorAll('[data-origin="personal"]').length === 1`,
+    );
+    await capture(window, 'launcher-mods-test-fixture.png');
+    assert.equal((await listMods(fixtureInstance)).personal.length, 1);
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.remove-mod-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.mods-notice')?.textContent.includes('was removed')`,
+    );
+    assert.equal((await listMods(fixtureInstance)).personal.length, 0);
+    assert.equal((await listMods(fixtureInstance)).bundled.length, 1);
+
+    showModFixture = false;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
+    );
+    await checkLayout(window, 'Welcome to Patilanci.');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="mods"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.mods-empty h3')?.textContent === 'Your collection starts with Patilanci.'`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.mods-heading .play-button').disabled`,
+      ),
+      true,
+    );
+
+    await window.webContents.executeJavaScript(
+      `document.querySelectorAll('.nav-item')[0].click()`,
+    );
+    window.setContentSize(1034, 675);
+    await checkLayout(window, 'Welcome to Patilanci.');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+      ),
+      true,
+      'The offline Play button must fit the compact window',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.documentElement.scrollHeight <= innerHeight + 1`,
+      ),
+      true,
+      'The offline home page should also fit the compact window',
+    );
+    await window.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('button')).find(button => button.textContent.includes('Sign out of saved sessions')).click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelectorAll('.account-tabs button').length === 2`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.account-tabs button').click()`,
+    );
+    await waitForPaint(window);
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+      ),
+      true,
+      'The Play button must fit the compact window',
+    );
+    await capture(window, 'launcher-compact.png');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.documentElement.scrollHeight <= innerHeight + 1`,
+      ),
+      true,
+      'The standard home page should fit the compact window',
+    );
+
+    showModFixture = true;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="mods"]').click()`,
+    );
+    await checkLayout(window, 'The essentials. And your extras.');
+    await capture(window, 'launcher-mods-compact-test-fixture.png');
+
+    await verifyResponsiveText(window, waitForPaint, capture);
+
+    startupFailure = true;
+    fixtureStartupFlow = makeFixtureStartupFlow();
+    await window.loadFile(path.join(__dirname, '../dist/index.html'));
+    await waitForRenderer(
+      window,
+      `document.querySelector('.splash-progress')?.textContent.includes('CurseForge is unreachable')`,
+    );
+    await capture(window, 'launcher-startup-failure.png');
+    startupFailure = false;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.splash-actions .play-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.app-shell') !== null`,
+    );
+    startupFailure = true;
+    fixtureStartupFlow = makeFixtureStartupFlow();
+    await window.loadFile(path.join(__dirname, '../dist/index.html'));
+    await waitForRenderer(
+      window,
+      `document.querySelector('.splash-progress')?.textContent.includes('CurseForge is unreachable')`,
+    );
+    await window.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('.splash-actions button')).find(button => button.textContent.includes('Open launcher')).click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.app-shell') !== null`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.preferences-actions .play-button')?.disabled === false`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="modpack"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.pack-retry') !== null`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.pack-retry').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.pack-update')?.dataset.updateStatus === 'ready' && document.querySelector('.pack-retry') === null`,
+    );
+    assert.equal(
+      retryUpdates,
+      1,
+      'Retry must run the update and restore the ready view',
+    );
+    startupFailure = false;
+    fixtureLauncherUpdate = {
+      status: 'downloaded',
+      version: '1.0.0',
+      latestVersion: '1.1.0',
+    };
+    fixtureStartupFlow = makeFixtureStartupFlow();
+    await window.loadFile(path.join(__dirname, '../dist/index.html'));
+    await waitForRenderer(
+      window,
+      `document.querySelector('.splash-actions .play-button')?.textContent.includes('Restart and update')`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.app-shell') === null`,
+      ),
+      true,
+      'Downloaded launcher updates stay in the splash until restart',
+    );
+    await capture(window, 'launcher-startup-update-ready.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.splash-actions .play-button').click()`,
+    );
+    assert.equal(fixtureLauncherInstalls, 1);
+    fixtureLauncherUpdate = { status: 'current', version: '1.0.0' };
+    fixtureStartupFlow = makeFixtureStartupFlow();
+    await window.loadFile(path.join(__dirname, '../dist/index.html'));
+    await waitForRenderer(
+      window,
+      `document.querySelector('.app-shell') !== null`,
+    );
+
+    console.log('Electron UI checks passed:', JSON.stringify(home));
+    console.log(
+      'Verified 100% zoom, zoom input blocking, reload reset, all five pages, mod protections, and both window sizes.',
+    );
+    const closed = new Promise((resolve) => window.once('closed', resolve));
+    window.webContents
+      .executeJavaScript(
+        `document.querySelector('[aria-label="Close launcher"]').click()`,
+      )
+      .catch(() => {});
+    await closed;
+    assert.equal(
+      window.isDestroyed(),
+      true,
+      'The custom Close control must close the native window',
+    );
+    await fs.rm(fixtureDirectory, { recursive: true, force: true });
+    app.exit(0);
+  } catch (error) {
+    console.error(error);
+    if (fixtureDirectory)
+      await fs.rm(fixtureDirectory, { recursive: true, force: true });
+    app.exit(1);
+  }
+});

@@ -1,0 +1,212 @@
+.home-world-banner.has-player {
+  min-height: 230px;
+}
+
+.home-banner-copy {
+  flex: 1;
+}
+
+.home-banner-copy h2 .home-player-name {
+  text-transform: none;
+}
+
+.home-presence {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #c0b49d;
+  margin-top: 12px;
+  font-size: var(--text-caption);
+}
+
+.home-presence.is-online {
+  color: #c4d6aa;
+}
+
+.home-presence.is-online .status-dot {
+  background: #a2cb7d;
+  box-shadow: 0 0 10px #a2cb7d66;
+}
+
+.home-player-stage {
+  position: relative;
+  width: 190px;
+  flex-shrink: 0;
+}
+
+.home-player-stage.has-skin {
+  height: 190px;
+}
+
+.home-profile-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  padding: 3px 6px;
+  color: #d0dabc;
+  background: #171b17d9;
+  border: 1px solid #7f9a6140;
+  border-radius: 3px;
+  font-size: var(--text-caption);
+}
+
+.skin-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 80%, #f2b6321a, transparent 65%);
+}
+
+.skin-preview::before {
+  content: '';
+  position: absolute;
+  bottom: 20px;
+  left: 20%;
+  width: 60%;
+  height: 16px;
+  border: 1px solid #c1a35c55;
+  border-radius: 50%;
+  background: #1a171bc4;
+  box-shadow: 0 0 20px #f2b6320d;
+}
+
+.skin-preview canvas {
+  display: block;
+  position: relative;
+  max-width: 100%;
+  pointer-events: none;
+}
+
+.skin-preview:not([data-skin-state='ready']) canvas {
+  visibility: hidden;
+}
+
+.skin-hint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: #d1b790;
+  text-align: center;
+  pointer-events: none;
+  font-size: var(--text-caption);
+}
+
+.skin-placeholder {
+  position: absolute;
+  inset: 25px 0 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: #d0b487;
+  text-align: center;
+  font-size: var(--text-caption);
+}
+
+.skin-placeholder .player-voxel-avatar {
+  height: calc(100% - 32px);
+  max-height: 96px;
+  min-height: 0;
+  flex-shrink: 1;
+}
+
+.home-profile-mark {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  padding: 5px 0;
+}
+
+.home-profile-emblem {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  color: #efcd8c;
+  font-size: 1.7rem;
+  font-family: var(--font-display);
+  background: linear-gradient(135deg, #463a27, #211b1b);
+  border: 1px solid #917345;
+  box-shadow: 4px 4px #101214a6;
+}
+
+.home-profile-mark strong {
+  color: #ecd8b5;
+  font-size: var(--text-small);
+}
+
+.home-profile-mark > span {
+  color: #b7a48c;
+  font-size: var(--text-caption);
+}
+
+@media (max-height: 780px) {
+  .is-home .page-heading p {
+    display: none;
+  }
+
+  .home-world-banner,
+  .home-world-banner.has-player {
+    min-height: 132px;
+  }
+
+  .home-player-stage {
+    width: 145px;
+  }
+
+  .home-player-stage.has-skin {
+    height: 108px;
+  }
+
+  .home-profile-badge {
+    top: -12px;
+    padding: 2px 4px;
+  }
+
+  .home-connection-word {
+    display: none;
+  }
+
+  .home-presence {
+    margin-top: 7px;
+  }
+
+  .home-profile-mark {
+    gap: 5px;
+  }
+
+  .home-profile-emblem {
+    width: 34px;
+    height: 34px;
+    font-size: 1.35rem;
+  }
+
+  .home-world-banner:not(.has-player) .home-profile-emblem,
+  .skin-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .home-world-banner {
+    gap: 12px;
+  }
+
+  .home-player-stage {
+    width: 145px;
+  }
+
+  .home-banner-copy h2 {
+    font-size: 1.7rem;
+  }
+}

@@ -1,0 +1,586 @@
+/* Shared text sizes live in style.css. Layout changes make room for those sizes. */
+p,
+h1,
+h2,
+h3,
+strong,
+small,
+label,
+button,
+span {
+  overflow-wrap: anywhere;
+}
+
+button,
+input,
+.panel {
+  min-width: 0;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  padding: 18px 14px;
+}
+
+.community-note {
+  display: none;
+}
+
+.settings-link {
+  padding: 10px 6px;
+  gap: 8px;
+  text-align: left;
+}
+
+.brand-link {
+  flex-shrink: 0;
+  padding: 0 4px 20px;
+}
+
+.brand-logo {
+  width: clamp(112px, 11vw, 175px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.brand-caption {
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.nav-caption,
+.breadcrumb > span,
+.private-label,
+.hero-badge,
+.hero-caption,
+.world-details small {
+  letter-spacing: 0.08em;
+}
+
+.nav-item {
+  min-height: 48px;
+  padding: 12px 10px;
+}
+
+.nav-item > span,
+.player > div:not(.player-avatar),
+.sidebar-profile > div:not(.profile-avatar),
+.install-state > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.nav-item small {
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.sidebar-profile strong {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.main-shell {
+  margin-left: var(--sidebar-width);
+}
+
+.topbar {
+  min-height: 58px;
+  height: auto;
+  gap: 18px;
+  padding: 12px var(--page-padding);
+}
+
+.breadcrumb {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.page-content {
+  max-width: 1920px;
+  padding: clamp(18px, 1.6vw, 34px) var(--page-padding) 24px;
+}
+
+.page-heading {
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.page-heading .overline {
+  letter-spacing: 0.1em;
+}
+
+.home-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.43fr);
+  gap: 22px;
+  align-items: start;
+}
+
+/* The full-width account panel keeps the main action above secondary content. */
+.home-grid > .account-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  column-gap: 24px;
+}
+
+.home-grid > .account-panel > .section-heading,
+.home-grid > .account-panel > .progress-summary,
+.home-grid > .account-panel > .progress-track {
+  grid-column: 1 / -1;
+}
+
+.home-grid > .account-panel > .account-tabs,
+.home-grid > .account-panel > .account-details,
+.home-grid > .account-panel > .offline-profile {
+  grid-column: 1;
+}
+
+.home-grid > .account-panel > .play-area {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  border-top: 0;
+  border-left: 1px solid #453436;
+  padding: 0 0 0 24px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+}
+
+.hero {
+  min-height: 320px;
+  height: auto;
+}
+
+.hero-copy {
+  padding: clamp(22px, 2vw, 38px);
+}
+
+.hero-badge {
+  max-width: 100%;
+}
+
+.hero h2 {
+  line-height: 1.2;
+}
+
+.hero-copy p {
+  line-height: 1.7;
+}
+
+.hero-caption {
+  position: relative;
+  flex-wrap: wrap;
+}
+
+.hero-caption > span {
+  min-width: 0;
+}
+
+.world-details {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.world-details > div,
+.world-details > button {
+  padding: 4px 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.world-details > div > span,
+.world-details > button > span {
+  min-width: 0;
+  flex: 1 1 80px;
+}
+
+.world-details strong {
+  white-space: normal;
+}
+
+.player-count,
+.section-heading,
+.player-panel-footer,
+.account-tabs button,
+.account-details,
+.play-area,
+.progress-summary,
+.page-footer,
+.button-row,
+.preferences-actions,
+.mods-heading,
+.mods-toolbar,
+.mods-tabs,
+.mods-message,
+.mods-notice {
+  flex-wrap: wrap;
+}
+
+.player-empty p {
+  max-width: 30ch;
+}
+
+.player-list {
+  max-height: 24rem;
+}
+
+.account-details > div:not(.account-symbol) {
+  min-width: 0;
+  flex: 1 1 160px;
+}
+
+.outline-button,
+.play-button,
+.mods-tabs button,
+.mod-lock,
+.remove-mod-button {
+  white-space: normal;
+  line-height: 1.5;
+}
+
+.play-button {
+  min-height: 48px;
+}
+
+.install-state {
+  min-width: 0;
+}
+
+.progress-summary {
+  min-height: 1.5em;
+}
+
+.progress-summary > span:not(.status-dot) {
+  min-width: 0;
+  flex: 1;
+}
+
+.page-footer,
+.error-banner {
+  line-height: 1.65;
+}
+
+.server-address {
+  text-align: left;
+  min-width: 0;
+}
+
+.community-grid {
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.2fr);
+}
+
+.modpack-feature {
+  grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1fr);
+}
+
+.modpack-cover .brand-logo {
+  width: min(80%, 310px);
+  height: auto;
+}
+
+.modpack-copy p {
+  max-width: 50ch;
+}
+
+.feature-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.console {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.preferences {
+  max-width: 1050px;
+}
+
+.settings-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.settings-group label span {
+  float: none;
+}
+
+.mods-heading h2 {
+  font-size: var(--text-heading);
+}
+
+.mods-search {
+  flex: 1 1 180px;
+  max-width: 320px;
+  min-width: 0;
+}
+
+.mods-search input {
+  width: 100%;
+}
+
+.mod-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(80px, 0.24fr) auto;
+}
+
+.mod-file,
+.mod-version {
+  max-width: none;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.mod-missing {
+  grid-column: 2;
+}
+
+@media (max-width: 1400px) {
+  .community-note {
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 14px;
+  }
+
+  .private-label {
+    max-width: 160px;
+    letter-spacing: 0.04em;
+  }
+
+  .hero-caption {
+    padding: 12px 18px;
+    letter-spacing: 0.03em;
+  }
+
+  .world-details {
+    grid-template-columns: 1fr;
+    padding: 4px 14px;
+  }
+
+  .world-details > div,
+  .world-details > button {
+    border-right: 0;
+    border-bottom: 1px solid #302b2b;
+    padding: 12px 0;
+  }
+
+  .world-details > :last-child {
+    border-bottom: 0;
+  }
+
+  .world-details > div > span,
+  .world-details > button > span {
+    display: grid;
+    grid-template-columns: minmax(100px, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+  }
+
+  .world-details strong {
+    margin-top: 0;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-card {
+    padding: 20px;
+  }
+
+  .feature-card > svg {
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .home-grid,
+  .community-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .world-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .community-grid > .account-panel {
+    grid-row: 1;
+  }
+
+  .home-grid > .account-panel {
+    column-gap: 18px;
+    padding: 18px;
+  }
+
+  .home-grid > .account-panel > .play-area {
+    padding-left: 18px;
+  }
+
+  .account-symbol {
+    display: none;
+  }
+
+  .account-tabs button {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .account-details {
+    gap: 10px;
+  }
+
+  .home-grid > .account-panel .account-details > .outline-button {
+    margin-left: 0;
+  }
+
+  .modpack-feature {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modpack-cover {
+    min-height: 260px;
+    border-right: 0;
+    border-bottom: 1px solid #3d302b;
+    padding: 20px;
+  }
+
+  .modpack-cover .brand-logo {
+    width: 190px;
+  }
+
+  .modpack-cover > span {
+    font-size: var(--text-subtitle);
+    margin-top: 0;
+    letter-spacing: 0.2em;
+  }
+
+  .mods-panel {
+    padding: 20px;
+  }
+
+  .mods-toolbar {
+    gap: 12px;
+  }
+
+  .mods-tabs {
+    flex-basis: 100%;
+  }
+
+  .mods-search {
+    margin-left: 0;
+    max-width: none;
+  }
+
+  .mod-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px 12px;
+  }
+
+  .mod-info {
+    grid-column: 2 / -1;
+  }
+
+  .mod-version {
+    grid-column: 2;
+  }
+
+  .mod-lock,
+  .remove-mod-button {
+    grid-column: 3;
+  }
+
+  .page-footer > span {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-height: 900px) {
+  .community-note {
+    display: none;
+  }
+
+  .brand-link {
+    padding-bottom: 12px;
+  }
+
+  .brand-link .brand-logo {
+    width: 116px;
+  }
+
+  .nav-caption {
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }
+
+  .sidebar-profile {
+    margin-top: 10px;
+    padding: 12px 4px;
+  }
+}
+
+@media (max-height: 780px) {
+  .brand-link .brand-logo {
+    width: 96px;
+  }
+
+  .sidebar {
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+
+  .nav-item small {
+    display: none;
+  }
+
+  .sidebar-bottom {
+    padding-top: 0;
+  }
+
+  .page-heading {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-content {
+    padding-top: 16px;
+  }
+
+  .home-grid > .account-panel > .section-heading {
+    margin-bottom: 10px;
+  }
+
+  .home-grid > .account-panel > .account-details {
+    padding: 10px 0;
+  }
+}
+
+@media (min-width: 1920px) {
+  .home-grid > .account-panel {
+    padding: 28px;
+  }
+
+  .player-panel,
+  .pack-card,
+  .feature-card,
+  .mods-panel {
+    padding: 28px;
+  }
+}
+
+@media (min-width: 1600px) and (min-height: 1200px) {
+  .community-note {
+    display: block;
+  }
+}

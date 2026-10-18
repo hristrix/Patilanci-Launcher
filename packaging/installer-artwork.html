@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Patilanci setup artwork</title>
+    <style>
+      @font-face {
+        font-family: Oswald;
+        src: url('../node_modules/@fontsource/oswald/files/oswald-latin-600-normal.woff2');
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: Manrope;
+        src: url('../node_modules/@fontsource/manrope/files/manrope-latin-500-normal.woff2');
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        color: #f4e7cf;
+        background: #0b0b0d;
+        font-family: Manrope, sans-serif;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 80% 16%, #f2b63218, transparent 65%),
+          linear-gradient(155deg, #171719, #0b0b0d 70%);
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        opacity: 0.38;
+        background-image:
+          linear-gradient(#f4e7cf0b 1px, transparent 1px),
+          linear-gradient(90deg, #f4e7cf0b 1px, transparent 1px);
+        background-size: 24px 24px;
+        mask-image: linear-gradient(black, transparent 85%);
+      }
+      .accent {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #e53935, #f2b632);
+      }
+      .sidebar {
+        padding: 20px 17px;
+      }
+      .eyebrow {
+        position: relative;
+        color: #f2b632;
+        font-size: 8px;
+        letter-spacing: 2px;
+      }
+      .logo {
+        position: absolute;
+        width: 144px;
+        height: 144px;
+        top: 40px;
+        left: 10px;
+        object-fit: contain;
+      }
+      h1 {
+        position: absolute;
+        top: 171px;
+        left: 18px;
+        margin: 0;
+        font:
+          600 23px/1.15 Oswald,
+          sans-serif;
+        letter-spacing: 0.3px;
+      }
+      .subtitle {
+        position: absolute;
+        top: 237px;
+        left: 18px;
+        color: #b9ae9e;
+        font-size: 9px;
+        line-height: 1.7;
+      }
+      .blocks {
+        position: absolute;
+        bottom: -20px;
+        right: -20px;
+        width: 142px;
+        height: 70px;
+        transform: skewY(-25deg);
+      }
+      .blocks i {
+        display: block;
+        position: absolute;
+        width: 42px;
+        height: 42px;
+        border: 1px solid #f2b63230;
+        background: linear-gradient(135deg, #f2b63216, #0b0b0d);
+        box-shadow: -7px 7px 0 #080809;
+      }
+      .blocks i:nth-child(1) {
+        left: 0;
+        top: 24px;
+      }
+      .blocks i:nth-child(2) {
+        left: 46px;
+        top: 0;
+      }
+      .blocks i:nth-child(3) {
+        left: 92px;
+        top: 24px;
+        border-color: #e5393540;
+      }
+      .header .logo {
+        top: 0;
+        left: 3px;
+        width: 57px;
+        height: 57px;
+      }
+      .header .eyebrow {
+        position: absolute;
+        top: 18px;
+        left: 64px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        font-family: Oswald;
+      }
+      .header small {
+        position: absolute;
+        top: 34px;
+        left: 65px;
+        color: #b9ae9e;
+        font-size: 7px;
+        letter-spacing: 1px;
+      }
+      .header h1,
+      .header .subtitle,
+      .header .blocks {
+        display: none;
+      }
+      .tile .logo {
+        top: 8%;
+        left: 8%;
+        width: 84%;
+        height: 84%;
+      }
+      .tile .eyebrow,
+      .tile h1,
+      .tile .subtitle,
+      .tile .blocks {
+        display: none;
+      }
+      .wide .logo {
+        top: 7%;
+        left: 6%;
+        width: 42%;
+        height: 86%;
+      }
+      .wide h1 {
+        top: 33%;
+        left: 52%;
+        font-size: 22px;
+      }
+      .wide .eyebrow,
+      .wide .subtitle,
+      .wide .blocks {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene"></div>
+    <div class="grid"></div>
+    <main class="sidebar">
+      <div class="accent"></div>
+      <div class="eyebrow">THE PATILANCI NETWORK</div>
+      <img
+        class="logo"
+        src="../public/brand/patilanci-smp.svg"
+        alt="Patilanci"
+      />
+      <h1>YOUR WORLD.<br />YOUR ADVENTURE.</h1>
+      <div class="subtitle">One community.<br />A world of possibilities.</div>
+      <div class="blocks"><i></i><i></i><i></i></div>
+      <small hidden>LAUNCHER</small>
+    </main>
+    <script>
+      const layout = new URLSearchParams(location.search).get('layout');
+      document.body.className = layout;
+      if (layout === 'header') document.querySelector('small').hidden = false;
+    </script>
+  </body>
+</html>

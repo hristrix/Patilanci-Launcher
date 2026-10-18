@@ -1,0 +1,389 @@
+/* Home keeps account controls, a small world banner, and three useful links. */
+.offline-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.offline-fields > div {
+  min-width: 0;
+}
+
+.offline-fields label {
+  display: block;
+}
+
+.is-home .home-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.home-overview > * {
+  width: 100%;
+}
+
+.is-home .page-heading .overline,
+.home-overview > .account-panel > .section-heading .overline,
+.is-home .page-footer > span {
+  display: none;
+}
+
+.is-home .page-heading h1 {
+  margin-top: 0;
+}
+
+.home-world-banner {
+  position: relative;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 28px;
+  border: 1px solid #645037;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #24241f;
+  box-shadow:
+    inset 0 1px #f2b63214,
+    0 12px 30px #0002;
+}
+
+.home-world-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-left: 3px solid var(--gold);
+  background: linear-gradient(0deg, #f2b63208, transparent 50%);
+}
+
+.home-world-banner .world-scene {
+  width: 100%;
+  height: 440px;
+  top: -128px;
+  opacity: 0.9;
+}
+
+.home-banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #141719f5 2%,
+    #16191cbb 40%,
+    #181b1840 72%,
+    #14171930
+  );
+}
+
+.home-banner-copy,
+.home-world-banner > button {
+  position: relative;
+}
+
+.home-banner-copy {
+  min-width: 0;
+}
+
+.home-banner-eyebrow {
+  display: block;
+  color: #dfbd84;
+  font-size: var(--text-caption);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.home-banner-copy h2 {
+  margin: 6px 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 2.8vw, 3rem);
+  font-weight: 600;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--cream);
+  text-shadow: 0 3px 12px #0005;
+}
+
+.home-banner-copy h2 span {
+  color: var(--gold);
+}
+
+.home-banner-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-small);
+  color: #d4c5b5;
+}
+
+.home-banner-meta > span:not(.home-pixel-mark) {
+  color: #97866f;
+}
+
+.home-pixel-mark {
+  width: 7px;
+  height: 7px;
+  background: #acc48c;
+  box-shadow: 2px 2px #557043;
+}
+
+.home-world-banner > button {
+  flex-shrink: 0;
+}
+
+.home-overview > .account-panel {
+  position: relative;
+  padding: 18px 20px;
+  border-color: #443637;
+  background:
+    radial-gradient(ellipse at 100% 0%, #5d32211c, transparent 65%), #141416;
+  box-shadow: 0 8px 24px #0002;
+}
+
+.home-overview > .account-panel::before {
+  content: '';
+  position: absolute;
+  height: 2px;
+  top: -1px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(90deg, var(--red), #bb7933 60%, transparent);
+}
+
+.home-overview .panel-heading-icon {
+  color: #b79a6b;
+}
+
+.home-overview > .account-panel > .section-heading {
+  margin-bottom: 12px;
+}
+
+.home-quick-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-quick-status > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px 14px;
+  min-height: 68px;
+  border: 1px solid #332d2b;
+  border-radius: 5px;
+  background: var(--control-card);
+  text-align: left;
+  color: #c5b5a0;
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+
+.home-quick-status > button:hover {
+  background: var(--control-surface-hover);
+  border-color: var(--control-border-hover);
+}
+
+.home-shortcut-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  background: #b58c4a12;
+  border: 1px solid #a78a4e26;
+  border-radius: 4px;
+}
+
+.home-shortcut-icon.is-players {
+  background: #9bbf7a0d;
+  border-color: #9bbf7a28;
+}
+
+.home-shortcut-icon.is-mods {
+  background: #e539350d;
+  border-color: #e539352b;
+}
+
+.home-shortcut-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.home-shortcut-copy strong,
+.home-shortcut-copy small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.home-shortcut-copy strong {
+  color: #eadbc5;
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.home-shortcut-copy small {
+  color: #b6a38b;
+  margin-top: 4px;
+  font-size: var(--text-caption);
+}
+
+.home-shortcut-arrow {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.home-quick-status svg {
+  color: #b69763;
+}
+
+.is-home .page-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.memory-system {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 0;
+  color: #cbb797;
+  font-size: var(--text-small);
+}
+
+.memory-system > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.memory-system small {
+  margin-top: 3px;
+}
+
+.memory-assessment {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #3c4930;
+  border-radius: 5px;
+  background: #1b2419;
+  padding: 15px;
+  color: #bace9d;
+  font-size: var(--text-small);
+}
+
+.memory-assessment > svg {
+  margin-top: 2px;
+}
+
+.memory-assessment > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.memory-assessment strong {
+  display: block;
+  font-weight: 700;
+}
+
+.memory-assessment p {
+  margin-top: 7px;
+  line-height: 1.75;
+  color: #c4bcaf;
+}
+
+.memory-assessment.is-warning {
+  background: #30271a;
+  border-color: #78602f;
+  color: #f0c26b;
+}
+
+.memory-assessment.is-danger {
+  background: #361f1f;
+  border-color: #86413b;
+  color: #f5a08d;
+}
+
+.memory-assessment.is-unknown {
+  border-color: #40383d;
+  background: #1c191e;
+}
+
+.memory-assessment.is-unknown p {
+  margin-top: 0;
+}
+
+.memory-recommendation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.memory-estimate-note {
+  line-height: 1.65;
+}
+
+@media (max-height: 780px) {
+  .is-home .home-overview {
+    gap: 12px;
+  }
+
+  .home-world-banner {
+    min-height: 104px;
+    padding: 12px 18px;
+  }
+
+  .home-banner-copy h2 {
+    margin: 4px 0 7px;
+    font-size: 1.9rem;
+  }
+
+  .home-quick-status > button {
+    min-height: 58px;
+    padding: 7px 12px;
+    gap: 9px;
+  }
+
+  .home-shortcut-icon {
+    width: 29px;
+    height: 29px;
+  }
+
+  .home-shortcut-arrow {
+    display: none;
+  }
+
+  .home-overview > .account-panel {
+    padding: 15px 18px;
+  }
+
+  .home-overview > .account-panel > .section-heading {
+    margin-bottom: 8px;
+  }
+
+  .is-home .page-content {
+    padding-bottom: 10px;
+  }
+
+  .is-home .page-footer {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-quick-status {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-world-banner {
+    flex-wrap: wrap;
+  }
+}

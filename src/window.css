@@ -1,0 +1,128 @@
+:root {
+  --titlebar-height: 38px;
+}
+
+body {
+  padding-top: var(--titlebar-height);
+}
+
+.app-shell {
+  min-height: calc(100vh - var(--titlebar-height));
+}
+
+.sidebar {
+  top: var(--titlebar-height);
+}
+
+.window-titlebar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  height: var(--titlebar-height);
+  padding-left: 14px;
+  color: #d5c3a6;
+  background: linear-gradient(90deg, #211b1a, #101013 40%, #141316);
+  border-bottom: 1px solid #4a342b;
+  box-shadow: inset 0 1px #f2b6320b;
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+
+.window-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.window-brand > img {
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+}
+
+.window-brand > strong {
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.07em;
+}
+
+.window-brand > strong > span {
+  color: #caba9f;
+  margin-left: 3px;
+}
+
+.window-brand-divider {
+  width: 1px;
+  height: 13px;
+  background: #5b4533;
+  margin: 0 3px;
+}
+
+.window-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #c9b99f;
+  font-size: var(--text-caption);
+}
+
+.window-titlebar-note {
+  margin-left: auto;
+  color: #a69276;
+  font-size: var(--text-caption);
+  letter-spacing: 0.06em;
+}
+
+.window-controls {
+  display: flex;
+  height: 100%;
+  align-self: stretch;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.window-control {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 100%;
+  color: #d2c3ae;
+  border-left: 1px solid transparent;
+  border-radius: 0;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.window-folder {
+  border-right: 1px solid #352a29;
+  margin-right: 6px;
+}
+
+.window-control:hover:not(:disabled) {
+  background: var(--control-surface-hover);
+  color: var(--cream);
+}
+
+.window-close:hover:not(:disabled) {
+  background: var(--control-primary);
+  color: white;
+}
+
+.window-control:focus-visible {
+  outline-offset: -4px;
+}
+
+@media (max-width: 1100px) {
+  .window-titlebar-note {
+    display: none;
+  }
+}

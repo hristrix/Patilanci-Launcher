@@ -1,0 +1,183 @@
+/* Shared button treatments. Pages only control placement and layout. */
+:root {
+  --control-radius: 4px;
+  --control-primary: linear-gradient(180deg, #ee5142, #cf342d);
+  --control-primary-hover: linear-gradient(180deg, #fa6452, #e03c31);
+  --control-surface: linear-gradient(180deg, #2c2522, #201b1b);
+  --control-surface-hover: linear-gradient(180deg, #3b3026, #2d241f);
+  --control-selected: linear-gradient(180deg, #352c24, #251f1c);
+  --control-border: #66503d;
+  --control-border-hover: #a47b49;
+  --control-card: linear-gradient(120deg, #1d1b1c, #121214);
+}
+
+.play-button,
+.outline-button,
+.remove-mod-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  line-height: 1.5;
+  font-weight: 700;
+  white-space: normal;
+}
+
+.play-button {
+  min-height: 48px;
+  padding: 12px 18px;
+  color: #fff3de;
+  background: var(--control-primary);
+  border-color: #f0634d;
+  border-top-color: #ff9477;
+  border-bottom-color: #a62723;
+  box-shadow:
+    0 4px 0 #7f211f,
+    inset 0 1px #ffd8b32e,
+    0 8px 24px #e5393518;
+  font-family: var(--font-display);
+  font-size: var(--text-subtitle);
+  font-weight: 600;
+  letter-spacing: 0.8px;
+}
+
+.play-area .play-button {
+  min-height: 58px;
+}
+
+.play-button:hover:not(:disabled) {
+  background: var(--control-primary-hover);
+  transform: translateY(-1px);
+}
+
+.play-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #7f211f;
+}
+
+.play-button > svg:last-child:not(:first-child) {
+  margin-left: 9px;
+}
+
+.outline-button {
+  min-height: 40px;
+  padding: 9px 11px;
+  color: #dfc69c;
+  background: var(--control-surface);
+  box-shadow: inset 0 1px #f4e7cf09;
+  font-size: var(--text-small);
+}
+
+.outline-button:hover:not(:disabled) {
+  background: var(--control-surface-hover);
+  border-color: var(--control-border-hover);
+}
+
+.outline-button:active:not(:disabled) {
+  background: #241d19;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 7px;
+  color: #c5b5a0;
+  background: var(--control-surface);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--control-surface-hover);
+  border-color: var(--control-border-hover);
+}
+
+.account-tabs button,
+.mods-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--control-radius);
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
+
+.account-tabs button {
+  flex: 1;
+}
+
+.account-tabs button:hover:not(:disabled),
+.mods-tabs button:hover:not(:disabled) {
+  background: var(--control-surface);
+  border-color: var(--control-border);
+}
+
+.account-tabs button.is-selected,
+.mods-tabs button[aria-selected='true'] {
+  background: var(--control-selected);
+  border-color: #715334;
+  color: #ead8bd;
+  box-shadow:
+    inset 0 1px #f4e7cf0a,
+    0 2px 5px #0003;
+}
+
+.account-tabs button.is-selected > svg:last-child {
+  color: var(--gold);
+}
+
+.remove-mod-button {
+  min-width: 81px;
+  min-height: 36px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #402124, #2d191b);
+  border-color: #794039;
+  color: #f0b3a4;
+  font-size: var(--text-small);
+}
+
+.remove-mod-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #5b2c2d, #3e2023);
+  border-color: #ad6052;
+}
+
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  color: #c5b5a0;
+  font-size: var(--text-small);
+}
+
+:is(.text-button, .refresh-link, .server-address):hover:not(:disabled) {
+  color: var(--cream);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+}

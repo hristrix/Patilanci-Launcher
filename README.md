@@ -1,0 +1,106 @@
+# Patilanci Launcher
+
+Electron + React + Tailwind CSS desktop launcher for `hushed-mongoose.shulker.com`, using CurseForge project **1746375** (Patilanci SMP). Includes Microsoft sign-in, offline profiles, live server counts and player samples, automatic Fabric pack installation and updates, download progress, Java path and memory settings.
+
+## Run
+
+Requires Node.js 22+ and Java 21 installed separately.
+
+```sh
+npm install
+npm start
+```
+
+On PowerShell systems that block npm.ps1, use `npm.cmd` instead of `npm`.
+
+If the Windows graphics driver causes the normal launcher process to exit during startup, use `npm run start:compat` to disable hardware acceleration. The 3D skin preview is also exercised in this mode by `npm run test:desktop -- --disable-gpu`; it falls back to an unavailable message if WebGL cannot initialize.
+
+Player settings contain memory allocation and the Java path. Download credentials are managed outside the player UI. When an HTTPS download service is configured, new players fetch the latest pack through that service without receiving the CurseForge credential. When no service is configured, the developer installation can still use its previously provisioned encrypted local key with Electron safeStorage. Saving player preferences preserves that encrypted value, and the renderer cannot replace it. No key is hardcoded or included in this source. The public service URL is currently unset, so downloads on a fresh player computer still require deployment and configuration of the service described below.
+
+Microsoft sign-in opens the MSMC Microsoft authorization window and requires a Minecraft Java entitlement. Sessions are saved in `session.enc` beside launcher settings using Electron's operating-system encryption. The Microsoft refresh token stays in the main process, restores sign-in on restart, and renews expired Minecraft credentials before Play. A temporary restoration failure keeps the saved token for a later retry; revoked authorization requires signing in again. Offline profiles use a local username and work only if the server accepts offline clients. They do not bypass online-mode authentication or a whitelist.
+
+Home personalizes the banner and sidebar with the active player's name. A Microsoft account uses the Minecraft Java profile name and active skin returned by sign-in. Skin PNGs are fetched in the main process from the official `textures.minecraft.net` host with a size limit and returned as image data without tokens. The bundled `skinview3d` renderer supports classic and slim models in a fixed three-quarter pose. Dragging, camera controls, automatic rotation, and idle animation are disabled. It renders once after loading and redraws when resized, without a continuous animation loop. Signing out or leaving Home disposes of the renderer. A missing texture or unavailable WebGL shows a fallback message. Signed-in offline profiles resolve a public skin by nickname through Ely.by, which also proxies public Minecraft skins. These previews use the same static 3D renderer and remain labelled as offline profiles. Unauthenticated names trigger no skin requests. Unknown names keep the neutral voxel avatar. The banner also displays actual server counts and latency when available.
+
+Signing in does not download Minecraft. On Play, both account types use the same instance at `%APPDATA%/patilanci-launcher/instances/patilanci`: the launcher core downloads missing Minecraft client files, assets, and libraries there before starting the game. Existing files are reused. Java 21 must already be installed.
+
+After sign-in, the account panel shows only the active account type. Sign out before switching between Microsoft and offline profiles or changing the offline name. Account changes are blocked while Minecraft is running. While the game runs, Play becomes **Stop Minecraft**; stopping targets the game process launched by this launcher (including its process tree on Windows). **Stopping…** remains disabled until that process exits, and closing the game normally also restores Play. Renderer reloads retain the running-game state.
+
+Offline profiles require a local 6–12 digit PIN. First use asks for confirmation. Successful PIN verification saves that profile's session on this computer, so subsequent plays and launcher restarts do not require the PIN again. The last authenticated account mode and offline name are restored. Signing out clears saved sessions for both account types; the next offline sign-in requires the existing PIN. PINs themselves are never saved in the session. PINs use random salts and scrypt hashes with a constant-time comparison. Five incorrect attempts lock that profile for five minutes, including across launcher restarts. Profile names are matched without regard to case while preserving the original spelling used for the offline UUID. PIN records live in `offline-profiles.json` beside launcher settings, outside the instance, and contain no plaintext PINs. The renderer receives only protection status, and PINs are never sent to Minecraft or the server. Corrupt records block verification rather than resetting protection. Only one launcher instance runs at a time so concurrent windows cannot race PIN counters or installations. There is no automatic PIN reset in the UI. This protects casual use of this launcher on this computer; someone with control of local files or another launcher can bypass it. Server identity protection requires server-side authentication.
+
+The launcher requires the newest published client pack on every Play, including beta or alpha releases when those are newer. It reads every page of the CurseForge file list, compares publication dates (then file IDs when dates match), and excludes server packs. The selected manifest provides the exact Fabric loader and mod versions; individual mods are not independently upgraded beyond that manifest. The launcher checks again after installation, before preparing Minecraft. A failed check, unavailable newest file, or release published during installation blocks launching an older pack. There is no cached-version fallback or version selector. A valid API key and internet access are required for every launch. Verification reflects the CurseForge API response at the time of the check; an already running game is not interrupted when a new pack is published.
+
+Startup opens a branded splash before Home. Its ordered checks are launcher updates, saved Microsoft/offline session restoration, and the newest CurseForge client pack. Microsoft refresh tokens are renewed automatically; a session that cannot be restored is retained and marked as needing sign-in on Home. Offline sessions are checked against the local PIN profile records without asking for an already verified PIN. No saved account is required to prepare the pack. The launcher automatically installs the pack on first use or downloads a changed release; matching file IDs skip downloads. Renderer reloads share the startup operation. Failed startup checks show Retry startup and Open launcher recovery actions. Play still requires a successful latest-pack check. Saves, settings, and personal mods retain the preservation rules described above.
+
+## Launcher application updates
+
+Installed production Windows NSIS builds use `electron-updater` with public GitHub Releases from [hristrix/Patilanci-Launcher](https://github.com/hristrix/Patilanci-Launcher), configured in `electron/launcher-release.cjs`. Release builds generate the GitHub update configuration and metadata automatically. Development runs, unsigned preview installers, and Store builds do not install NSIS updates.
+
+The startup splash checks the launcher first. A newer published stable release downloads automatically, with progress. Once verified by the updater, the splash offers **Restart and update** before continuing to account/modpack preparation in the new launcher. Updates never auto-install merely because the app quits. They cannot be installed while Minecraft or another launcher operation is running. During normal use the app checks again every 30 minutes while idle; Settings also has a manual check. A downloaded background update gets a restart action. Failed checks show a warning with retry and do not falsely report that the launcher is current. The modpack check remains independent.
+
+For each production release:
+
+1. Set the deployed public modpack download-service URL and configure Windows code signing as required by the production build.
+2. Increment `package.json` and `package-lock.json` to the next semantic version.
+3. Run `npm run dist`. The build prepares files locally and does not publish them.
+4. Create a non-draft, non-prerelease GitHub Release with a matching tag, for example `v1.0.1`, and attach the generated setup executable, `latest.yml`, and any generated `.blockmap` files from `release/production/installer/`.
+5. Publish the release after all of its assets have finished uploading. Keep older releases available for existing installations.
+
+The repository must be publicly accessible for credential-free client update checks. No GitHub token is shipped to players. A source-code commit or Git tag alone does not distribute an update. The configured repository had no published release when this integration was verified, so a real installed-version upgrade still requires publishing those production assets and testing from an older installed version. Build/signing and download-service prerequisites remain in force.
+
+Downloads are SHA-1 verified when CurseForge supplies that hash. Updates stage separately, preserve saves, screenshots, resource packs, shader packs, options (including keybindings and shader options), server lists, mod configuration and common minimap data, then activate with a backup of the previous instance. Existing configuration files take precedence over pack defaults; newly introduced configuration files are retained. The backup is for recovery and is never a launch target. Files disabled for third-party download stop installation with an error.
+
+Player counts come from direct Java server status queries with SRV support, refreshed every 30 seconds. Names are only those exposed in the server sample; vanilla status does not guarantee a complete roster. A complete list requires a server-side plugin/API.
+
+## Manage mods
+
+The Mods page has **Patilanci mods** and **My mods** tabs with search, versions, and filenames. Install the pack first, then choose **Add mods** to import one or more downloaded Fabric `.jar` files through the native file picker. JAR metadata is checked for Fabric support and duplicate mod IDs, aliases, and filenames. Imports are limited to 128 MB per JAR. Use mods and dependencies compatible with the pack's Minecraft version; the launcher does not download additional dependencies or guarantee compatibility for player additions.
+
+The main process records ownership in `patilanci-mods.json`. Pack-provided files (including override JARs), existing files from older launcher installations, and untracked files are protected. Only files recorded as player additions receive a Remove action, and backend removal checks enforce the same rule. Imports cannot overwrite existing files or replace a bundled mod under another filename. Add/remove operations are blocked while Minecraft or an installation is running. Removal deletes the instance copy and leaves the original imported download intact.
+
+Personal additions and their ownership records are carried into staged pack updates. Manually copied JARs added after the ownership inventory was created also survive repeated updates and remain protected from launcher removal. If a personal JAR was changed outside the launcher, its current contents and metadata are preserved. If a new required mod conflicts with an addition, the update stops before activation and asks the player to remove that addition through the Mods tab or instance folder. If an identical addition becomes part of a new pack, it becomes protected. The latest-version launch requirement still applies.
+
+## Build a Windows installer
+
+```sh
+npm run dist
+```
+
+To build an unsigned installer for local testing before the public download service and signing are configured, run `npm run dist:preview`. The setup executable is written to `release/preview/installer/Patilanci-Launcher-PREVIEW-Setup-1.0.0-x64.exe` for the current version. Preview builds include the latest launcher code but still need download-service configuration to install the modpack on a fresh computer.
+
+The Windows setup wizard includes a branded welcome page, installation scope and folder selection, progress, and a finish page with an option to open the launcher. It creates desktop and Start menu shortcuts. Reinstalling or uninstalling keeps launcher settings, saved sessions, profiles, and Minecraft instance data in the user's application-data folder. Java 21 is a separate prerequisite; the installer does not install Java or bundle the modpack.
+
+Installer output is in `release/`. `npm run dist` first checks that a public download service URL is set so a player build cannot accidentally depend on the developer computer's saved key. Configure code signing before distributing publicly. Browser-only UI preview: `npm run dev`; game and account features require Electron. `npm test` checks archive paths, settings, PIN protection, release selection, profile filtering, and the download service; `npm run build` checks the renderer build. Real Microsoft authentication, API-key downloads, Java launch and joining require valid credentials and server access and must be exercised before distribution.
+
+`npm run test:desktop` checks all five pages, mod import/removal and protection, account mode switching, logo loading, horizontal overflow, and Play button visibility at desktop and compact sizes in a hidden Electron renderer. It also runs the real WebGL skin renderer with a synthetic PNG and Microsoft profile fixture, checks signed-in Home at four sizes, and verifies signed-in offline skin previews, unsigned-profile privacy, and the missing-skin fallback. Screenshots are saved in `artifacts/`. Tests use an offline status fixture and temporary synthetic mod JARs, simulate the file picker selection, and do not access accounts, real instances, or download game files. Some moderate advisories remain in legacy transitive dependencies of the Minecraft library and build tools; review those before public distribution. Patched ZIP and multipart dependencies are pinned through overrides.
+
+The interface uses the supplied Patilanci SMP logo and the existing website palette: near-black `#0b0b0d`, cream `#f4e7cf`, red `#e53935`, and gold `#f2b632`. Manrope and Oswald are bundled locally so the interface works without an external font service. Brand assets live in `public/brand/`, and the voxel landscape is a native SVG React component in `src/components/WorldScene.jsx`.
+
+Button treatments are shared in `src/controls.css`: red gradients for primary actions, warm gold-bordered secondary and icon controls, matching selected tabs, and a darker red treatment for removals. Hover, pressed, disabled, and keyboard-focus styles apply across pages; page styles only arrange these controls.
+
+The desktop interface is locked at 100% zoom. Zoom menu commands, Ctrl/Cmd keyboard zoom shortcuts, Ctrl/Cmd+wheel zoom, and pinch zoom are disabled; resizing and ordinary scrolling remain available.
+
+The Windows launcher uses a frameless window with a custom Patilanci title bar. The brand and page-label area supports dragging, while the folder, minimize, maximize/restore, and close controls remain clickable and keyboard accessible. Native maximize and restore events keep the icon synchronized. Window actions accept only the three supported commands from the launcher's own web contents. The title bar replaces the previous breadcrumb toolbar so compact layouts retain room for Play and PIN controls.
+
+Home follows the supplied reference layout with the original voxel landscape scene, the installed Minecraft version, a custom-modpack badge, and a Patilanci red launch button on the left. A charcoal player card with gold accents on the right contains the premium skin preview or a neutral voxel avatar, account choices before sign-in, account management, player-directory access, and sign-out. Signed-in offline profiles hide their completed login fields. Home shares its red primary actions, warm gold secondary buttons, cream typography, and compact corners with the rest of the launcher. The player card uses a bounded width so its controls remain compact on wide screens. The original scene is rendered by `src/components/WorldScene.jsx`; the Warden artwork is retained as an unused alternative. Compact spacing keeps Microsoft controls and offline PIN creation visible at the minimum window size. A three-card dashboard uses spare vertical space for live server activity and sampled player names, installed pack details, and memory allocation with shortcuts to Mods and Settings. It condenses on medium-height windows and hides on short windows to keep Play and PIN controls visible. Detailed players and pack descriptions stay in their own tabs.
+
+The Modpack page shows automatic update status, the installed CurseForge release name, pack mod count, and links to Mods and CurseForge. Activity is collapsed by default. A Retry update button appears only after an unsuccessful startup or retry check. The release name comes from CurseForge metadata; the pack's internal manifest version can differ from its published filename.
+
+Memory settings read installed and free physical RAM from the main process every 10 seconds and on focus. The warning estimate reserves the larger of 2 GB or 25% of total RAM for the operating system, about 1 GB for Java outside the game heap, and 0.5 GB of current free headroom. It warns about excessive allocations, low currently free memory, and allocations below the pack's usual 4–6 GB range. A suggested 4–6 GB allocation is offered only when it fits both estimates. This is advisory, not a performance guarantee or a block on saving settings.
+
+Text uses shared responsive sizes with a 14–18 px root and captions starting at 12.25 px. Layouts wrap and reorganize as the window changes size, with the Play controls above secondary home-page content. Long mod names, filenames, versions, and player names can wrap rather than being truncated. `src/style.css` defines the typography tokens and base appearance; `src/responsive.css` defines reflow behavior. Desktop checks include all five pages at seven viewport sizes from 1034×675 through 3840×2160, test long text for clipping and horizontal overflow, and save measurements in `artifacts/responsive-report.json`.
+
+## Download service for new players
+
+The prepared Node service is `server/download-service.cjs`. Deploy it on your own server behind HTTPS and set these environment variables there:
+
+```text
+PATILANCI_CURSEFORGE_KEY=<the working CurseForge key, on the server only>
+PUBLIC_DOWNLOAD_URL=https://downloads.your-domain.example/launcher
+PORT=8787
+```
+
+The example address is a placeholder, not a deployed service. Start with `npm run start:download-service`. It listens on `127.0.0.1:8787`; the HTTPS reverse proxy must preserve the `/launcher` path prefix. A GET to `/launcher/health` returns service status. Keep the environment variables on the server; they are not part of an installer.
+
+Set `PUBLIC_DOWNLOAD_SERVICE_URL` in `electron/download-service-config.cjs` to the real public HTTPS base URL before running `npm run dist`. For local development, `PATILANCI_DOWNLOAD_SERVICE_URL` can override it. The service exposes only the Patilanci release list and files referenced by the latest client manifest; it is not a general CurseForge proxy. It validates pagination, blocks unrelated files, rewrites metadata download URLs to its own streaming endpoints, and sends the API key only to CurseForge API/CDN hosts. No credentials appear in responses or download URLs. It refreshes the manifest allowlist after a minute or when a newly published pack ID is requested.
+
+Offline skin lookup follows [Ely.by’s documented skin service](https://docs.ely.by/en/skins-system.html), used by [Legacy Launcher’s Ely.by integration](https://ely.by/load/). Requests contain only the chosen nickname, never Microsoft tokens or local PINs. The main process limits metadata and PNG sizes, accepts only approved Ely.by storage or official Minecraft texture paths over HTTPS, and refuses redirects. Public skin images are cached outside the Minecraft instance in offline-skin-cache for ten minutes, with up to seven days of cached fallback during outages; missing names and failures are retried after one minute. This changes the launcher preview only. The skin seen by other players still depends on the server or client skin system; [SkinsRestorer](https://skinsrestorer.net/docs/installation/quick-start) is a server-side option. A nickname lookup does not verify account ownership and cannot discover skins stored privately by another launcher or a server-specific plugin.
