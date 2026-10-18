@@ -2,6 +2,20 @@
 
 Electron + React + Tailwind CSS desktop launcher for `hushed-mongoose.shulker.com`, using CurseForge project **1746375** (Patilanci SMP). Includes Microsoft sign-in, offline profiles, live server counts and player samples, automatic Fabric pack installation and updates, download progress, Java path and memory settings.
 
+## Versioning
+
+Launcher versions use `MAJOR.MINOR.PATCH` independently of Minecraft and the modpack. Bug fixes and hotfixes increment patch, new compatible features increment minor, and breaking changes increment major. Documentation, formatting, and test-only changes do not require a bump. Apply one bump per completed batch, using the highest applicable level.
+
+```sh
+npm run version:patch  # Bug fix / hotfix: 1.0.0 -> 1.0.1
+npm run version:minor  # New feature: 1.0.1 -> 1.1.0
+npm run version:major  # Breaking change: 1.1.0 -> 2.0.0
+```
+
+`npm run version:hotfix` is an alias for the patch command. These commands synchronize `package.json` and `package-lock.json` without creating a commit or Git tag. Add matching release notes to `CHANGELOG.md`, run the checks appropriate to the change, and commit the version files with the implementation. Future coding work follows the repository's `AGENTS.md` versioning rules.
+
+Installers and the launcher version display use the package version. When publishing a production release, use GitHub tag `v<version>` (for example, `v1.0.1`) with the installer and updater metadata built from that same version. Bumping a version does not publish a release.
+
 ## Run
 
 Requires Node.js 22+ and Java 21 installed separately.
@@ -45,7 +59,7 @@ For each production release:
 4. Create a non-draft, non-prerelease GitHub Release with a matching tag, for example `v1.0.1`, and attach the generated setup executable, `latest.yml`, and any generated `.blockmap` files from `release/production/installer/`.
 5. Publish the release after all of its assets have finished uploading. Keep older releases available for existing installations.
 
-The repository must be publicly accessible for credential-free client update checks. No GitHub token is shipped to players. A source-code commit or Git tag alone does not distribute an update. The configured repository had no published release when this integration was verified, so a real installed-version upgrade still requires publishing those production assets and testing from an older installed version. Build/signing and download-service prerequisites remain in force.
+The repository must be publicly accessible for credential-free client update checks. No GitHub token is shipped to players. An update becomes available after the production assets are published, either by the master release workflow below or the manual process above. A real installed-version upgrade still needs testing from an older installed version. Build/signing and download-service prerequisites remain in force.
 
 Downloads are SHA-1 verified when CurseForge supplies that hash. Updates stage separately, preserve saves, screenshots, resource packs, shader packs, options (including keybindings and shader options), server lists, mod configuration and common minimap data, then activate with a backup of the previous instance. Existing configuration files take precedence over pack defaults; newly introduced configuration files are retained. The backup is for recovery and is never a launch target. Files disabled for third-party download stop installation with an error.
 
@@ -60,6 +74,26 @@ The main process records ownership in `patilanci-mods.json`. Pack-provided files
 Personal additions and their ownership records are carried into staged pack updates. Manually copied JARs added after the ownership inventory was created also survive repeated updates and remain protected from launcher removal. If a personal JAR was changed outside the launcher, its current contents and metadata are preserved. If a new required mod conflicts with an addition, the update stops before activation and asks the player to remove that addition through the Mods tab or instance folder. If an identical addition becomes part of a new pack, it becomes protected. The latest-version launch requirement still applies.
 
 ## Build a Windows installer
+
+### Automatic GitHub Releases
+
+`.github/workflows/release.yml` runs only on pushes to `master`. Pushes to other branches, pull requests, and tag pushes do not build or publish installers. Develop on feature or hotfix branches, update the version and changelog, then merge into `master` to release.
+
+Before the first release, configure the repository under **Settings > Secrets and variables > Actions**:
+
+| Type     | Name                          | Value                                                                                                  |
+| -------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Variable | `PUBLIC_DOWNLOAD_SERVICE_URL` | Deployed HTTPS URL of the public modpack download service. CI embeds this public URL in the installer. |
+| Secret   | `CSC_LINK`                    | Base64-encoded Windows code-signing PFX certificate, as supported by electron-builder.                 |
+| Secret   | `CSC_KEY_PASSWORD`            | Password for that signing certificate.                                                                 |
+
+The workflow uses GitHub's automatic `GITHUB_TOKEN` with `contents: write` permission to publish; no personal access token or CurseForge credential is needed in the workflow. Repository or organization policies must permit that permission.
+
+Each `master` push validates the version and release notes, installs locked dependencies, runs unit and desktop checks on Windows, and builds the production NSIS installer. It creates a draft release tagged `v<version>` at the pushed commit, uploads `Patilanci-Launcher-Setup-<version>-x64.exe`, `latest.yml`, and any blockmaps, then publishes it as the latest stable release. Download the installer from the repository's **Releases** section. Existing installed production launchers use the same metadata to detect updates.
+
+Published versions cannot be overwritten: increment the version and add changelog notes before another release. A failed upload leaves the release as a draft; rerunning the same commit resumes it. A draft belonging to a different commit requires a new version or removal of that abandoned draft. Missing signing or service configuration fails with an actionable error; the workflow keeps the production build requirements.
+
+### Local builds
 
 ```sh
 npm run dist

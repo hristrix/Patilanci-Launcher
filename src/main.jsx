@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { version as launcherVersion } from '../package.json';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowDownToLine,
@@ -200,7 +201,7 @@ function Sidebar({ page, onNavigate, account, mode, username }) {
         </div>
         <div className="launcher-version">
           <span>PATILANCI SMP</span>
-          <span>v1.0.0</span>
+          <span>v{launcherVersion}</span>
         </div>
       </div>
     </aside>

@@ -1,0 +1,84 @@
+name: Build and publish Windows installer
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-installer-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Validate release and configure public download service
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLIC_DOWNLOAD_SERVICE_URL: ${{ vars.PUBLIC_DOWNLOAD_SERVICE_URL }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: node packaging/prepare-release.cjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test launcher
+        run: npm test
+
+      - name: Build renderer for desktop checks
+        run: npm run build
+
+      - name: Test desktop flows
+        run: npm run test:desktop -- --disable-gpu
+
+      - name: Build signed Windows installer
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run dist
+
+      # Publish only after every asset has uploaded to the draft successfully.
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          EXISTING_DRAFT: ${{ steps.release.outputs.existing_draft }}
+        run: |
+          set -euo pipefail
+          output=release/production/installer
+          installer="$output/Patilanci-Launcher-Setup-$VERSION-x64.exe"
+          test -f "$installer"
+          test -f "$output/latest.yml"
+          if [ "$EXISTING_DRAFT" != "true" ]; then
+            gh release create "$TAG" --target "$GITHUB_SHA" \
+              --title "Patilanci Launcher $VERSION" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" --draft
+          fi
+          assets=("$installer" "$output/latest.yml")
+          for blockmap in "$output"/*.blockmap; do
+            if [ -f "$blockmap" ]; then assets+=("$blockmap"); fi
+          done
+          gh release upload "$TAG" "${assets[@]}" --clobber
+          gh release edit "$TAG" --draft=false --latest
