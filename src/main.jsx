@@ -50,6 +50,7 @@ import './player.css';
 import './window.css';
 import './branded-home.css';
 import './splash.css';
+import { storageLabel } from './lib/storage.mjs';
 
 const launcher = window.launcher;
 const SERVER_ADDRESS = 'hushed-mongoose.shulker.com';
@@ -88,16 +89,20 @@ const PAGES = {
   },
 };
 
-function ServerStatus({ server }) {
+function ServerStatus({ server, refreshing }) {
   const label =
-    server === null
+    refreshing || server === null
       ? 'Checking server'
       : server.online
         ? 'Server online'
         : 'Server unreachable';
 
   return (
-    <span className={`server-status ${server?.online ? 'is-online' : ''}`}>
+    <span
+      className={`server-status ${server?.online ? 'is-online' : ''}`}
+      role="status"
+      aria-live="polite"
+    >
       <span className="status-dot" />
       {label}
     </span>
@@ -218,7 +223,7 @@ function Sidebar({ page, onNavigate, account, mode, username, session }) {
   );
 }
 
-function PlayerPanel({ server, onRefresh, expanded = false }) {
+function PlayerPanel({ server, onRefresh, refreshing, expanded = false }) {
   const players = server?.players || [];
   const hasServerResponse = server?.online;
 
@@ -228,7 +233,12 @@ function PlayerPanel({ server, onRefresh, expanded = false }) {
         <span className="overline">THE COMMUNITY</span>
         <button
           className="icon-button"
-          title="Refresh player list"
+          title={refreshing ? 'Refreshing player list…' : 'Refresh player list'}
+          aria-label={
+            refreshing ? 'Refreshing player list' : 'Refresh player list'
+          }
+          aria-busy={refreshing}
+          disabled={refreshing}
           onClick={onRefresh}
         >
           <RefreshCw size={14} />
@@ -749,6 +759,8 @@ function App() {
   const [page, setPage] = useState('home');
   const [config, setConfig] = useState(DEFAULT_SETTINGS);
   const [server, setServer] = useState(null);
+  const [serverRefreshing, setServerRefreshing] = useState(false);
+  const serverRequest = useRef(null);
   const [mode, setMode] = useState('microsoft');
   const [username, setUsername] = useState('');
   const [account, setAccount] = useState(null);
@@ -774,6 +786,32 @@ function App() {
     phase: 'launcher',
   });
   const [launcherUpdate, setLauncherUpdate] = useState(null);
+  const [storage, setStorage] = useState(null);
+
+  useEffect(() => {
+    if (!launcher?.storage || !config.installed || busy || game.running) return;
+    let active = true;
+    launcher
+      .storage()
+      .then((value) => {
+        if (active && value.status !== 'busy') setStorage(value);
+      })
+      .catch(() => {
+        if (active) setStorage({ status: 'error' });
+      });
+    return () => {
+      active = false;
+    };
+  }, [config.installed?.fileId, busy, game.running]);
+
+  async function refreshStorage() {
+    setStorage(null);
+    try {
+      setStorage(await launcher.storage(true));
+    } catch {
+      setStorage({ status: 'error' });
+    }
+  }
 
   async function loadConfiguration({ resetDraft = true } = {}) {
     if (!launcher) return;
@@ -797,8 +835,19 @@ function App() {
     }
   }
 
-  async function refreshServer() {
-    if (launcher) setServer(await launcher.status());
+  function refreshServer() {
+    if (!launcher) return Promise.resolve();
+    if (serverRequest.current) return serverRequest.current;
+    setServerRefreshing(true);
+    serverRequest.current = Promise.resolve()
+      .then(() => launcher.status())
+      .then(setServer)
+      .catch(() => setServer({ online: false, players: [] }))
+      .finally(() => {
+        serverRequest.current = null;
+        setServerRefreshing(false);
+      });
+    return serverRequest.current;
   }
   async function runStartup(retry = false) {
     if (!launcher) return;
@@ -1042,7 +1091,7 @@ function App() {
                 <h1>{PAGES[page].title}</h1>
                 <p>{PAGES[page].description}</p>
               </div>
-              <ServerStatus server={server} />
+              <ServerStatus server={server} refreshing={serverRefreshing} />
             </div>
             {error && (
               <div className="error-banner" role="alert">
@@ -1084,6 +1133,7 @@ function App() {
               <HomeOverview
                 config={config}
                 server={server}
+                storageText={storageLabel(storage)}
                 accountPanel={accountPanel}
                 onNavigate={setPage}
               />
@@ -1093,6 +1143,7 @@ function App() {
                 <PlayerPanel
                   server={server}
                   onRefresh={refreshServer}
+                  refreshing={serverRefreshing}
                   expanded
                 />
                 {accountPanel}
@@ -1101,6 +1152,8 @@ function App() {
             {page === 'modpack' && (
               <ModpackPage
                 config={config}
+                storage={storage}
+                onRefreshStorage={refreshStorage}
                 busy={busy}
                 updateState={updateState}
                 onRetry={handleInstall}
@@ -1144,12 +1197,16 @@ function App() {
                 {copied ? <Check size={12} /> : <Copy size={12} />}
               </button>
               <div className="launcher-legal">
-                <span>Created by Fablento LTD</span>
-                <span>© 2026 Fablento LTD. All rights reserved.</span>
+                <span>© 2026 MADEARC LTD. All rights reserved.</span>
               </div>
-              <button className="refresh-link" onClick={refreshServer}>
+              <button
+                className="refresh-link"
+                onClick={refreshServer}
+                disabled={serverRefreshing}
+                aria-busy={serverRefreshing}
+              >
                 <RefreshCw size={12} />
-                Refresh status
+                {serverRefreshing ? 'Refreshing…' : 'Refresh status'}
               </button>
             </footer>
           </div>

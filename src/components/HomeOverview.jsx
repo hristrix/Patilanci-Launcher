@@ -15,6 +15,7 @@ export default function HomeOverview({
   server,
   accountPanel,
   onNavigate,
+  storageText,
 }) {
   const pack = config.installed;
   const players = server?.players || [];
@@ -136,6 +137,9 @@ export default function HomeOverview({
                 </span>
                 <span>
                   Pack mods <b>{pack.mods}</b>
+                </span>
+                <span>
+                  Minecraft size <b>{storageText}</b>
                 </span>
               </div>
             )}

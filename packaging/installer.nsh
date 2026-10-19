@@ -7,7 +7,7 @@
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP_STRETCH AspectFitHeight
 !define MUI_HEADERIMAGE_BITMAP_STRETCH AspectFitHeight
 !define MUI_INSTFILESPAGE_COLORS "F4E7CF 171719"
-!define PATILANCI_LEGAL_NOTICE "Created by Fablento LTD.$\r$\nCopyright © 2026 Fablento LTD. All rights reserved."
+!define PATILANCI_LEGAL_NOTICE "Created by MADEARC LTD.$\r$\nCopyright © 2026 MADEARC LTD. All rights reserved."
 !define MUI_FINISHPAGE_TITLE "You're ready for Patilanci."
 !define MUI_FINISHPAGE_TEXT "Patilanci Launcher is installed.$\r$\n$\r$\nOpen the launcher to sign in and download the latest modpack. Internet access and Java 21 are required to play.$\r$\n$\r$\nPack updates keep your Minecraft settings, worlds, shaders, and personal mods.$\r$\n$\r$\n${PATILANCI_LEGAL_NOTICE}"
 !define MUI_UNFINISHPAGE_TITLE "We will miss you."

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 import WorldScene from './WorldScene';
+import { formatBytes, storageLabel } from '../lib/storage.mjs';
 
 export default function ModpackPage({
   config,
@@ -19,6 +20,8 @@ export default function ModpackPage({
   onOpenCurseForge,
   progress,
   logs,
+  storage,
+  onRefreshStorage,
 }) {
   const pack = config.installed;
   const checking = updateState.status === 'checking';
@@ -51,7 +54,7 @@ export default function ModpackPage({
           <div className="chips">
             <span>Fabric</span>
             {pack && <span>Minecraft {pack.minecraft}</span>}
-            <span>Java 21</span>
+            <span>Automatic Java</span>
           </div>
           <div className="pack-links">
             <button className="outline-button" onClick={onManageMods}>
@@ -107,6 +110,31 @@ export default function ModpackPage({
             </dd>
           </div>
         </dl>
+
+        {pack && (
+          <div className="pack-storage" aria-live="polite">
+            <div>
+              <strong>
+                Minecraft on disk <span>{storageLabel(storage)}</span>
+              </strong>
+              <p>
+                Game files, mods, maps and saves
+                {storage?.javaBytes > 0
+                  ? ` · Managed Java: ${formatBytes(storage.javaBytes)}`
+                  : ''}
+              </p>
+            </div>
+            <button
+              className="outline-button"
+              aria-label="Refresh Minecraft size"
+              title="Refresh installed size"
+              disabled={busy || !storage || !onRefreshStorage}
+              onClick={onRefreshStorage}
+            >
+              <RefreshCw size={15} /> Refresh size
+            </button>
+          </div>
+        )}
 
         {checking && (
           <div className="pack-update-progress" role="status">

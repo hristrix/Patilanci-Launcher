@@ -121,6 +121,32 @@
   margin-bottom: 7px;
 }
 
+.pack-storage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0;
+}
+.pack-storage strong {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: var(--text-body);
+}
+.pack-storage strong span {
+  color: var(--gold);
+}
+.pack-storage p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+.pack-storage .outline-button {
+  flex-shrink: 0;
+}
+
 .pack-facts dd {
   margin: 0;
   overflow-wrap: anywhere;

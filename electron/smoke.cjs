@@ -302,7 +302,20 @@ ipcMain.handle('config', async () => ({
     ),
   },
 }));
-ipcMain.handle('status', () => ({ online: false, players: [] }));
+let pauseStatusRefresh = false;
+let finishStatusRefresh;
+ipcMain.handle('status', () =>
+  pauseStatusRefresh
+    ? new Promise((resolve) => {
+        finishStatusRefresh = () => resolve({ online: false, players: [] });
+      })
+    : { online: false, players: [] },
+);
+ipcMain.handle('storage', (_, force) => ({
+  status: 'ready',
+  instanceBytes: (force ? 3.5 : 3.25) * 1024 ** 3,
+  javaBytes: 512 * 1024 ** 2,
+}));
 ipcMain.handle('browseJava', (_, major) => `C:\\Java${major}\\bin\\java.exe`);
 
 async function waitForPaint(window) {
@@ -414,14 +427,49 @@ app.whenReady().then(async () => {
       `!document.querySelector('.play-button').disabled && document.querySelector('.progress-summary')?.textContent.includes('Latest modpack ready')`,
     );
     const home = await checkLayout(window, 'Welcome to Patilanci.');
+    pauseStatusRefresh = true;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.refresh-link').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Refreshing')`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `getComputedStyle(document.querySelector('.refresh-link svg')).animationName`,
+      ),
+      'server-refresh-spin',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.server-status').textContent.includes('Checking server')`,
+      ),
+      true,
+    );
+    pauseStatusRefresh = false;
+    finishStatusRefresh();
+    await waitForRenderer(
+      window,
+      `!document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Refresh status')`,
+    );
     assert.deepEqual(
       await window.webContents.executeJavaScript(`({
         drag: getComputedStyle(document.querySelector('.window-titlebar')).getPropertyValue('-webkit-app-region'),
         controls: getComputedStyle(document.querySelector('.window-controls')).getPropertyValue('-webkit-app-region'),
         buttons: document.querySelectorAll('.window-control').length,
         maximize: Boolean(document.querySelector('[aria-label="Maximize window"]')),
+        console: Boolean(document.querySelector('[aria-label="Open Minecraft console"]')),
+        folder: Boolean(document.querySelector('[aria-label="Open game folder"]')),
       })`),
-      { drag: 'drag', controls: 'no-drag', buttons: 3, maximize: true },
+      {
+        drag: 'drag',
+        controls: 'no-drag',
+        buttons: 5,
+        maximize: true,
+        console: true,
+        folder: true,
+      },
       'The custom title bar must be draggable while window controls remain clickable',
     );
     for (const keyCode of ['+', '=', '-', '0', 'numadd', 'numsub']) {
@@ -851,6 +899,23 @@ app.whenReady().then(async () => {
       `document.querySelectorAll('.nav-item')[1].click()`,
     );
     await checkLayout(window, 'Familiar survival. More possibilities.');
+    await waitForRenderer(
+      window,
+      `document.querySelector('.pack-storage')?.textContent.includes('3.25 GiB')`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Refresh Minecraft size"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.pack-storage')?.textContent.includes('3.50 GiB')`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.pack-storage').textContent.includes('Managed Java: 512.0 MiB')`,
+      ),
+      true,
+    );
     assert.equal(
       await window.webContents.executeJavaScript(
         `document.querySelector('.pack-update').dataset.updateStatus`,

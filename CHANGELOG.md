@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.9.4 - 2026-10-19
+
+### Fixed
+
+- Restored the npm dependency lockfile to version control so GitHub Actions can cache and install the launcher dependencies when building installers.
+
+## 1.9.3 - 2026-10-19
+
+### Improved
+
+- Refresh status now shows a spinning icon and “Refreshing…” while checking. The server badge shows “Checking server,” and both status and player-list refresh buttons stay disabled until the request finishes. Repeated refresh requests share the same check.
+
+## 1.9.2 - 2026-10-19
+
+### Changed
+
+- Disabled text selection across the launcher interface. Text fields remain editable and game console output remains selectable for copying logs.
+
+## 1.9.1 - 2026-10-19
+
+### Changed
+
+- Updated the launcher company metadata, installer legal notice, and copyright to MADEARC LTD.
+
+## 1.9.0 - 2026-10-19
+
+### Added
+
+- Home and Modpack show Minecraft's installed size, including mods, maps, and saves. Modpack also shows managed Java usage and offers a size refresh. Size calculations run asynchronously and are cached.
+
+### Improved
+
+- Faster repeat launches avoid redundant mod-JAR scans and reuse successful asset and library checksums when file identity, size, timestamps, and expected hashes are unchanged. Changed files are verified again.
+- Java preparation overlaps the fresh latest-release check; either failing still blocks launch. The game console reports launcher preparation time.
+- Pack updates reuse downloaded assets and libraries without replacing files supplied by the new pack, reducing repeated downloads. Player maps and settings retain their preservation rules.
+
+## 1.8.2 - 2026-10-19
+
+### Fixed
+
+- Modpack updates now retain existing player files and folders beyond the previous fixed list, including newer Xaero map locations and other mod settings stored outside `config`.
+- Existing player files take precedence over pack defaults, while new files from the pack are added. Launcher-managed mods, game files, caches, and installation metadata still update normally.
+
 ## 1.8.0 - 2026-10-19
 
 ### Added

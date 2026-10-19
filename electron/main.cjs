@@ -25,6 +25,8 @@ const { lockWindowZoom } = require('./window-zoom.cjs');
 const { enableInspectElement } = require('./inspect-element.cjs');
 const { createDiscordPresence } = require('./discord-presence.cjs');
 const { createLauncherTray } = require('./launcher-tray.cjs');
+const { createInstanceStorage } = require('./instance-storage.cjs');
+const { prepareLaunch } = require('./launch-preparation.cjs');
 const {
   DISCORD_APPLICATION_ID,
   DISCORD_IMAGE_KEY,
@@ -36,7 +38,10 @@ const {
 const { createLauncherUpdates } = require('./launcher-updates.cjs');
 const { createOfflineProfiles } = require('./offline-profiles.cjs');
 const { createSessionStore } = require('./sessions.cjs');
-const { preservePlayerData } = require('./instance-data.cjs');
+const {
+  preservePlayerData,
+  reuseGameDownloads,
+} = require('./instance-data.cjs');
 const { createGameProcess, terminate } = require('./game-process.cjs');
 const { createConsoleLog } = require('./console-log.cjs');
 const { createConsoleWindow } = require('./console-window.cjs');
@@ -51,10 +56,7 @@ const {
   windowAction,
   observeWindowState,
 } = require('./window-controls.cjs');
-const {
-  findLatestClientFile,
-  verifyLatestInstalledPack,
-} = require('./releases.cjs');
+const { findLatestClientFile } = require('./releases.cjs');
 const {
   listMods,
   recordBundledMods,
@@ -94,8 +96,10 @@ const game = createGameProcess({
       state.stopping ? 'stopping' : state.running ? 'running' : 'stopped',
     );
     if (win && !win.isDestroyed()) win.webContents.send('gameState', state);
-    if (!state.running) send('Minecraft closed. Ready to play.', 100);
-    else if (state.stopping) send('Stopping Minecraft…');
+    if (!state.running) {
+      instanceStorage.invalidate();
+      send('Minecraft closed. Ready to play.', 100);
+    } else if (state.stopping) send('Stopping Minecraft…');
   },
 });
 async function stopConsoleGame() {
@@ -117,6 +121,10 @@ app.on('second-instance', () => {
 const base = () => path.join(app.getPath('userData'), 'instances'),
   root = () => path.join(base(), 'patilanci');
 const settingFile = () => path.join(app.getPath('userData'), 'settings.json');
+const instanceStorage = createInstanceStorage({
+  instance: root,
+  runtimes: () => path.join(app.getPath('userData'), 'runtimes'),
+});
 let offlineProfileStore;
 let offlineSkinResolver;
 function offlineSkins() {
@@ -325,7 +333,7 @@ async function installed() {
     return null;
   }
 }
-async function install() {
+async function install({ refreshInventory = true } = {}) {
   if (busy || running)
     throw Error('Close Minecraft or wait for the current operation.');
   busy = true;
@@ -335,7 +343,7 @@ async function install() {
     const latest = await latestPackFile();
     const old = await installed();
     if (old?.fileId === latest.id) {
-      await ensureModInventory(root());
+      if (refreshInventory) await ensureModInventory(root());
       const releaseName = latest.displayName || latest.fileName;
       if (releaseName && old.releaseName !== releaseName) {
         old.releaseName = releaseName;
@@ -412,6 +420,8 @@ async function install() {
       send(`Now included in the protected pack: ${promoted.join(', ')}`);
     }
     await preservePlayerData(root(), instance);
+    send('Reusing downloaded Minecraft assets and libraries…', 95);
+    await reuseGameDownloads(root(), instance);
     const backup = path.join(base(), 'patilanci-backup');
     await fs.rm(backup, { recursive: true, force: true });
     let moved = false;
@@ -427,6 +437,7 @@ async function install() {
       if (moved) await fs.rename(backup, root());
       throw e;
     }
+    instanceStorage.invalidate();
     send('Modpack ready. Your adventure awaits.', 100);
     return pack;
   } finally {
@@ -532,6 +543,9 @@ ipcMain.handle('memoryInfo', () => ({
   availableBytes: os.freemem(),
   sampledAt: Date.now(),
 }));
+ipcMain.handle('storage', (_, force) =>
+  busy ? { status: 'busy' } : instanceStorage.read(force === true),
+);
 ipcMain.handle('save', (_, data) => savePreferences(settingFile(), data));
 ipcMain.handle('browseJava', async (_, major) => {
   if (!JAVA_VERSIONS.includes(major))
@@ -640,7 +654,7 @@ ipcMain.handle('startupUpdate', async () => {
   await startupUpdate();
   return installed();
 });
-ipcMain.handle('install', install);
+ipcMain.handle('install', () => install());
 ipcMain.handle('gameState', () => game.state());
 ipcMain.handle('stopMinecraft', () => game.stop());
 ipcMain.handle('offlineProfile', async (_, name) => {
@@ -731,32 +745,40 @@ ipcMain.handle('play', async (_, p) => {
   consoleLog.start([authorization.access_token, authorization.client_token]);
   lastConsoleMessage = '';
   gameConsole.open();
+  const preparationStarted = performance.now();
   try {
-    await install();
-    busy = true;
-    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
-    const s = await settings();
-    send('Confirming the installed pack is still the latest release…');
-    const pack = await verifyLatestInstalledPack(
-      await installed(),
-      latestPackFile,
-    );
-    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
-    send('Checking the modpack’s Java requirements…');
-    const javaPath = await (attempt.javaPreparation = prepareJava(
-      {
-        pack,
-        instance: root(),
-        javaPaths: s.javaPaths,
-        directory: path.join(app.getPath('userData'), 'runtimes'),
+    const {
+      pack,
+      settings: s,
+      javaPath,
+    } = await prepareLaunch({
+      install: async (options) => {
+        const pack = await install(options);
+        busy = true;
+        return pack;
       },
-      {
-        signal: attempt.javaAbort.signal,
-        onProgress: (message, percent) => {
-          if (!attempt.cancelled) send(message, percent);
-        },
+      readSettings: settings,
+      readInstalled: installed,
+      getLatest: latestPackFile,
+      controller: attempt.javaAbort,
+      prepareRuntime: (pack, s) => {
+        send('Checking Java and confirming the latest modpack…');
+        return (attempt.javaPreparation = prepareJava(
+          {
+            pack,
+            instance: root(),
+            javaPaths: s.javaPaths,
+            directory: path.join(app.getPath('userData'), 'runtimes'),
+          },
+          {
+            signal: attempt.javaAbort.signal,
+            onProgress: (message, percent) => {
+              if (!attempt.cancelled) send(message, percent);
+            },
+          },
+        ));
       },
-    ));
+    });
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     send('Starting Minecraft…');
     attempt.service = startMinecraftService(
@@ -801,8 +823,14 @@ ipcMain.handle('play', async (_, p) => {
     await attempt.service.ready;
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     send('Minecraft is running.', 100);
+    consoleLog.append(
+      `Launcher preparation completed in ${((performance.now() - preparationStarted) / 1000).toFixed(1)} seconds.`,
+      'launcher',
+    );
     return true;
   } catch (error) {
+    attempt.javaAbort.abort();
+    await attempt.javaPreparation?.catch(() => {});
     consoleLog.flush();
     consoleLog.setStatus(attempt.cancelled ? 'stopped' : 'failed');
     consoleLog.append(
@@ -841,7 +869,9 @@ async function changeMods(callback) {
   }
   busy = true;
   try {
-    return await callback();
+    const result = await callback();
+    instanceStorage.invalidate();
+    return result;
   } finally {
     busy = false;
   }

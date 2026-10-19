@@ -15,6 +15,7 @@ for (const name of [
   'windowState',
   'windowAction',
   'memoryInfo',
+  'storage',
   'save',
   'browseJava',
   'status',

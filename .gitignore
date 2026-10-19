@@ -5,4 +5,3 @@ release/
 artifacts/
 *.pfx
 *.p12
-package-lock.json

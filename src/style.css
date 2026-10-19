@@ -38,6 +38,14 @@
 body {
   margin: 0;
   touch-action: pan-x pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 button,
 input {
@@ -67,6 +75,27 @@ svg {
 ::selection {
   background: var(--red);
   color: white;
+}
+
+.refresh-link[aria-busy='true'],
+.player-panel .icon-button[aria-busy='true'] {
+  color: var(--gold);
+  cursor: progress;
+}
+.refresh-link[aria-busy='true'] > svg,
+.player-panel .icon-button[aria-busy='true'] > svg {
+  animation: server-refresh-spin 900ms linear infinite;
+}
+@keyframes server-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .refresh-link[aria-busy='true'] > svg,
+  .player-panel .icon-button[aria-busy='true'] > svg {
+    animation: none;
+  }
 }
 ::-webkit-scrollbar {
   width: 7px;
