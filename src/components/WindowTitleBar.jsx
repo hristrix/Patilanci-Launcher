@@ -63,6 +63,26 @@ export default function WindowTitleBar({
         </span>
       </div>
       <div className="window-controls">
+        {onOpenConsole && (
+          <button
+            className="window-control"
+            aria-label="Open Minecraft console"
+            title="Minecraft console"
+            onClick={onOpenConsole}
+          >
+            <Terminal size={16} />
+          </button>
+        )}
+        {onOpenFolder && (
+          <button
+            className="window-control window-folder"
+            aria-label="Open game folder"
+            title="Open game folder"
+            onClick={onOpenFolder}
+          >
+            <Folder size={15} />
+          </button>
+        )}
         <button
           className="window-control"
           aria-label="Minimize window"
