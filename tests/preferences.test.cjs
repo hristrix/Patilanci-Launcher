@@ -65,3 +65,28 @@ test('invalid preferences and corrupt saved settings are not written over', asyn
   await assert.rejects(savePreferences(file, { memory: 6, javaPath: 'java' }));
   assert.equal(await fs.readFile(file, 'utf8'), 'corrupt settings');
 });
+
+test('version-specific Java paths persist with whitespace removed and reset to automatic', async (context) => {
+  const file = await fixture(context);
+  await savePreferences(file, {
+    memory: 6,
+    javaPath: 'java',
+    javaPaths: { 8: '', 17: ' C:\\Java17\\bin\\java.exe ', 21: '' },
+  });
+  assert.deepEqual(JSON.parse(await fs.readFile(file, 'utf8')).javaPaths, {
+    17: 'C:\\Java17\\bin\\java.exe',
+  });
+  await savePreferences(file, { memory: 6, javaPath: 'java', javaPaths: {} });
+  assert.deepEqual(JSON.parse(await fs.readFile(file, 'utf8')).javaPaths, {});
+  for (const javaPaths of [
+    [],
+    null,
+    { 21: 42 },
+    { 21: 'bad\0path' },
+    { 99: 'java.exe' },
+  ]) {
+    await assert.rejects(
+      savePreferences(file, { memory: 6, javaPath: 'java', javaPaths }),
+    );
+  }
+});

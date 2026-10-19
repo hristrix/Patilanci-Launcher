@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.0 - 2026-10-19
+
+### Added
+
+- Closing the launcher window on Windows now keeps it running in the system tray, leaving Minecraft and its game console active.
+- Click the Patilanci tray icon to reopen the launcher, or right-click it to open the launcher, open the game console, or quit completely. Explicit Quit stops Minecraft and cancels Java preparation before exiting.
+
+## 1.7.0 - 2026-10-19
+
+### Added
+
+- The launcher detects the modpack's required Java version and automatically downloads and reuses a matching runtime. Java preparation runs in the background with download progress in the game console.
+- Settings now includes separate Java 8, 17, 21, and 25 executable paths with Browse and Reset to automatic controls. Custom executables are checked before launching, with a clear message when the version does not match.
+- Existing custom Java paths are retained in the matching version row. Managed Java installs need no administrator access or changes to the system Java installation.
+
 ## 1.6.0 - 2026-10-19
 
 ### Added

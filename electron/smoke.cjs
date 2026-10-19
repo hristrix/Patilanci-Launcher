@@ -290,6 +290,7 @@ async function fillInput(window, selector, value) {
 ipcMain.handle('config', async () => ({
   memory: 6,
   javaPath: 'java',
+  javaPaths: {},
   installed: fixturePack,
   account: fixtureAccount,
   game: fixtureGame.state(),
@@ -302,6 +303,7 @@ ipcMain.handle('config', async () => ({
   },
 }));
 ipcMain.handle('status', () => ({ online: false, players: [] }));
+ipcMain.handle('browseJava', (_, major) => `C:\\Java${major}\\bin\\java.exe`);
 
 async function waitForPaint(window) {
   await window.webContents.executeJavaScript(`(async () => {
@@ -884,6 +886,34 @@ app.whenReady().then(async () => {
       `document.querySelector('.settings-link').click()`,
     );
     await checkLayout(window, 'Ready for your setup.');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelectorAll('.java-version-row').length`,
+      ),
+      4,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Browse for Java 21"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#java-path-21').value === 'C:\\\\Java21\\\\bin\\\\java.exe'`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Reset Java 21 to automatic"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#java-path-21').value === ''`,
+    );
+    await fillInput(window, '#java-path-17', 'C:\\Custom Java\\bin\\java.exe');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#java-path-17').value`,
+      ),
+      'C:\\Custom Java\\bin\\java.exe',
+    );
+    await capture(window, 'launcher-java-settings.png');
     await waitForRenderer(
       window,
       `document.querySelector('[data-memory-severity="ok"]') !== null`,

@@ -5,6 +5,9 @@ const {
   shell,
   safeStorage,
   dialog,
+  Tray,
+  Menu,
+  nativeImage,
 } = require('electron');
 const fs = require('node:fs/promises'),
   path = require('node:path'),
@@ -13,6 +16,7 @@ const Zip = require('adm-zip');
 const os = require('node:os');
 const { Authenticator } = require('minecraft-launcher-core');
 const { startMinecraftService } = require('./minecraft-service.cjs');
+const { prepareJava, probeJava, JAVA_VERSIONS } = require('./java-runtime.cjs');
 const { Auth } = require('msmc');
 const { status } = require('minecraft-server-util');
 const { safePath } = require('./utils.cjs');
@@ -20,6 +24,7 @@ const { savePreferences } = require('./preferences.cjs');
 const { lockWindowZoom } = require('./window-zoom.cjs');
 const { enableInspectElement } = require('./inspect-element.cjs');
 const { createDiscordPresence } = require('./discord-presence.cjs');
+const { createLauncherTray } = require('./launcher-tray.cjs');
 const {
   DISCORD_APPLICATION_ID,
   DISCORD_IMAGE_KEY,
@@ -96,9 +101,11 @@ const game = createGameProcess({
 async function stopConsoleGame() {
   const attempt = launchAttempt;
   if (attempt) attempt.cancelled = true;
+  attempt?.javaAbort?.abort();
   if (!game.state().running) discord.setActivity('launcher');
   if (game.state().running) await game.stop();
   else if (attempt?.service) await attempt.service.stop();
+  await attempt?.javaPreparation?.catch(() => {});
 }
 const ownsLauncherLock = app.requestSingleInstanceLock();
 if (!ownsLauncherLock) app.quit();
@@ -237,6 +244,16 @@ async function settings() {
         : '',
     };
   } catch {}
+  if (!s.javaPaths) {
+    s.javaPaths = {};
+    if (s.javaPath?.trim() && s.javaPath.trim() !== 'java') {
+      let major = 21;
+      try {
+        major = await probeJava(s.javaPath.trim());
+      } catch {}
+      if (JAVA_VERSIONS.includes(major)) s.javaPaths[major] = s.javaPath.trim();
+    }
+  }
   return s;
 }
 async function json(url, headers = {}) {
@@ -447,6 +464,25 @@ app.whenReady().then(() => {
   enableInspectElement(win);
   observeWindowState(win);
   win.on('closed', () => gameConsole.close());
+  if (process.platform === 'win32') {
+    createLauncherTray({
+      app,
+      Tray,
+      Menu,
+      window: win,
+      icon: nativeImage
+        .createFromPath(
+          path.join(__dirname, '../dist/brand/patilanci-icon.png'),
+        )
+        .resize({ width: 16, height: 16 }),
+      onOpenConsole: () => gameConsole.open(),
+      beforeQuit: stopConsoleGame,
+      onError: (error) => {
+        consoleLog.append(error.message, 'launcher', 'error');
+        gameConsole.open();
+      },
+    });
+  }
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.loadFile(path.join(__dirname, '../dist/index.html')).then(() => {
@@ -462,7 +498,7 @@ app.whenReady().then(() => {
   ).unref();
 });
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => discord.stop());
+app.on('will-quit', () => discord.stop());
 ipcMain.handle('openConsole', (event) => {
   if (event.sender !== win?.webContents)
     throw new Error('Launcher window required.');
@@ -482,6 +518,7 @@ ipcMain.handle('config', async () => {
   return {
     memory: s.memory,
     javaPath: s.javaPath,
+    javaPaths: s.javaPaths,
     installed: await installed(),
     host: HOST,
     account: playerProfile,
@@ -496,6 +533,23 @@ ipcMain.handle('memoryInfo', () => ({
   sampledAt: Date.now(),
 }));
 ipcMain.handle('save', (_, data) => savePreferences(settingFile(), data));
+ipcMain.handle('browseJava', async (_, major) => {
+  if (!JAVA_VERSIONS.includes(major))
+    throw new Error('Unsupported Java version.');
+  const selection = await dialog.showOpenDialog(win, {
+    title: `Select the Java ${major} executable`,
+    properties: ['openFile'],
+    filters: [{ name: 'Java executable (java.exe)', extensions: ['exe'] }],
+  });
+  if (selection.canceled || !selection.filePaths[0]) return null;
+  const executable = selection.filePaths[0];
+  const found = await probeJava(executable);
+  if (found !== major)
+    throw new Error(
+      `Selected Java ${found}. Choose a Java ${major} executable for this row.`,
+    );
+  return executable;
+});
 ipcMain.handle('status', async () => {
   try {
     const r = await status(HOST, 25565, { timeout: 8000, enableSRV: true });
@@ -668,7 +722,11 @@ ipcMain.handle('play', async (_, p) => {
   } finally {
     busy = false;
   }
-  const attempt = (launchAttempt = { cancelled: false, service: null });
+  const attempt = (launchAttempt = {
+    cancelled: false,
+    service: null,
+    javaAbort: new AbortController(),
+  });
   discord.setActivity('launching');
   consoleLog.start([authorization.access_token, authorization.client_token]);
   lastConsoleMessage = '';
@@ -684,12 +742,28 @@ ipcMain.handle('play', async (_, p) => {
       latestPackFile,
     );
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
-    send('Starting Minecraft. Java 21 must be installed…');
+    send('Checking the modpack’s Java requirements…');
+    const javaPath = await (attempt.javaPreparation = prepareJava(
+      {
+        pack,
+        instance: root(),
+        javaPaths: s.javaPaths,
+        directory: path.join(app.getPath('userData'), 'runtimes'),
+      },
+      {
+        signal: attempt.javaAbort.signal,
+        onProgress: (message, percent) => {
+          if (!attempt.cancelled) send(message, percent);
+        },
+      },
+    ));
+    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
+    send('Starting Minecraft…');
     attempt.service = startMinecraftService(
       {
         authorization,
         root: root(),
-        javaPath: s.javaPath || 'java',
+        javaPath,
         version: {
           number: pack.minecraft,
           type: 'release',

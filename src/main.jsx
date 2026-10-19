@@ -35,6 +35,7 @@ import ModpackPage from './components/ModpackPage';
 import ModsPage from './components/ModsPage';
 import HomeOverview from './components/HomeOverview';
 import MemorySettings from './components/MemorySettings';
+import JavaSettings from './components/JavaSettings';
 import WindowTitleBar from './components/WindowTitleBar';
 import SkinPreview from './components/SkinPreview';
 import PlayerHead from './components/PlayerHead';
@@ -55,6 +56,7 @@ const SERVER_ADDRESS = 'hushed-mongoose.shulker.com';
 const DEFAULT_SETTINGS = {
   memory: 6,
   javaPath: 'java',
+  javaPaths: {},
   installed: null,
 };
 const PAGES = {
@@ -698,20 +700,12 @@ function Preferences({
         allocation={draft.memory}
         onChange={(memory) => onChange({ ...draft, memory })}
       />
-      <div className="settings-group">
-        <label htmlFor="java-path">Java 21 executable</label>
-        <input
-          id="java-path"
-          value={draft.javaPath}
-          onChange={(event) =>
-            onChange({ ...draft, javaPath: event.target.value })
-          }
-          placeholder="java or the full path to java.exe"
-        />
-        <small>
-          Use the full executable path if Java 21 is not on your system PATH.
-        </small>
-      </div>
+      <JavaSettings
+        api={launcher}
+        paths={draft.javaPaths}
+        disabled={busy}
+        onChange={(javaPaths) => onChange({ ...draft, javaPaths })}
+      />
       <div className="preferences-actions">
         <button className="play-button" disabled={busy} onClick={onSave}>
           <Check size={18} />
@@ -791,6 +785,7 @@ function App() {
       setDraft({
         memory: configuration.memory,
         javaPath: configuration.javaPath,
+        javaPaths: configuration.javaPaths || {},
       });
     }
     setAccount(configuration.account);

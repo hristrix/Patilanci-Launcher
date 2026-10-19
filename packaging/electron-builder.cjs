@@ -17,6 +17,7 @@ module.exports = {
     'electron/**/*',
     '!electron/smoke.cjs',
     '!electron/console-smoke.cjs',
+    '!electron/tray-smoke.cjs',
     '!electron/responsive-check.cjs',
     '!electron/run.cjs',
     '!electron/check-download-service.cjs',

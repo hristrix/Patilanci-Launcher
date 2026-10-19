@@ -24,7 +24,7 @@ Installers and the launcher version display use the package version. When publis
 
 ## Run
 
-Requires Node.js 22+ and Java 21 installed separately.
+Development requires Node.js 22+. On Windows x64, the launcher installs the modpack's required Java runtime automatically; players do not need to install Java separately.
 
 ```sh
 npm install
@@ -32,6 +32,12 @@ npm start
 ```
 
 On PowerShell systems that block npm.ps1, use `npm.cmd` instead of `npm`.
+
+On Windows, closing the main launcher window hides it to the system tray and leaves Minecraft and its console running. Click the Patilanci tray icon to reopen the launcher. Its right-click menu opens the launcher or game console and offers **Quit Patilanci Launcher** to stop Minecraft, cancel pending Java preparation, and exit completely. Closing the game console still stops Minecraft; closing Minecraft still leaves its console open. `npm run test:tray` checks native tray hiding, reopening, and full exit.
+
+Java requirements come from the selected Minecraft version's official metadata and the installed loader profile. Java 8, 17, 21, and 25 are managed separately under `%APPDATA%/patilanci-launcher/runtimes`. On first Play, the matching Eclipse Temurin JRE is downloaded through the [Adoptium API](https://github.com/adoptium/api.adoptium.net/blob/main/docs/cookbook.adoc), checked against its SHA-256 checksum, extracted, and tested before activation. Later launches reuse it; cached Minecraft metadata allows Java selection without another network request. Download and extraction run in a background worker and can be cancelled by closing the game console. System Java installations and PATH are not modified.
+
+In Settings → Java versions, leave a row empty for automatic management or choose that version's `bin/java.exe` with Browse. Reset restores automatic management; click Save preferences to keep changes. Both browsed and manually entered paths are checked before launch, and a mismatched version blocks launch with a message explaining how to fix it. Existing custom Java paths migrate to the corresponding version row. Automatic runtime downloads currently support Windows x64, matching the distributed installer.
 
 If the Windows graphics driver causes the normal launcher process to exit during startup, use `npm run start:compat` to disable hardware acceleration. The 3D skin preview is also exercised in this mode by `npm run test:desktop -- --disable-gpu`; it falls back to an unavailable message if WebGL cannot initialize.
 
@@ -41,7 +47,7 @@ Microsoft sign-in opens the MSMC Microsoft authorization window and requires a M
 
 Home personalizes the banner and sidebar with the active player's name. The sidebar displays the player's skin head with its overlay and uses the bundled Steve head when signed out or the skin is unavailable. A Microsoft account uses the Minecraft Java profile name and active skin returned by sign-in. Skin PNGs are fetched in the main process from the official `textures.minecraft.net` host with a size limit and returned as image data without tokens. The bundled `skinview3d` renderer supports classic and slim models in a fixed three-quarter pose. Dragging, camera controls, automatic rotation, and idle animation are disabled. It renders once after loading and redraws when resized, without a continuous animation loop. Signing out or leaving Home disposes of the renderer. A missing texture or unavailable WebGL shows a fallback message. Signed-in offline profiles resolve a public skin by nickname through Ely.by, which also proxies public Minecraft skins. These previews use the same static 3D renderer and remain labelled as offline profiles. Unauthenticated names trigger no skin requests. Unknown names keep the neutral voxel avatar. The banner also displays actual server counts and latency when available.
 
-Signing in does not download Minecraft. On Play, both account types use the same instance at `%APPDATA%/patilanci-launcher/instances/patilanci`: the launcher core downloads missing Minecraft client files, assets, and libraries there before starting the game. Existing files are reused. Java 21 must already be installed.
+Signing in does not download Minecraft. On Play, both account types use the same instance at `%APPDATA%/patilanci-launcher/instances/patilanci`: the launcher prepares the required Java runtime, then the launcher core downloads missing Minecraft client files, assets, and libraries there before starting the game. Existing files are reused.
 
 After sign-in, the account panel shows only the active account type. Sign out before switching between Microsoft and offline profiles or changing the offline name. Account changes are blocked while Minecraft is running. While the game runs, Play becomes **Stop Minecraft**; stopping targets the game process launched by this launcher (including its process tree on Windows). **Stopping…** remains disabled until that process exits, and closing the game normally also restores Play. Renderer reloads retain the running-game state.
 
@@ -113,7 +119,7 @@ npm run dist
 
 For a separate preview installer intended for local testing, run `npm run dist:preview`. Its setup executable is written under `release/preview/installer/` with PREVIEW in its filename. Preview builds include the latest launcher code but still need download-service configuration to install the modpack on a fresh computer; production builds use `npm run dist` even when unsigned.
 
-The Windows setup wizard includes a branded welcome page, installation scope and folder selection, progress, and a finish page with an option to open the launcher. It creates desktop and Start menu shortcuts. Reinstalling or uninstalling keeps launcher settings, saved sessions, profiles, and Minecraft instance data in the user's application-data folder. Java 21 is a separate prerequisite; the installer does not install Java or bundle the modpack.
+The Windows setup wizard includes a branded welcome page, installation scope and folder selection, progress, and a finish page with an option to open the launcher. It creates desktop and Start menu shortcuts. Reinstalling or uninstalling keeps launcher settings, saved sessions, profiles, Minecraft instance data, and managed runtimes in the user's application-data folder. The installer does not bundle Java or the modpack; the launcher downloads them when needed on Play.
 
 Installer output is in `release/`. `npm run dist` first checks that a public download service URL is set so a player build cannot accidentally depend on the developer computer's saved key. Browser-only UI preview: `npm run dev`; game and account features require Electron. `npm test` checks archive paths, settings, PIN protection, release selection, profile filtering, and the download service; `npm run build` checks the renderer build. Real Microsoft authentication, API-key downloads, Java launch and joining require valid credentials and server access and must be exercised before distribution.
 

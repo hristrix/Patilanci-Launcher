@@ -1,0 +1,64 @@
+.java-settings h4 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text, #ece4d8);
+}
+.java-settings > p {
+  margin: 6px 0 14px;
+  color: var(--muted, #a99b88);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.java-version-list {
+  display: grid;
+  gap: 10px;
+}
+.java-version-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 36px 36px;
+  gap: 8px;
+  align-items: center;
+}
+.java-version-row label {
+  margin: 0;
+  font-size: 12px;
+}
+.java-version-row input:not([type='range']) {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.java-path-action {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: #ffffff05;
+  border: 1px solid #b99a6340;
+  border-radius: 4px;
+  color: #d2b783;
+}
+.java-path-action:hover:not(:disabled) {
+  background: #b99a631a;
+  border-color: #b99a63;
+}
+.java-path-action:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.java-settings > .java-path-error {
+  margin-bottom: 0;
+  color: #f2a49a;
+}
+@media (max-width: 580px) {
+  .java-version-row {
+    grid-template-columns: 54px minmax(0, 1fr) 32px 32px;
+    gap: 6px;
+  }
+  .java-path-action {
+    width: 32px;
+  }
+}

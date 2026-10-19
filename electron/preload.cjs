@@ -16,6 +16,7 @@ for (const name of [
   'windowAction',
   'memoryInfo',
   'save',
+  'browseJava',
   'status',
   'login',
   'skin',

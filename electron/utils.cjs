@@ -20,9 +20,30 @@ function validateSettings(s) {
   )
     throw Error('Memory must be 2–32 GB');
   if (typeof s.javaPath !== 'string') throw Error('Invalid settings');
+  let javaPaths;
+  if (s.javaPaths !== undefined) {
+    if (
+      !s.javaPaths ||
+      typeof s.javaPaths !== 'object' ||
+      Array.isArray(s.javaPaths)
+    )
+      throw Error('Invalid Java paths');
+    javaPaths = {};
+    for (const [major, executable] of Object.entries(s.javaPaths)) {
+      if (
+        !['8', '17', '21', '25'].includes(major) ||
+        typeof executable !== 'string' ||
+        executable.length > 4096 ||
+        executable.includes('\0')
+      )
+        throw Error('Invalid Java path');
+      if (executable.trim()) javaPaths[major] = executable.trim();
+    }
+  }
   return {
     memory: Number(s.memory),
     javaPath: s.javaPath.trim(),
+    ...(javaPaths && { javaPaths }),
   };
 }
 module.exports = { safePath, validateSettings };
