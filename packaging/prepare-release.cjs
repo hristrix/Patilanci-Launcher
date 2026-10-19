@@ -31,9 +31,7 @@ function checkExistingRelease(release, sha) {
   return true;
 }
 
-async function main() {
-  const root = path.resolve(__dirname, '..');
-  const env = process.env;
+function releaseEnvironment(env) {
   if (
     env.GITHUB_EVENT_NAME !== 'push' ||
     env.GITHUB_REF !== 'refs/heads/master'
@@ -41,17 +39,17 @@ async function main() {
     throw new Error(
       'Installer releases are allowed only for pushes to master.',
     );
-  for (const name of [
-    'CSC_LINK',
-    'CSC_KEY_PASSWORD',
-    'PUBLIC_DOWNLOAD_SERVICE_URL',
-  ]) {
-    if (!env[name]?.trim())
-      throw new Error(
-        `Configure the ${name} GitHub Actions ${name === 'PUBLIC_DOWNLOAD_SERVICE_URL' ? 'variable' : 'secret'} before releasing.`,
-      );
-  }
-  const downloadUrl = serviceUrl(env.PUBLIC_DOWNLOAD_SERVICE_URL);
+  if (!env.PUBLIC_DOWNLOAD_SERVICE_URL?.trim())
+    throw new Error(
+      'Configure the PUBLIC_DOWNLOAD_SERVICE_URL GitHub Actions variable before releasing.',
+    );
+  return serviceUrl(env.PUBLIC_DOWNLOAD_SERVICE_URL);
+}
+
+async function main() {
+  const root = path.resolve(__dirname, '..');
+  const env = process.env;
+  const downloadUrl = releaseEnvironment(env);
   const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
   const details = releaseDetails(
     JSON.parse(read('package.json')),
@@ -115,7 +113,7 @@ async function main() {
     `version=${details.version}\ntag=${details.tag}\nexisting_draft=${existingDraft}\n`,
   );
   console.log(
-    `Prepared ${details.tag}. The signed installer will be published after all checks pass.`,
+    `Prepared ${details.tag}. The production installer will be published after all checks pass.`,
   );
 }
 
@@ -124,4 +122,4 @@ if (require.main === module)
     console.error(error.message);
     process.exitCode = 1;
   });
-module.exports = { releaseDetails, checkExistingRelease };
+module.exports = { releaseDetails, checkExistingRelease, releaseEnvironment };

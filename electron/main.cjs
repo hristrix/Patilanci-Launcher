@@ -19,6 +19,11 @@ const { safePath } = require('./utils.cjs');
 const { savePreferences } = require('./preferences.cjs');
 const { lockWindowZoom } = require('./window-zoom.cjs');
 const { enableInspectElement } = require('./inspect-element.cjs');
+const { createDiscordPresence } = require('./discord-presence.cjs');
+const {
+  DISCORD_APPLICATION_ID,
+  DISCORD_IMAGE_KEY,
+} = require('./discord-config.cjs');
 const {
   createStartupUpdate,
   createStartupFlow,
@@ -62,6 +67,10 @@ let win,
   busy = false,
   running = false;
 const consoleLog = createConsoleLog();
+const discord = createDiscordPresence({
+  applicationId: DISCORD_APPLICATION_ID,
+  imageKey: DISCORD_IMAGE_KEY,
+});
 let launchAttempt = null;
 const gameConsole = createConsoleWindow({
   BrowserWindow,
@@ -75,6 +84,7 @@ const game = createGameProcess({
     launchAttempt?.service ? launchAttempt.service.stop() : terminate(child),
   onChange(state) {
     running = state.running;
+    discord.setActivity(state.running ? 'playing' : 'launcher');
     consoleLog.setStatus(
       state.stopping ? 'stopping' : state.running ? 'running' : 'stopped',
     );
@@ -86,6 +96,7 @@ const game = createGameProcess({
 async function stopConsoleGame() {
   const attempt = launchAttempt;
   if (attempt) attempt.cancelled = true;
+  if (!game.state().running) discord.setActivity('launcher');
   if (game.state().running) await game.stop();
   else if (attempt?.service) await attempt.service.stop();
 }
@@ -411,6 +422,7 @@ async function install() {
 }
 app.whenReady().then(() => {
   if (!ownsLauncherLock) return;
+  discord.start();
   win = new BrowserWindow({
     width: 1360,
     height: 900,
@@ -450,6 +462,7 @@ app.whenReady().then(() => {
   ).unref();
 });
 app.on('window-all-closed', () => app.quit());
+app.on('before-quit', () => discord.stop());
 ipcMain.handle('openConsole', (event) => {
   if (event.sender !== win?.webContents)
     throw new Error('Launcher window required.');
@@ -656,6 +669,7 @@ ipcMain.handle('play', async (_, p) => {
     busy = false;
   }
   const attempt = (launchAttempt = { cancelled: false, service: null });
+  discord.setActivity('launching');
   consoleLog.start([authorization.access_token, authorization.client_token]);
   lastConsoleMessage = '';
   gameConsole.open();
@@ -729,6 +743,7 @@ ipcMain.handle('play', async (_, p) => {
     throw error;
   } finally {
     busy = false;
+    if (!running) discord.setActivity('launcher');
     if (!attempt.service && launchAttempt === attempt) launchAttempt = null;
   }
 });

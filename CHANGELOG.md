@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.6.0 - 2026-10-19
+
+### Added
+
+- Production installers and GitHub Releases can now be built without a code-signing certificate. Signing remains optional when explicitly configured.
+- Unsigned production builds retain automatic updates and the public download service; preview builds remain separate.
+
+## 1.5.0 - 2026-10-19
+
+### Added
+
+- Discord Rich Presence shows launcher, Minecraft preparation, and playing Patilanci SMP activity with elapsed time.
+- Activity reconnects automatically when Discord opens or restarts, clears when the launcher quits, and never blocks launching if Discord is unavailable.
+
 ## 1.4.0 - 2026-10-19
 
 ### Changed

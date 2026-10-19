@@ -3,7 +3,33 @@ const assert = require('node:assert/strict');
 const {
   releaseDetails,
   checkExistingRelease,
+  releaseEnvironment,
 } = require('../packaging/prepare-release.cjs');
+
+test('unsigned releases need the download service but no certificate secrets', () => {
+  const env = {
+    GITHUB_EVENT_NAME: 'push',
+    GITHUB_REF: 'refs/heads/master',
+    PUBLIC_DOWNLOAD_SERVICE_URL: 'https://patilanci.net/launcher',
+  };
+  assert.equal(releaseEnvironment(env), 'https://patilanci.net/launcher');
+  assert.throws(
+    () => releaseEnvironment({ ...env, PUBLIC_DOWNLOAD_SERVICE_URL: '' }),
+    /PUBLIC_DOWNLOAD_SERVICE_URL/,
+  );
+  assert.throws(
+    () =>
+      releaseEnvironment({
+        ...env,
+        PUBLIC_DOWNLOAD_SERVICE_URL: 'http://example.com',
+      }),
+    /HTTPS/,
+  );
+  assert.throws(
+    () => releaseEnvironment({ ...env, GITHUB_REF: 'refs/heads/feature' }),
+    /master/,
+  );
+});
 
 test('release versions must match the lockfile and have their own stable release notes', () => {
   const pkg = { version: '1.2.3' };

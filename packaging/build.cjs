@@ -64,15 +64,21 @@ async function main() {
   const preview = mode.includes('preview');
   const store = mode.startsWith('store');
   const identity = store ? storeIdentity(preview) : null;
+  const sign =
+    !preview &&
+    !store &&
+    Boolean(process.env.CSC_LINK?.trim() || process.env.WIN_CSC_LINK?.trim());
+  if (!sign) {
+    process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
+    delete process.env.CSC_LINK;
+    delete process.env.WIN_CSC_LINK;
+  }
 
   // Preview packages exercise the installer without claiming release readiness.
   if (preview) {
     console.warn(
       'PREVIEW: unsigned test package; not for Store submission or player distribution.',
     );
-    process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
-    delete process.env.CSC_LINK;
-    delete process.env.WIN_CSC_LINK;
   } else {
     runNode('electron/check-download-service.cjs');
   }
@@ -92,7 +98,7 @@ async function main() {
   const config = {
     ...baseConfig,
     extends: null,
-    forceCodeSigning: !preview && !store,
+    forceCodeSigning: sign,
     ...(preview || store ? { publish: null } : {}),
     directories: {
       ...baseConfig.directories,
@@ -118,18 +124,12 @@ async function main() {
     ...(store && { win: { ...baseConfig.win, signtoolOptions: undefined } }),
   };
 
-  if (store) {
-    process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
-    delete process.env.CSC_LINK;
-    delete process.env.WIN_CSC_LINK;
-  }
-
   const artifacts = await build({
     targets: Platform.WINDOWS.createTarget(store ? 'appx' : 'nsis', Arch.x64),
     config,
     publish: 'never',
   });
-  if (!preview && !store) {
+  if (sign) {
     if (process.platform !== 'win32')
       throw new Error(
         'Verify production Windows signatures on a Windows build runner.',
