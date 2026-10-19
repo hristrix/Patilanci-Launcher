@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.9.7 - 2026-10-19
+
+### Fixed
+
+- Java paths managed by Patilanci are now disabled. Browse selects a custom executable and enables its field; Reset returns the row to disabled automatic management.
+
+## 1.9.6 - 2026-10-19
+
+### Improved
+
+- Pull requests and branch pushes now validate the launcher and build a downloadable test installer. Production releases use the same pinned build tools and validation checks.
+- Production installers and updater metadata are checked for matching versions, filenames, sizes, and SHA-512 before publication. Build artifacts and failure diagnostics are retained in GitHub Actions.
+- Added `npm run validate` to run release checks, tests, the renderer build, and desktop/console checks before pushing.
+
+## 1.9.5 - 2026-10-19
+
+### Fixed
+
+- Fixed installer builds failing with npm's “Invalid Version” error by regenerating malformed optional dependency entries without changing existing pinned dependency versions.
+- GitHub builds now use npm 10.9.4 and validate dependency versions before installing, with a clear error if a malformed lockfile is committed.
+
 ## 1.9.4 - 2026-10-19
 
 ### Fixed

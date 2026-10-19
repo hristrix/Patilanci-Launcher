@@ -1,0 +1,51 @@
+name: Validate Windows installer
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [master]
+    tags-ignore: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-launcher
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate launcher
+        run: npm run validate
+      - name: Build test installer
+        run: npm run dist:preview
+      - name: Save test installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-preview-${{ github.sha }}
+          path: release/preview/installer/*.exe
+          if-no-files-found: error
+          retention-days: 14
+      - name: Save failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-diagnostics-${{ github.run_id }}
+          path: |
+            artifacts/
+            release/**/builder-debug.yml
+          if-no-files-found: ignore
+          retention-days: 7

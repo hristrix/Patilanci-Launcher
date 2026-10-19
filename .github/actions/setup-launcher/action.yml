@@ -1,0 +1,15 @@
+name: Set up launcher build tools
+description: Use the same Node and npm toolchain for validation and releases.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v6
+      with:
+        node-version: '22'
+        cache: npm
+    - name: Use reproducible npm version
+      shell: bash
+      run: npm install --global npm@10.9.4
+    - name: Validate dependency lockfile and release notes
+      shell: bash
+      run: node packaging/check-release.cjs

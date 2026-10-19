@@ -32,7 +32,8 @@ export default function JavaSettings({ api, paths = {}, onChange, disabled }) {
       <h4>Java versions</h4>
       <p>
         The correct Java version is downloaded automatically for your modpack.
-        Set an executable below to use your own installation.
+        Use Browse to choose your own executable, or Reset to let Patilanci
+        manage it.
       </p>
       <div className="java-version-list">
         {[8, 17, 21, 25].map((major) => (
@@ -43,16 +44,19 @@ export default function JavaSettings({ api, paths = {}, onChange, disabled }) {
               value={paths[major] || ''}
               placeholder="Automatic · managed by Patilanci"
               onChange={(event) => update(major, event.target.value)}
-              disabled={disabled || browsing}
+              disabled={disabled || browsing || !paths[major]?.trim()}
               spellCheck={false}
-              title={paths[major] || 'Downloaded automatically when required'}
+              title={
+                paths[major] ||
+                'Managed by Patilanci. Use Browse to choose your own Java executable.'
+              }
             />
             <button
               type="button"
               className="java-path-action"
               aria-label={`Reset Java ${major} to automatic`}
               title="Reset to automatic"
-              disabled={disabled || browsing || !paths[major]}
+              disabled={disabled || browsing || !paths[major]?.trim()}
               onClick={() => update(major, '')}
             >
               <RotateCcw size={16} />

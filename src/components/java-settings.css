@@ -41,6 +41,11 @@
   border-radius: 4px;
   color: #d2b783;
 }
+.java-version-row input:disabled {
+  background: #ffffff03;
+  opacity: 0.75;
+  cursor: default;
+}
 .java-path-action:hover:not(:disabled) {
   background: #b99a631a;
   border-color: #b99a63;

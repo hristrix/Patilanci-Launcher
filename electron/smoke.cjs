@@ -435,11 +435,13 @@ app.whenReady().then(async () => {
       window,
       `document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Refreshing')`,
     );
+    const refreshAnimation = await window.webContents.executeJavaScript(`({
+      name: getComputedStyle(document.querySelector('.refresh-link svg')).animationName,
+      reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+    })`);
     assert.equal(
-      await window.webContents.executeJavaScript(
-        `getComputedStyle(document.querySelector('.refresh-link svg')).animationName`,
-      ),
-      'server-refresh-spin',
+      refreshAnimation.name,
+      refreshAnimation.reducedMotion ? 'none' : 'server-refresh-spin',
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -957,6 +959,13 @@ app.whenReady().then(async () => {
       ),
       4,
     );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `Array.from(document.querySelectorAll('.java-version-row input')).every(input => input.disabled)`,
+      ),
+      true,
+      'All automatically managed Java fields start disabled',
+    );
     await window.webContents.executeJavaScript(
       `document.querySelector('[aria-label="Browse for Java 21"]').click()`,
     );
@@ -964,12 +973,33 @@ app.whenReady().then(async () => {
       window,
       `document.querySelector('#java-path-21').value === 'C:\\\\Java21\\\\bin\\\\java.exe'`,
     );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#java-path-21').disabled`,
+      ),
+      false,
+      'A custom Java executable enables editing',
+    );
     await window.webContents.executeJavaScript(
       `document.querySelector('[aria-label="Reset Java 21 to automatic"]').click()`,
     );
     await waitForRenderer(
       window,
       `document.querySelector('#java-path-21').value === ''`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#java-path-21').disabled`,
+      ),
+      true,
+      'Reset returns the field to disabled managed mode',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Browse for Java 17"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `!document.querySelector('#java-path-17').disabled`,
     );
     await fillInput(window, '#java-path-17', 'C:\\Custom Java\\bin\\java.exe');
     assert.equal(

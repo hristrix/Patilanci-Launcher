@@ -25,10 +25,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: npm
+      - uses: ./.github/actions/setup-launcher
 
       - name: Validate release and configure public download service
         id: release
@@ -40,20 +37,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Test launcher
-        run: npm test
-
-      - name: Build renderer for desktop checks
-        run: npm run build
-
-      - name: Test desktop flows
-        run: npm run test:desktop -- --disable-gpu
+      - name: Validate launcher
+        run: npm run validate
 
       - name: Build production Windows installer
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: npm run dist
+
+      - name: Verify installer and updater metadata
+        run: npm run check:installer
+
+      - name: Save production release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-production-${{ steps.release.outputs.version }}
+          path: |
+            release/production/installer/*.exe
+            release/production/installer/latest.yml
+            release/production/installer/*.blockmap
+          if-no-files-found: error
+          retention-days: 30
 
       # Publish only after every asset has uploaded to the draft successfully.
       - name: Publish GitHub Release
@@ -80,3 +85,14 @@ jobs:
           done
           gh release upload "$TAG" "${assets[@]}" --clobber
           gh release edit "$TAG" --draft=false --latest
+
+      - name: Save failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-diagnostics-${{ github.run_id }}
+          path: |
+            artifacts/
+            release/**/builder-debug.yml
+          if-no-files-found: ignore
+          retention-days: 7

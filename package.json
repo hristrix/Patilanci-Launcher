@@ -1,6 +1,6 @@
 {
   "name": "patilanci-launcher",
-  "version": "1.9.4",
+  "version": "1.9.7",
   "description": "Patilanci SMP desktop launcher",
   "dependencies": {
     "@fontsource/manrope": "5.3.0",
@@ -33,6 +33,7 @@
     }
   },
   "main": "electron/main.cjs",
+  "packageManager": "npm@10.9.4",
   "scripts": {
     "start": "npm run build && node electron/run.cjs .",
     "start:compat": "npm run build && node electron/run.cjs . --disable-gpu",
@@ -45,6 +46,10 @@
     "build:artwork": "node electron/run.cjs packaging/generate-artwork.cjs --disable-gpu",
     "start:download-service": "node server/download-service.cjs",
     "test": "node --test tests/*.test.cjs",
+    "check:lockfile": "node packaging/check-lockfile.cjs",
+    "check:release": "node packaging/check-release.cjs",
+    "check:installer": "node packaging/verify-installer.cjs",
+    "validate": "npm run check:release && npm test && npm run build && npm run test:desktop -- --disable-gpu && npm run test:console",
     "test:desktop": "node electron/run.cjs electron/smoke.cjs",
     "test:console": "node electron/run.cjs electron/console-smoke.cjs",
     "test:tray": "node electron/run.cjs electron/tray-smoke.cjs",

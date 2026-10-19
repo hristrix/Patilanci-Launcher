@@ -24,14 +24,20 @@ Installers and the launcher version display use the package version. When publis
 
 ## Run
 
-Development requires Node.js 22+. On Windows x64, the launcher installs the modpack's required Java runtime automatically; players do not need to install Java separately.
+Development requires Node.js 22+ and uses npm 10.9.4, matching GitHub builds. On Windows x64, the launcher installs the modpack's required Java runtime automatically; players do not need to install Java separately.
 
 ```sh
-npm install
+npx npm@10.9.4 ci
 npm start
 ```
 
 On PowerShell systems that block npm.ps1, use `npm.cmd` instead of `npm`.
+
+Keep `package-lock.json` tracked. Run `npm run check:lockfile` before committing dependency changes; it rejects versionless optional-dependency stubs that can cause npm's `Invalid Version` error on clean installs. Use `npx npm@10.9.4 install` when updating dependencies. If the lockfile needs repair, regenerate it with npm 10.9.4 in a clean folder without an existing `node_modules` tree, then test a real `npm ci` installation there; a dry run alone does not catch this failure.
+
+Before pushing launcher changes, run `npm run validate`. This checks the lockfile, synchronized versions and changelog, then runs unit tests, the renderer build and desktop/console checks. To exercise installer packaging locally, run `npm run dist:preview` as well. Pull requests and pushes to branches other than `master` run these checks and build a preview installer automatically; **Validate Windows installer** can also be started manually from Actions. Preview installers are saved as workflow artifacts and are not published as stable releases. Both workflows share Node 22 and npm 10.9.4 through `.github/actions/setup-launcher`.
+
+Pushes to `master` build the production installer after validation, verify that the installer and `latest.yml` agree on the version, filename, size and SHA-512, save the release files as downloadable workflow artifacts, and only then publish the GitHub Release. Failed runs save available screenshots and builder diagnostics. Each stable release still needs a new launcher version and matching changelog entry; published versions are never overwritten. GitHub Actions must be enabled and `PUBLIC_DOWNLOAD_SERVICE_URL` must remain configured for production releases.
 
 On Windows, closing the main launcher window hides it to the system tray and leaves Minecraft and its console running. Click the Patilanci tray icon to reopen the launcher. Its right-click menu opens the launcher or game console and offers **Quit Patilanci Launcher** to stop Minecraft, cancel pending Java preparation, and exit completely. Closing the game console still stops Minecraft; closing Minecraft still leaves its console open. `npm run test:tray` checks native tray hiding, reopening, and full exit.
 
@@ -41,7 +47,7 @@ Repeat launches skip the redundant ownership scan of every mod JAR when the pack
 
 Java requirements come from the selected Minecraft version's official metadata and the installed loader profile. Java 8, 17, 21, and 25 are managed separately under `%APPDATA%/patilanci-launcher/runtimes`. On first Play, the matching Eclipse Temurin JRE is downloaded through the [Adoptium API](https://github.com/adoptium/api.adoptium.net/blob/main/docs/cookbook.adoc), checked against its SHA-256 checksum, extracted, and tested before activation. Later launches reuse it; cached Minecraft metadata allows Java selection without another network request. Download and extraction run in a background worker and can be cancelled by closing the game console. System Java installations and PATH are not modified.
 
-In Settings → Java versions, leave a row empty for automatic management or choose that version's `bin/java.exe` with Browse. Reset restores automatic management; click Save preferences to keep changes. Both browsed and manually entered paths are checked before launch, and a mismatched version blocks launch with a message explaining how to fix it. Existing custom Java paths migrate to the corresponding version row. Automatic runtime downloads currently support Windows x64, matching the distributed installer.
+In Settings → Java versions, automatically managed rows have disabled path fields. Browse chooses that version's `bin/java.exe` and enables its field for custom path editing. Reset clears the custom path and returns the row to disabled automatic management; click Save preferences to keep changes. Custom paths are checked before launch, and a mismatched version blocks launch with a message explaining how to fix it. Existing custom Java paths migrate to the corresponding version row. Automatic runtime downloads currently support Windows x64, matching the distributed installer.
 
 If the Windows graphics driver causes the normal launcher process to exit during startup, use `npm run start:compat` to disable hardware acceleration. The 3D skin preview is also exercised in this mode by `npm run test:desktop -- --disable-gpu`; it falls back to an unavailable message if WebGL cannot initialize.
 
