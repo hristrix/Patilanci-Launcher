@@ -3,3 +3,5 @@ dist/
 release/
 *.log
 artifacts/
+*.pfx
+*.p12

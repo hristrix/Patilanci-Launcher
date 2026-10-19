@@ -11,12 +11,14 @@ const fs = require('node:fs/promises'),
   crypto = require('node:crypto');
 const Zip = require('adm-zip');
 const os = require('node:os');
-const { Client, Authenticator } = require('minecraft-launcher-core');
+const { Authenticator } = require('minecraft-launcher-core');
+const { startMinecraftService } = require('./minecraft-service.cjs');
 const { Auth } = require('msmc');
 const { status } = require('minecraft-server-util');
 const { safePath } = require('./utils.cjs');
 const { savePreferences } = require('./preferences.cjs');
 const { lockWindowZoom } = require('./window-zoom.cjs');
+const { enableInspectElement } = require('./inspect-element.cjs');
 const {
   createStartupUpdate,
   createStartupFlow,
@@ -25,7 +27,9 @@ const { createLauncherUpdates } = require('./launcher-updates.cjs');
 const { createOfflineProfiles } = require('./offline-profiles.cjs');
 const { createSessionStore } = require('./sessions.cjs');
 const { preservePlayerData } = require('./instance-data.cjs');
-const { createGameProcess } = require('./game-process.cjs');
+const { createGameProcess, terminate } = require('./game-process.cjs');
+const { createConsoleLog } = require('./console-log.cjs');
+const { createConsoleWindow } = require('./console-window.cjs');
 const { createOfflineSkinResolver } = require('./offline-skins.cjs');
 const {
   publicMinecraftProfile,
@@ -57,14 +61,34 @@ let win,
   skinRequest = null,
   busy = false,
   running = false;
+const consoleLog = createConsoleLog();
+let launchAttempt = null;
+const gameConsole = createConsoleWindow({
+  BrowserWindow,
+  ipcMain,
+  log: consoleLog,
+  onClose: stopConsoleGame,
+});
+let lastConsoleMessage = '';
 const game = createGameProcess({
+  kill: (child) =>
+    launchAttempt?.service ? launchAttempt.service.stop() : terminate(child),
   onChange(state) {
     running = state.running;
-    win?.webContents.send('gameState', state);
+    consoleLog.setStatus(
+      state.stopping ? 'stopping' : state.running ? 'running' : 'stopped',
+    );
+    if (win && !win.isDestroyed()) win.webContents.send('gameState', state);
     if (!state.running) send('Minecraft closed. Ready to play.', 100);
     else if (state.stopping) send('Stopping Minecraft…');
   },
 });
+async function stopConsoleGame() {
+  const attempt = launchAttempt;
+  if (attempt) attempt.cancelled = true;
+  if (game.state().running) await game.stop();
+  else if (attempt?.service) await attempt.service.stop();
+}
 const ownsLauncherLock = app.requestSingleInstanceLock();
 if (!ownsLauncherLock) app.quit();
 app.on('second-instance', () => {
@@ -140,8 +164,14 @@ function offlineProfiles() {
   );
   return offlineProfileStore;
 }
-const send = (message, percent = null) =>
-  win?.webContents.send('progress', { message, percent });
+const send = (message, percent = null) => {
+  if (win && !win.isDestroyed())
+    win.webContents.send('progress', { message, percent });
+  if (consoleLog.active() && message !== lastConsoleMessage) {
+    consoleLog.append(message);
+    lastConsoleMessage = message;
+  }
+};
 const launcherUpdates = createLauncherUpdates({
   enabled:
     app.isPackaged &&
@@ -221,8 +251,11 @@ async function cf(route) {
   return (await cfResponse(route)).data;
 }
 async function latestPackFile() {
+  const latestOnly = Boolean(serviceUrl());
   return findLatestClientFile(({ index, pageSize }) =>
-    cfResponse(`/mods/${PROJECT}/files?index=${index}&pageSize=${pageSize}`),
+    cfResponse(
+      `/mods/${PROJECT}/files?index=${index}&pageSize=${latestOnly ? 1 : pageSize}`,
+    ),
   );
 }
 async function download(url, file, hash) {
@@ -390,6 +423,7 @@ app.whenReady().then(() => {
     frame: false,
     show: false,
     webPreferences: {
+      devTools: !app.isPackaged,
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
@@ -398,7 +432,9 @@ app.whenReady().then(() => {
     },
   });
   lockWindowZoom(win);
+  enableInspectElement(win);
   observeWindowState(win);
+  win.on('closed', () => gameConsole.close());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.loadFile(path.join(__dirname, '../dist/index.html')).then(() => {
@@ -414,6 +450,11 @@ app.whenReady().then(() => {
   ).unref();
 });
 app.on('window-all-closed', () => app.quit());
+ipcMain.handle('openConsole', (event) => {
+  if (event.sender !== win?.webContents)
+    throw new Error('Launcher window required.');
+  gameConsole.open();
+});
 ipcMain.handle('windowState', (event) => {
   if (event.sender !== win?.webContents)
     throw new Error('Launcher window required.');
@@ -596,7 +637,7 @@ ipcMain.handle('play', async (_, p) => {
         await acceptMicrosoft(
           await new Auth('select_account').refresh(savedSession.refreshToken),
         );
-      authorization = account.mclc();
+      authorization = await account.mclc();
       savedSession = { ...savedSession, mode: 'microsoft' };
       await sessions().write(savedSession);
     } else if (p?.mode === 'offline') {
@@ -607,50 +648,88 @@ ipcMain.handle('play', async (_, p) => {
         savedSession.offlineName?.toLowerCase() === p.name.toLowerCase();
       if (!remembered)
         throw new Error('Confirm your offline profile PIN to sign in first.');
-      authorization = Authenticator.getAuth(savedSession.offlineName);
+      authorization = await Authenticator.getAuth(savedSession.offlineName);
     } else {
       throw new Error('Choose a Microsoft account or an offline profile.');
     }
   } finally {
     busy = false;
   }
-  await install();
-  busy = true;
+  const attempt = (launchAttempt = { cancelled: false, service: null });
+  consoleLog.start([authorization.access_token, authorization.client_token]);
+  lastConsoleMessage = '';
+  gameConsole.open();
   try {
+    await install();
+    busy = true;
+    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     const s = await settings();
     send('Confirming the installed pack is still the latest release…');
     const pack = await verifyLatestInstalledPack(
       await installed(),
       latestPackFile,
     );
-    const client = new Client();
-    client.on('progress', (e) =>
-      send(
-        `Preparing ${e.type}…`,
-        e.total ? Math.round((e.task / e.total) * 100) : null,
-      ),
-    );
+    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     send('Starting Minecraft. Java 21 must be installed…');
-    const child = await client.launch({
-      authorization,
-      root: root(),
-      javaPath: s.javaPath || 'java',
-      version: { number: pack.minecraft, type: 'release', custom: pack.custom },
-      memory: { min: '2G', max: `${s.memory}G` },
-      quickPlay: { type: 'multiplayer', identifier: HOST },
+    attempt.service = startMinecraftService(
+      {
+        authorization,
+        root: root(),
+        javaPath: s.javaPath || 'java',
+        version: {
+          number: pack.minecraft,
+          type: 'release',
+          custom: pack.custom,
+        },
+        memory: { min: '2G', max: `${s.memory}G` },
+        quickPlay: { type: 'multiplayer', identifier: HOST },
+      },
+      {
+        onData: (chunk) => {
+          if (launchAttempt === attempt) consoleLog.write(chunk);
+        },
+        onProgress: (e) => {
+          if (launchAttempt === attempt && !attempt.cancelled)
+            send(
+              `Preparing ${e.type}…`,
+              e.total ? Math.round((e.task / e.total) * 100) : null,
+            );
+        },
+        onSpawn: (child) => game.track(child),
+        onClose: (code) => {
+          if (launchAttempt !== attempt) return;
+          consoleLog.flush();
+          consoleLog.append(
+            `Minecraft exited with code ${code ?? 'unknown'}.`,
+            'launcher',
+            code ? 'error' : 'info',
+          );
+        },
+      },
+    );
+    attempt.service.done.then(() => {
+      if (launchAttempt === attempt) launchAttempt = null;
     });
-    if (!child)
-      throw Error(
-        'Minecraft could not start. Check the Java 21 path in Settings.',
-      );
-    game.track(child);
-    child.on('error', (e) => {
-      send(e.message);
-    });
+    await attempt.service.ready;
+    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     send('Minecraft is running.', 100);
     return true;
+  } catch (error) {
+    consoleLog.flush();
+    consoleLog.setStatus(attempt.cancelled ? 'stopped' : 'failed');
+    consoleLog.append(
+      error.message,
+      'launcher',
+      attempt.cancelled ? 'info' : 'error',
+    );
+    if (attempt.cancelled) {
+      send('Minecraft launch cancelled.');
+      return false;
+    }
+    throw error;
   } finally {
     busy = false;
+    if (!attempt.service && launchAttempt === attempt) launchAttempt = null;
   }
 });
 ipcMain.handle('folder', async () => {

@@ -29,6 +29,7 @@ for (const name of [
   'play',
   'gameState',
   'stopMinecraft',
+  'openConsole',
   'offlineProfile',
   'loginOffline',
   'folder',

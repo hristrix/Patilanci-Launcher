@@ -1,0 +1,216 @@
+.game-console {
+  height: calc(100vh - var(--titlebar-height));
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+}
+.console-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.console-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+  color: var(--cream);
+  font-size: var(--text-heading);
+}
+.console-heading h1 svg {
+  color: var(--gold);
+}
+.console-heading p {
+  margin: 0;
+  color: #b9a78d;
+  font-size: var(--text-small);
+}
+.console-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border: 1px solid #493a2d;
+  border-radius: 4px;
+  color: #c9b99f;
+  background: #211c19;
+  font-size: var(--text-caption);
+  flex-shrink: 0;
+}
+.console-status.is-running {
+  color: #bdd79e;
+  border-color: #465537;
+}
+.console-status.is-running .status-dot {
+  background: #a2cb7d;
+}
+.console-status.is-failed {
+  color: #ff9c8b;
+  border-color: #7c3b32;
+}
+.console-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.console-search {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #493c31;
+  border-radius: 4px;
+  background: #171517;
+  color: #bba787;
+}
+.console-search input:not([type='range']) {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: var(--cream);
+}
+.console-search:focus-within {
+  outline: 1px solid var(--gold);
+}
+.console-search input:focus-visible {
+  outline: none;
+}
+.console-toolbar select {
+  color: var(--cream);
+  background: #211c19;
+  border: 1px solid #584633;
+  padding: 10px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: var(--text-small);
+}
+.console-toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+}
+.console-output {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #101012;
+  border: 1px solid #49392c;
+  border-top: 2px solid var(--gold);
+  border-radius: 4px;
+  padding: 14px 0;
+  font:
+    13px/1.7 Consolas,
+    'Cascadia Code',
+    monospace;
+  user-select: text;
+}
+.console-line {
+  display: grid;
+  grid-template-columns: 76px 72px minmax(0, 1fr);
+  gap: 12px;
+  padding: 2px 16px;
+}
+.console-line:hover {
+  background: #ffffff05;
+}
+.console-line time {
+  color: #83796c;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.console-source {
+  color: #aa977b;
+  font-size: 11px;
+  padding-top: 1px;
+  letter-spacing: 0.05em;
+}
+.console-message {
+  color: #d6cfc3;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.console-line.is-warn {
+  background: #f2b63208;
+}
+.console-line.is-warn .console-message {
+  color: #e7bc6f;
+}
+.console-line.is-error {
+  background: #e539350d;
+}
+.console-line.is-error .console-message {
+  color: #ff9c8b;
+}
+.console-empty {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #b7a68f;
+  text-align: center;
+  padding: 24px;
+  font-family: var(--font-sans);
+}
+.console-empty svg {
+  color: #8d703d;
+}
+.console-empty strong {
+  font-size: var(--text-subtitle);
+  color: var(--cream);
+}
+.console-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+  font-size: var(--text-caption);
+  color: #ac9b83;
+}
+.console-footer label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ddc8a6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.console-footer input[type='checkbox'] {
+  accent-color: var(--gold);
+  width: 16px;
+  height: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
+.console-notice {
+  margin-left: auto;
+}
+@media (max-width: 850px) {
+  .game-console {
+    padding: 16px;
+    gap: 12px;
+  }
+  .console-heading p {
+    display: none;
+  }
+  .console-line {
+    grid-template-columns: 70px 60px minmax(0, 1fr);
+    gap: 8px;
+    padding: 2px 10px;
+  }
+  .console-notice {
+    margin-left: 0;
+  }
+}

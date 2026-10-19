@@ -214,6 +214,15 @@ async function prepareModsFixture() {
       pixels.set([...color, 255], offset);
     }
   }
+  // Transparent hat pixels preserve the face; opaque hat pixels sit above it.
+  for (let y = 8; y < 16; y++) {
+    for (let x = 40; x < 48; x++) {
+      pixels.set(
+        x < 44 && y < 12 ? [30, 190, 100, 255] : [0, 0, 0, 0],
+        (y * 64 + x) * 4,
+      );
+    }
+  }
   fixtureSkin = nativeImage
     .createFromBitmap(pixels, { width: 64, height: 64 })
     .toDataURL();
@@ -410,7 +419,7 @@ app.whenReady().then(async () => {
         buttons: document.querySelectorAll('.window-control').length,
         maximize: Boolean(document.querySelector('[aria-label="Maximize window"]')),
       })`),
-      { drag: 'drag', controls: 'no-drag', buttons: 4, maximize: true },
+      { drag: 'drag', controls: 'no-drag', buttons: 3, maximize: true },
       'The custom title bar must be draggable while window controls remain clickable',
     );
     for (const keyCode of ['+', '=', '-', '0', 'numadd', 'numsub']) {
@@ -470,6 +479,18 @@ app.whenReady().then(async () => {
       true,
       'The Play button must be visible without scrolling',
     );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-skin-profile="default"][data-skin-state="ready"]') !== null`,
+    );
+    assert.equal(
+      fixtureSkinRequests,
+      0,
+      'Signed-out Steve requires no profile lookup',
+    );
+    const signedOutHead = await window.webContents.executeJavaScript(
+      `document.querySelector('.player-skin-head').toDataURL()`,
+    );
     await capture(window, 'launcher-desktop.png');
 
     await window.webContents.executeJavaScript(
@@ -477,7 +498,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('[data-skin-state="ready"]') !== null`,
+      `document.querySelector('[data-skin-profile="player"][data-skin-state="ready"]') !== null`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -486,6 +507,18 @@ app.whenReady().then(async () => {
       'Adventurer1234567',
     );
     assert.equal(fixtureSkinRequests, 1);
+    assert.deepEqual(
+      await window.webContents.executeJavaScript(`(() => {
+      const context = document.querySelector('.player-skin-head').getContext('2d');
+      return [Array.from(context.getImageData(0, 0, 1, 1).data),
+        Array.from(context.getImageData(31, 31, 1, 1).data)];
+    })()`),
+      [
+        [100, 190, 30, 255],
+        [210, 161, 105, 255],
+      ],
+      'Sidebar head uses the signed-in skin face with its transparent hat overlay',
+    );
     const skinBounds = await window.webContents.executeJavaScript(`(() => {
       const bounds = document.querySelector('.skin-preview').getBoundingClientRect();
       return { x: Math.ceil(bounds.x), y: Math.ceil(bounds.y), width: Math.floor(bounds.width), height: Math.floor(bounds.height) };
@@ -572,7 +605,18 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.skin-preview') === null`,
+      `document.querySelector('.skin-preview[data-skin-profile=player]') === null`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-skin-profile="default"][data-skin-state="ready"]') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.player-skin-head').toDataURL()`,
+      ),
+      signedOutHead,
+      'Signing out restores the Steve head instead of retaining the player skin',
     );
 
     // Exercise the offline profile form and each navigation destination.
@@ -608,7 +652,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.skin-preview') === null`,
+        `document.querySelector('.skin-preview[data-skin-profile=player]') === null`,
       ),
       true,
     );
@@ -658,7 +702,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('[data-skin-state="ready"]') !== null`,
+      `document.querySelector('[data-skin-profile="player"][data-skin-state="ready"]') !== null`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -792,13 +836,13 @@ app.whenReady().then(async () => {
         `document.querySelector('.skin-placeholder').textContent.includes('No public skin found')`,
       ),
       true,
-      'Missing public skins keep the neutral avatar',
+      'Missing public skins fall back to Steve',
     );
     fixtureOfflineSkinAvailable = true;
     await window.reload();
     await waitForRenderer(
       window,
-      `document.querySelector('[data-skin-state="ready"]') !== null`,
+      `document.querySelector('[data-skin-profile="player"][data-skin-state="ready"]') !== null`,
     );
 
     await window.webContents.executeJavaScript(

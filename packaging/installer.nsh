@@ -7,16 +7,20 @@
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP_STRETCH AspectFitHeight
 !define MUI_HEADERIMAGE_BITMAP_STRETCH AspectFitHeight
 !define MUI_INSTFILESPAGE_COLORS "F4E7CF 171719"
+!define PATILANCI_LEGAL_NOTICE "Created by Fablento LTD.$\r$\nCopyright © 2026 Fablento LTD. All rights reserved."
 !define MUI_FINISHPAGE_TITLE "You're ready for Patilanci."
-!define MUI_FINISHPAGE_TEXT "Patilanci Launcher is installed.$\r$\n$\r$\nOpen the launcher to sign in and download the latest modpack. Internet access and Java 21 are required to play.$\r$\n$\r$\nYour sessions are remembered on this computer. Pack updates keep your Minecraft settings, worlds, shaders, and personal mods."
+!define MUI_FINISHPAGE_TEXT "Patilanci Launcher is installed.$\r$\n$\r$\nOpen the launcher to sign in and download the latest modpack. Internet access and Java 21 are required to play.$\r$\n$\r$\nPack updates keep your Minecraft settings, worlds, shaders, and personal mods.$\r$\n$\r$\n${PATILANCI_LEGAL_NOTICE}"
+!define MUI_UNFINISHPAGE_TITLE "We will miss you."
+!define MUI_UNFINISHPAGE_TEXT "Patilanci Launcher has been removed.$\r$\n$\r$\nThank you for being part of Patilanci. Your next adventure will be waiting whenever you return.$\r$\n$\r$\nYour saved sessions, profiles, worlds, mods, shaders, and Minecraft settings are kept for a future reinstall.$\r$\n$\r$\n${PATILANCI_LEGAL_NOTICE}"
 
 !macro customWelcomePage
   !define MUI_WELCOMEPAGE_TITLE "Your next adventure starts here."
-  !define MUI_WELCOMEPAGE_TEXT "Welcome to Patilanci Launcher.$\r$\n$\r$\nJoin the Patilanci server with a Microsoft account or an offline profile. Your sessions and Minecraft settings stay with you between launches and pack updates.$\r$\n$\r$\nSetup installs the launcher. Minecraft and modpack files download separately in the app. Internet access and Java 21 are required.$\r$\n$\r$\nChoose Next to get started."
+  !define MUI_WELCOMEPAGE_TEXT "Welcome to Patilanci Launcher.$\r$\n$\r$\nJoin Patilanci with a Microsoft account or an offline profile. Your sessions and Minecraft settings are remembered.$\r$\n$\r$\nSetup installs the launcher. Minecraft and the modpack download in the app. Internet access and Java 21 are required.$\r$\n$\r$\n${PATILANCI_LEGAL_NOTICE}"
   !insertmacro MUI_PAGE_WELCOME
 !macroend
 
 !macro customUnWelcomePage
-  !define MUI_UNWELCOMEPAGE_TEXT "This removes Patilanci Launcher.$\r$\n$\r$\nYour launcher settings, saved sessions, profiles, worlds, personal mods, shaders, and Minecraft settings are kept in your user data folder for a future reinstall.$\r$\n$\r$\nClose the launcher before continuing."
+  !define MUI_UNWELCOMEPAGE_TITLE "We will miss you."
+  !define MUI_UNWELCOMEPAGE_TEXT "Thank you for being part of Patilanci.$\r$\n$\r$\nThis wizard removes Patilanci Launcher. Your settings, saved sessions, profiles, worlds, mods, and shaders are kept for a future reinstall.$\r$\n$\r$\nClose the launcher, then choose Next to continue.$\r$\n$\r$\n${PATILANCI_LEGAL_NOTICE}"
   !insertmacro MUI_UNPAGE_WELCOME
 !macroend

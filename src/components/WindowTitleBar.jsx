@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react';
-import { ChevronRight, Copy, Folder, Minus, Square, X } from 'lucide-react';
+import {
+  ChevronRight,
+  Copy,
+  Folder,
+  Minus,
+  Square,
+  Terminal,
+  X,
+} from 'lucide-react';
 
-export default function WindowTitleBar({ api, pageLabel, onOpenFolder }) {
+export default function WindowTitleBar({
+  api,
+  pageLabel,
+  onOpenFolder,
+  onOpenConsole,
+  closeLabel = 'Close launcher',
+}) {
   const [maximized, setMaximized] = useState(false);
   const [actionError, setActionError] = useState('');
 
@@ -48,18 +62,7 @@ export default function WindowTitleBar({ api, pageLabel, onOpenFolder }) {
           <ChevronRight size={12} /> {pageLabel}
         </span>
       </div>
-      <span className="window-titlebar-note" role="status">
-        {actionError || 'YOUR PEOPLE. YOUR PLACE.'}
-      </span>
       <div className="window-controls">
-        <button
-          className="window-control window-folder"
-          aria-label="Open game folder"
-          title="Open game folder"
-          onClick={onOpenFolder}
-        >
-          <Folder size={15} />
-        </button>
         <button
           className="window-control"
           aria-label="Minimize window"
@@ -80,7 +83,7 @@ export default function WindowTitleBar({ api, pageLabel, onOpenFolder }) {
         </button>
         <button
           className="window-control window-close"
-          aria-label="Close launcher"
+          aria-label={closeLabel}
           title="Close"
           disabled={!api}
           onClick={() => action('close')}

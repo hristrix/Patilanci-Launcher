@@ -129,6 +129,35 @@ async function main() {
     config,
     publish: 'never',
   });
+  if (!preview && !store) {
+    if (process.platform !== 'win32')
+      throw new Error(
+        'Verify production Windows signatures on a Windows build runner.',
+      );
+    const version = require('../package.json').version;
+    const output = path.join(root, config.directories.output);
+    const verification = spawnSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        path.join(__dirname, 'verify-signatures.ps1'),
+        '-InstallerPath',
+        path.join(output, `Patilanci-Launcher-Setup-${version}-x64.exe`),
+        '-LauncherPath',
+        path.join(output, 'win-unpacked', 'Patilanci Launcher.exe'),
+      ],
+      { cwd: root, stdio: 'inherit' },
+    );
+    if (verification.error) throw verification.error;
+    if (verification.status !== 0)
+      throw new Error(
+        'Production artifacts failed Windows signature verification.',
+      );
+  }
   for (const artifact of artifacts) console.log(`Created: ${artifact}`);
 }
 

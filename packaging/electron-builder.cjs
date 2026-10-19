@@ -5,7 +5,7 @@ module.exports = {
   appId: 'com.patilanci.launcher',
   productName: 'Patilanci Launcher',
   executableName: 'Patilanci Launcher',
-  copyright: 'Patilanci',
+  copyright: 'Copyright © 2026 Fablento LTD. All rights reserved.',
   asar: true,
   publish: [LAUNCHER_PUBLISH],
   directories: {
@@ -16,6 +16,7 @@ module.exports = {
     'dist/**/*',
     'electron/**/*',
     '!electron/smoke.cjs',
+    '!electron/console-smoke.cjs',
     '!electron/responsive-check.cjs',
     '!electron/run.cjs',
     '!electron/check-download-service.cjs',

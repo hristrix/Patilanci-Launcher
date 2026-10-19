@@ -37,8 +37,9 @@ import HomeOverview from './components/HomeOverview';
 import MemorySettings from './components/MemorySettings';
 import WindowTitleBar from './components/WindowTitleBar';
 import SkinPreview from './components/SkinPreview';
-import PlayerAvatar from './components/PlayerAvatar';
+import PlayerHead from './components/PlayerHead';
 import StartupSplash from './components/StartupSplash';
+import GameConsole from './components/GameConsole';
 import './style.css';
 import './responsive.css';
 import './home.css';
@@ -101,9 +102,16 @@ function ServerStatus({ server }) {
   );
 }
 
-function Sidebar({ page, onNavigate, account, mode, username }) {
-  const offline = mode === 'offline' && /^[A-Za-z0-9_]{3,16}$/.test(username);
+function Sidebar({ page, onNavigate, account, mode, username, session }) {
+  const offline = session?.authenticated && session.mode === 'offline';
   const playerName = offline ? username : account?.name;
+  const skinAccount = offline
+    ? {
+        id: `offline:${session.name.toLowerCase()}`,
+        name: session.name,
+        mode: 'offline',
+      }
+    : account;
   const navigation = [
     {
       id: 'home',
@@ -186,7 +194,7 @@ function Sidebar({ page, onNavigate, account, mode, username }) {
         </button>
         <div className="sidebar-profile">
           <div className="profile-avatar">
-            <Gamepad2 size={20} />
+            <PlayerHead account={skinAccount} api={launcher} />
           </div>
           <div>
             <strong>{playerName || 'Hey, adventurer'}</strong>
@@ -421,7 +429,7 @@ function AccountPanel({
               api={launcher}
             />
           ) : (
-            <PlayerAvatar />
+            <SkinPreview api={launcher} />
           )}
         </div>
         <div className="login-accent" />
@@ -474,33 +482,6 @@ function AccountPanel({
             </button>
           )}
         </div>
-        {sessionMode && (
-          <>
-            <button
-              className="outline-button manage-account-button"
-              aria-expanded={managingAccount}
-              onClick={() => setManagingAccount(!managingAccount)}
-            >
-              <Settings size={15} /> Manage account
-            </button>
-            {managingAccount && (
-              <p className="account-management">
-                {sessionMode === 'microsoft'
-                  ? 'Your Microsoft account is saved securely on this computer.'
-                  : 'Your offline profile is saved on this computer.'}{' '}
-                {sessionMode === 'offline' &&
-                  ' Skin previews use your public nickname on Ely.by and may differ from the skin shown by the server.'}{' '}
-                Sign out below to change accounts.
-              </p>
-            )}
-            <button
-              className="outline-button player-community-button"
-              onClick={onCommunity}
-            >
-              <Users size={14} /> Players online
-            </button>
-          </>
-        )}
         {mode === 'microsoft' ? (
           <div className="account-details">
             <div className="account-symbol">
@@ -513,13 +494,6 @@ function AccountPanel({
                     ? 'Your saved Microsoft account'
                     : 'Your Minecraft account, right here.')}
               </strong>
-              <p>
-                {account
-                  ? 'Signed in. Your next chapter is ready.'
-                  : sessionMode === 'microsoft'
-                    ? 'Session saved. Play to reconnect, or sign out to change accounts.'
-                    : 'Connect securely with Microsoft to get started.'}
-              </p>
             </div>
             <button
               className="outline-button"
@@ -1051,6 +1025,7 @@ function App() {
         api={launcher}
         pageLabel={PAGES[page].label}
         onOpenFolder={() => performAction(() => launcher.folder())}
+        onOpenConsole={() => performAction(() => launcher.openConsole())}
       />
       <div className={`app-shell ${page === 'home' ? 'is-home' : ''}`}>
         <Sidebar
@@ -1059,6 +1034,7 @@ function App() {
           account={account}
           mode={mode}
           username={username}
+          session={config.session}
         />
         <main className="main-shell">
           <div className="page-content">
@@ -1172,7 +1148,10 @@ function App() {
                 {copied ? 'Address copied' : SERVER_ADDRESS}
                 {copied ? <Check size={12} /> : <Copy size={12} />}
               </button>
-              <span>YOUR PEOPLE. YOUR PLACE.</span>
+              <div className="launcher-legal">
+                <span>Created by Fablento LTD</span>
+                <span>© 2026 Fablento LTD. All rights reserved.</span>
+              </div>
               <button className="refresh-link" onClick={refreshServer}>
                 <RefreshCw size={12} />
                 Refresh status
@@ -1185,4 +1164,6 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+  window.location.hash === '#console' ? <GameConsole /> : <App />,
+);

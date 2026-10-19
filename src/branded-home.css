@@ -263,6 +263,51 @@
   box-shadow: none;
 }
 
+.is-home .login-card.is-signed-in {
+  align-self: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 20px;
+}
+
+.is-home .login-card.is-signed-in .login-avatar-stage {
+  height: 144px;
+}
+
+.is-home .login-card.is-signed-in .login-accent {
+  height: 1px;
+  margin: 0;
+}
+
+.is-home .login-card.is-signed-in .login-player-heading,
+.is-home .login-card.is-signed-in .account-tabs {
+  margin: 0;
+}
+
+.is-home .login-card.is-signed-in .account-details {
+  gap: 0;
+}
+
+.is-home .login-card.is-signed-in .account-details > div {
+  display: none;
+}
+
+.is-home .login-card.is-signed-in .account-details > .outline-button,
+.is-home .login-card.is-signed-in .offline-profile > button[type='button'] {
+  width: 100%;
+  min-height: 36px;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--control-surface);
+  color: #dfc69c;
+}
+
+.is-home .login-card.is-signed-in .offline-profile {
+  margin: 0;
+}
+
 .manage-account-button,
 .player-community-button {
   display: flex;
@@ -633,6 +678,12 @@
   }
   .is-home .login-avatar-stage {
     height: 100px;
+  }
+  .is-home .login-card.is-signed-in {
+    padding: 16px;
+  }
+  .is-home .login-card.is-signed-in .login-avatar-stage {
+    height: 112px;
   }
   .is-home .login-player-heading {
     margin-bottom: 10px;

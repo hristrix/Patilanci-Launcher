@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { UserRound } from 'lucide-react';
 import PlayerAvatar from './PlayerAvatar';
+import usePlayerSkin from './usePlayerSkin';
 
 export default function SkinPreview({ account, api }) {
   const container = useRef(null);
   const canvas = useRef(null);
   const [phase, setPhase] = useState('loading');
+  const { texture, phase: texturePhase } = usePlayerSkin(account, api);
 
   useEffect(() => {
     let active = true;
@@ -15,20 +16,12 @@ export default function SkinPreview({ account, api }) {
     async function initialize() {
       setPhase('loading');
       try {
-        if (!api) throw new Error('Desktop preview unavailable.');
-        const [texture, { SkinViewer }] = await Promise.all([
-          api.skin(
-            account.mode === 'offline'
-              ? { mode: 'offline', name: account.name }
-              : undefined,
-          ),
-          import('skinview3d'),
-        ]);
-        if (!active) return;
         if (!texture) {
-          setPhase(account.mode === 'offline' ? 'missing' : 'unavailable');
+          setPhase(texturePhase);
           return;
         }
+        const { SkinViewer } = await import('skinview3d');
+        if (!active) return;
         const bounds = container.current.getBoundingClientRect();
         viewer = new SkinViewer({
           canvas: canvas.current,
@@ -68,22 +61,23 @@ export default function SkinPreview({ account, api }) {
       resizeObserver?.disconnect();
       viewer?.dispose();
     };
-  }, [account.id, api]);
+  }, [texture, texturePhase]);
 
   return (
-    <div className="skin-preview" ref={container} data-skin-state={phase}>
+    <div
+      className="skin-preview"
+      ref={container}
+      data-skin-state={phase}
+      data-skin-profile={account ? 'player' : 'default'}
+    >
       <canvas
         ref={canvas}
-        aria-label={`Static 3D Minecraft skin for ${account.name}.`}
+        aria-label={`Static 3D Minecraft skin for ${account?.name || 'Steve'}.`}
         role="img"
       />
       {phase !== 'ready' && (
         <div className="skin-placeholder" role="status">
-          {account.mode === 'offline' ? (
-            <PlayerAvatar />
-          ) : (
-            <UserRound size={32} />
-          )}
+          <PlayerAvatar />
           <span>
             {phase === 'loading'
               ? 'Loading your skin…'

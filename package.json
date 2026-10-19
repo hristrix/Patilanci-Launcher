@@ -1,6 +1,6 @@
 {
   "name": "patilanci-launcher",
-  "version": "1.0.2",
+  "version": "1.4.0",
   "description": "Patilanci SMP desktop launcher",
   "dependencies": {
     "@fontsource/manrope": "5.3.0",
@@ -46,6 +46,7 @@
     "start:download-service": "node server/download-service.cjs",
     "test": "node --test tests/*.test.cjs",
     "test:desktop": "node electron/run.cjs electron/smoke.cjs",
+    "test:console": "node electron/run.cjs electron/console-smoke.cjs",
     "version:patch": "npm version patch --no-git-tag-version",
     "version:hotfix": "npm run version:patch",
     "version:minor": "npm version minor --no-git-tag-version",
@@ -54,7 +55,7 @@
     "format:check": "prettier --check ."
   },
   "keywords": [],
-  "author": "",
+  "author": "Fablento LTD",
   "license": "ISC",
   "type": "commonjs"
 }

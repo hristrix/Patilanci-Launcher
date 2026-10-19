@@ -61,4 +61,4 @@ function createGameProcess({ onChange = () => {}, kill = terminate } = {}) {
   return { state, track, stop };
 }
 
-module.exports = { createGameProcess };
+module.exports = { createGameProcess, terminate };
