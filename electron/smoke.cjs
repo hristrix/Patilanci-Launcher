@@ -427,6 +427,55 @@ app.whenReady().then(async () => {
       `!document.querySelector('.play-button').disabled && document.querySelector('.progress-summary')?.textContent.includes('Latest modpack ready')`,
     );
     const home = await checkLayout(window, 'Welcome to Patilanci.');
+    window.webContents.send('launcherUpdate', {
+      status: 'downloaded',
+      latestVersion: '99.0.0',
+    });
+    window.webContents.send('modpackUpdate', {
+      status: 'available',
+      fileId: 900,
+      releaseName: 'Patilanci update fixture',
+    });
+    await waitForRenderer(
+      window,
+      `document.querySelectorAll('.update-notice').length === 2`,
+    );
+    window.webContents.send('gameState', { running: true });
+    await waitForRenderer(
+      window,
+      `[...document.querySelectorAll('.update-notice .outline-button')].every(button => button.disabled) && document.querySelector('.update-notices').textContent.includes('Close Minecraft')`,
+    );
+    await capture(window, 'launcher-update-notifications.png');
+    window.webContents.send('gameState', { running: false });
+    await waitForRenderer(
+      window,
+      `[...document.querySelectorAll('.update-notice .outline-button')].every(button => !button.disabled)`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Dismiss modpack update notification"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-update-kind="modpack"]') === null`,
+    );
+    window.webContents.send('modpackUpdate', {
+      status: 'available',
+      fileId: 901,
+      releaseName: 'Next update fixture',
+    });
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-update-kind="modpack"]')?.textContent.includes('Next update fixture')`,
+    );
+    window.webContents.send('modpackUpdate', { status: 'current' });
+    window.webContents.send('launcherUpdate', {
+      status: 'current',
+      version: '1.0.0',
+    });
+    await waitForRenderer(
+      window,
+      `document.querySelectorAll('.update-notice').length === 0`,
+    );
     pauseStatusRefresh = true;
     await window.webContents.executeJavaScript(
       `document.querySelector('.refresh-link').click()`,

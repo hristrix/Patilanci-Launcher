@@ -32,6 +32,7 @@ import '@fontsource/oswald/600.css';
 import '@fontsource/oswald/700.css';
 import BrandLogo from './components/BrandLogo';
 import ModpackPage from './components/ModpackPage';
+import UpdateNotices from './components/UpdateNotices';
 import ModsPage from './components/ModsPage';
 import HomeOverview from './components/HomeOverview';
 import MemorySettings from './components/MemorySettings';
@@ -786,6 +787,7 @@ function App() {
     phase: 'launcher',
   });
   const [launcherUpdate, setLauncherUpdate] = useState(null);
+  const [modpackUpdate, setModpackUpdate] = useState(null);
   const [storage, setStorage] = useState(null);
 
   useEffect(() => {
@@ -819,6 +821,8 @@ function App() {
     setConfig(configuration);
     if (configuration.launcherUpdate)
       setLauncherUpdate(configuration.launcherUpdate);
+    if (configuration.modpackUpdate)
+      setModpackUpdate(configuration.modpackUpdate);
     if (resetDraft) {
       setDraft({
         memory: configuration.memory,
@@ -910,6 +914,9 @@ function App() {
     const unsubscribeLauncher = launcher?.onLauncherUpdate((state) => {
       if (active) setLauncherUpdate(state);
     });
+    const unsubscribeModpack = launcher?.onModpackUpdate((state) => {
+      if (active) setModpackUpdate(state);
+    });
     runStartup();
     refreshServer().catch(() => setServer({ online: false, players: [] }));
     const timer = setInterval(() => refreshServer().catch(() => {}), 30000);
@@ -921,6 +928,7 @@ function App() {
       unsubscribeGame?.();
       unsubscribeStartup?.();
       unsubscribeLauncher?.();
+      unsubscribeModpack?.();
     };
   }, []);
 
@@ -1101,34 +1109,33 @@ function App() {
                 </button>
               </div>
             )}
-            {launcherUpdate &&
-              ['error', 'downloaded'].includes(launcherUpdate.status) && (
-                <div className="launcher-update-notice" role="status">
-                  <span>
-                    {launcherUpdate.status === 'downloaded'
-                      ? `Launcher ${launcherUpdate.latestVersion} is ready to install.`
-                      : 'Launcher updates could not be checked. Your modpack update check is separate.'}
-                  </span>
-                  <button
-                    className="outline-button"
-                    disabled={busy || game.running}
-                    onClick={
-                      launcherUpdate.status === 'downloaded'
-                        ? installLauncherUpdate
-                        : () =>
-                            performAction(async () =>
-                              setLauncherUpdate(
-                                await launcher.checkLauncherUpdate(),
-                              ),
-                            )
-                    }
-                  >
-                    {launcherUpdate.status === 'downloaded'
-                      ? 'Restart and update'
-                      : 'Retry update check'}
-                  </button>
-                </div>
-              )}
+            {launcherUpdate && launcherUpdate.status === 'error' && (
+              <div className="launcher-update-notice" role="status">
+                <span>
+                  Launcher updates could not be checked. Your modpack update
+                  check is separate.
+                </span>
+                <button
+                  className="outline-button"
+                  disabled={busy || game.running}
+                  onClick={() =>
+                    performAction(async () =>
+                      setLauncherUpdate(await launcher.checkLauncherUpdate()),
+                    )
+                  }
+                >
+                  Retry update check
+                </button>
+              </div>
+            )}
+            <UpdateNotices
+              launcherUpdate={launcherUpdate}
+              modpackUpdate={modpackUpdate}
+              busy={busy}
+              running={game.running}
+              onRestart={installLauncherUpdate}
+              onUpdatePack={handleInstall}
+            />
             {page === 'home' && (
               <HomeOverview
                 config={config}
@@ -1154,8 +1161,11 @@ function App() {
                 config={config}
                 storage={storage}
                 onRefreshStorage={refreshStorage}
-                busy={busy}
+                busy={busy || game.running}
                 updateState={updateState}
+                availableUpdate={
+                  modpackUpdate?.status === 'available' ? modpackUpdate : null
+                }
                 onRetry={handleInstall}
                 onManageMods={() => setPage('mods')}
                 onOpenCurseForge={() =>

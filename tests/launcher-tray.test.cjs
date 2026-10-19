@@ -66,6 +66,9 @@ function fixture(beforeQuit = async () => {}) {
     setContextMenu(menu) {
       this.menu = menu;
     }
+    displayBalloon(value) {
+      this.balloon = value;
+    }
   }
   const controller = createLauncherTray({
     app,
@@ -77,9 +80,37 @@ function fixture(beforeQuit = async () => {}) {
     onOpenConsole: () => state.console++,
     onError: (error) => state.errors.push(error.message),
   });
-  return { app, window, state, tray: controller.getTray() };
+  return { app, window, state, controller, tray: controller.getTray() };
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
+test('update balloons respect quiet time, restore the launcher on click and tolerate unsupported notifications', () => {
+  const { controller, tray, window, state } = fixture();
+  window.close();
+  assert.equal(
+    controller.notify({ title: 'Update ready', body: 'Version 2' }),
+    true,
+  );
+  assert.deepEqual(tray.balloon, {
+    title: 'Update ready',
+    content: 'Version 2',
+    respectQuietTime: true,
+  });
+  tray.emit('balloon-click');
+  assert.equal(state.hidden, false);
+  assert.equal(state.focused, true);
+  tray.displayBalloon = () => {
+    throw new Error('Unavailable');
+  };
+  assert.equal(
+    controller.notify({ title: 'Update', body: 'Version 3' }),
+    false,
+  );
+  tray.destroy();
+  assert.equal(
+    controller.notify({ title: 'Update', body: 'Version 3' }),
+    false,
+  );
+});
 test('closing the launcher hides it and tray actions restore it without quitting or stopping the game', () => {
   let stops = 0;
   const { app, window, state, tray } = fixture(async () => stops++);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.0 - 2026-10-19
+
+### Added
+
+- Background checks every minute and on window focus notify you about new launcher and modpack releases, including while Minecraft is running or the launcher is in the Windows tray.
+- Compact in-app notices show launcher download progress, restart and modpack update actions. Windows tray notifications announce new releases once per session while the launcher is hidden; clicking restores it.
+- Update actions wait until Minecraft closes. Dismissed notices stay hidden for that release during the session, with update actions still available in Settings and Modpack.
+
 ## 1.9.7 - 2026-10-19
 
 ### Fixed

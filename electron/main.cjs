@@ -25,6 +25,7 @@ const { lockWindowZoom } = require('./window-zoom.cjs');
 const { enableInspectElement } = require('./inspect-element.cjs');
 const { createDiscordPresence } = require('./discord-presence.cjs');
 const { createLauncherTray } = require('./launcher-tray.cjs');
+const { createUpdateMonitor } = require('./update-monitor.cjs');
 const { createInstanceStorage } = require('./instance-storage.cjs');
 const { prepareLaunch } = require('./launch-preparation.cjs');
 const {
@@ -79,6 +80,7 @@ const discord = createDiscordPresence({
   imageKey: DISCORD_IMAGE_KEY,
 });
 let launchAttempt = null;
+let launcherTray, updateMonitor;
 const gameConsole = createConsoleWindow({
   BrowserWindow,
   ipcMain,
@@ -206,7 +208,11 @@ const launcherUpdates = createLauncherUpdates({
     process.platform === 'win32',
   version: app.getVersion(),
   createUpdater: () => new (require('electron-updater').NsisUpdater)(),
-  onState: (state) => win?.webContents.send('launcherUpdate', state),
+  onState: (state) => {
+    if (win && !win.isDestroyed())
+      win.webContents.send('launcherUpdate', state);
+    updateMonitor?.launcherState(state);
+  },
   canInstall: () => !busy && !running,
 });
 async function restoreStartupAccount() {
@@ -343,6 +349,7 @@ async function install({ refreshInventory = true } = {}) {
     const latest = await latestPackFile();
     const old = await installed();
     if (old?.fileId === latest.id) {
+      updateMonitor?.installed(old);
       if (refreshInventory) await ensureModInventory(root());
       const releaseName = latest.displayName || latest.fileName;
       if (releaseName && old.releaseName !== releaseName) {
@@ -438,6 +445,7 @@ async function install({ refreshInventory = true } = {}) {
       throw e;
     }
     instanceStorage.invalidate();
+    updateMonitor?.installed(pack);
     send('Modpack ready. Your adventure awaits.', 100);
     return pack;
   } finally {
@@ -476,7 +484,7 @@ app.whenReady().then(() => {
   observeWindowState(win);
   win.on('closed', () => gameConsole.close());
   if (process.platform === 'win32') {
-    createLauncherTray({
+    launcherTray = createLauncherTray({
       app,
       Tray,
       Menu,
@@ -500,16 +508,16 @@ app.whenReady().then(() => {
     win.show();
     win.focus();
   });
-  setInterval(
-    () => {
-      if (!busy && !running && startupFlow.state().status === 'ready')
-        launcherUpdates.check().catch(() => {});
-    },
-    30 * 60 * 1000,
-  ).unref();
+  updateMonitor.start();
+  win.on('focus', () => {
+    void updateMonitor.check();
+  });
 });
 app.on('window-all-closed', () => app.quit());
-app.on('will-quit', () => discord.stop());
+app.on('will-quit', () => {
+  updateMonitor?.stop();
+  discord.stop();
+});
 ipcMain.handle('openConsole', (event) => {
   if (event.sender !== win?.webContents)
     throw new Error('Launcher window required.');
@@ -536,6 +544,7 @@ ipcMain.handle('config', async () => {
     session: activeSession(),
     game: game.state(),
     launcherUpdate: launcherUpdates.state(),
+    modpackUpdate: updateMonitor.state(),
   };
 });
 ipcMain.handle('memoryInfo', () => ({
@@ -638,6 +647,19 @@ const startupFlow = createStartupFlow({
     return installed();
   },
   onState: (state) => win?.webContents.send('startupState', state),
+});
+updateMonitor = createUpdateMonitor({
+  getInstalled: installed,
+  getLatest: latestPackFile,
+  checkLauncher: () => launcherUpdates.check(),
+  canCheck: () => !busy && startupFlow.state().status === 'ready',
+  onState: (state) => {
+    if (win && !win.isDestroyed()) win.webContents.send('modpackUpdate', state);
+  },
+  onNotice: (notice) => {
+    if (win && !win.isDestroyed() && !win.isVisible())
+      launcherTray?.notify(notice);
+  },
 });
 ipcMain.handle('startup', () => startupFlow.run());
 ipcMain.handle('retryStartup', () => startupFlow.retry());

@@ -59,6 +59,7 @@ api.onGameState = (callback) => {
 for (const [method, channel] of [
   ['onStartupState', 'startupState'],
   ['onLauncherUpdate', 'launcherUpdate'],
+  ['onModpackUpdate', 'modpackUpdate'],
 ]) {
   api[method] = (callback) => {
     const listener = (_, state) => callback(state);

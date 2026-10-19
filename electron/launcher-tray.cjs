@@ -57,10 +57,21 @@ function createLauncherTray({
   );
   tray.on('click', show);
   tray.on('double-click', show);
+  tray.on('balloon-click', show);
   window.on('close', close);
   app.on('activate', show);
   app.on('before-quit', quit);
   app.once('will-quit', dispose);
-  return { show, getTray: () => tray };
+  function notify({ title, body }) {
+    if (tray.isDestroyed() || typeof tray.displayBalloon !== 'function')
+      return false;
+    try {
+      tray.displayBalloon({ title, content: body, respectQuietTime: true });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return { show, notify, getTray: () => tray };
 }
 module.exports = { createLauncherTray };

@@ -15,6 +15,7 @@ export default function ModpackPage({
   config,
   busy,
   updateState,
+  availableUpdate,
   onRetry,
   onManageMods,
   onOpenCurseForge,
@@ -26,14 +27,17 @@ export default function ModpackPage({
   const pack = config.installed;
   const checking = updateState.status === 'checking';
   const failed = updateState.status === 'failed';
-  const verified = updateState.status === 'ready' && Boolean(pack);
+  const verified =
+    updateState.status === 'ready' && Boolean(pack) && !availableUpdate;
   const title = checking
     ? 'Getting your pack ready.'
     : failed
       ? 'Update needs attention.'
-      : verified
-        ? 'You’re up to date.'
-        : 'Automatic updates enabled.';
+      : availableUpdate
+        ? 'A new modpack is available.'
+        : verified
+          ? 'You’re up to date.'
+          : 'Automatic updates enabled.';
 
   return (
     <div className="pack-overview">
@@ -71,7 +75,9 @@ export default function ModpackPage({
 
       <section
         className="panel pack-update"
-        data-update-status={updateState.status}
+        data-update-status={
+          availableUpdate && !checking ? 'available' : updateState.status
+        }
       >
         <div className="pack-update-heading">
           <span className="pack-update-icon">
@@ -90,7 +96,9 @@ export default function ModpackPage({
         <p className="pack-update-description">
           {failed
             ? 'The latest release could not be prepared. Check your connection and retry. If this continues, contact the Patilanci launcher administrator.'
-            : 'Every time you open the launcher, we check CurseForge and download the latest pack when needed. Play checks again before starting Minecraft.'}
+            : availableUpdate
+              ? `${availableUpdate.releaseName} is available. Close Minecraft to update, or press Play to prepare it before your next game.`
+              : 'We check for new releases every minute while the launcher is open. Startup and Play prepare the latest pack before starting Minecraft.'}
         </p>
 
         <dl className="pack-facts">
@@ -153,13 +161,14 @@ export default function ModpackPage({
             )}
           </div>
         )}
-        {failed && (
+        {(failed || availableUpdate) && !checking && (
           <button
             className="outline-button pack-retry"
             disabled={busy}
             onClick={onRetry}
           >
-            <RefreshCw size={16} /> Retry update
+            <RefreshCw size={16} />{' '}
+            {availableUpdate ? 'Update modpack' : 'Retry update'}
           </button>
         )}
         <p className="pack-preservation">
