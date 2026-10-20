@@ -1,6 +1,6 @@
 {
   "name": "patilanci-launcher",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "Patilanci SMP desktop launcher",
   "dependencies": {
     "@fontsource/manrope": "5.3.0",
@@ -52,7 +52,7 @@
     "validate": "npm run check:release && npm test && npm run build && npm run test:desktop -- --disable-gpu && npm run test:console",
     "test:desktop": "node electron/run.cjs electron/smoke.cjs",
     "test:console": "node electron/run.cjs electron/console-smoke.cjs",
-    "test:tray": "node electron/run.cjs electron/tray-smoke.cjs",
+    "test:exit": "node electron/run.cjs electron/exit-smoke.cjs",
     "version:patch": "npm version patch --no-git-tag-version",
     "version:hotfix": "npm run version:patch",
     "version:minor": "npm version minor --no-git-tag-version",

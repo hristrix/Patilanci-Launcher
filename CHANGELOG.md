@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.1 - 2026-10-20
+
+### Fixed
+
+- Closing the launcher now exits completely instead of hiding in the Windows system tray. Minecraft is stopped and pending Java preparation is cancelled before shutdown.
+- Removed the system tray icon and tray update notifications; update notices remain available inside the launcher.
+
 ## 1.10.0 - 2026-10-19
 
 ### Added

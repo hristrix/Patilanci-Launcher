@@ -5,9 +5,6 @@ const {
   shell,
   safeStorage,
   dialog,
-  Tray,
-  Menu,
-  nativeImage,
 } = require('electron');
 const fs = require('node:fs/promises'),
   path = require('node:path'),
@@ -24,7 +21,7 @@ const { savePreferences } = require('./preferences.cjs');
 const { lockWindowZoom } = require('./window-zoom.cjs');
 const { enableInspectElement } = require('./inspect-element.cjs');
 const { createDiscordPresence } = require('./discord-presence.cjs');
-const { createLauncherTray } = require('./launcher-tray.cjs');
+const { configureLauncherExit } = require('./launcher-exit.cjs');
 const { createUpdateMonitor } = require('./update-monitor.cjs');
 const { createInstanceStorage } = require('./instance-storage.cjs');
 const { prepareLaunch } = require('./launch-preparation.cjs');
@@ -80,7 +77,7 @@ const discord = createDiscordPresence({
   imageKey: DISCORD_IMAGE_KEY,
 });
 let launchAttempt = null;
-let launcherTray, updateMonitor;
+let updateMonitor;
 const gameConsole = createConsoleWindow({
   BrowserWindow,
   ipcMain,
@@ -483,25 +480,15 @@ app.whenReady().then(() => {
   enableInspectElement(win);
   observeWindowState(win);
   win.on('closed', () => gameConsole.close());
-  if (process.platform === 'win32') {
-    launcherTray = createLauncherTray({
-      app,
-      Tray,
-      Menu,
-      window: win,
-      icon: nativeImage
-        .createFromPath(
-          path.join(__dirname, '../dist/brand/patilanci-icon.png'),
-        )
-        .resize({ width: 16, height: 16 }),
-      onOpenConsole: () => gameConsole.open(),
-      beforeQuit: stopConsoleGame,
-      onError: (error) => {
-        consoleLog.append(error.message, 'launcher', 'error');
-        gameConsole.open();
-      },
-    });
-  }
+  configureLauncherExit({
+    app,
+    window: win,
+    beforeQuit: stopConsoleGame,
+    onError: (error) => {
+      consoleLog.append(error.message, 'launcher', 'error');
+      gameConsole.open();
+    },
+  });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.loadFile(path.join(__dirname, '../dist/index.html')).then(() => {
@@ -655,10 +642,6 @@ updateMonitor = createUpdateMonitor({
   canCheck: () => !busy && startupFlow.state().status === 'ready',
   onState: (state) => {
     if (win && !win.isDestroyed()) win.webContents.send('modpackUpdate', state);
-  },
-  onNotice: (notice) => {
-    if (win && !win.isDestroyed() && !win.isVisible())
-      launcherTray?.notify(notice);
   },
 });
 ipcMain.handle('startup', () => startupFlow.run());
