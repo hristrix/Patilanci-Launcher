@@ -205,6 +205,7 @@ ipcMain.handle('startupUpdate', async (event) => {
 });
 let fixtureLauncherUpdate = { status: 'current', version: '1.0.0' };
 let fixtureLauncherInstalls = 0;
+let finishLauncherInstall;
 function makeFixtureStartupFlow() {
   return createStartupFlow({
     checkLauncher: async () => fixtureLauncherUpdate,
@@ -229,8 +230,25 @@ let fixtureStartupFlow = makeFixtureStartupFlow();
 ipcMain.handle('startup', () => fixtureStartupFlow.run());
 ipcMain.handle('retryStartup', () => fixtureStartupFlow.retry());
 ipcMain.handle('checkLauncherUpdate', () => fixtureLauncherUpdate);
-ipcMain.handle('installLauncherUpdate', () => {
+ipcMain.handle('installLauncherUpdate', async (event) => {
   fixtureLauncherInstalls++;
+  const update = {
+    ...fixtureLauncherUpdate,
+    latestVersion: fixtureLauncherUpdate.latestVersion || '99.0.0',
+  };
+  event.sender.send('launcherUpdate', { ...update, status: 'installing' });
+  try {
+    await new Promise((resolve, reject) => {
+      finishLauncherInstall = (error) => (error ? reject(error) : resolve());
+    });
+  } catch (error) {
+    event.sender.send('launcherUpdate', {
+      ...update,
+      status: 'downloaded',
+      error: error.message,
+    });
+    throw error;
+  }
 });
 ipcMain.handle('memoryInfo', () => ({
   totalBytes: 16 * 1024 ** 3,
@@ -555,6 +573,31 @@ app.whenReady().then(async () => {
     await waitForRenderer(
       window,
       `[...document.querySelectorAll('.update-notice .outline-button')].every(button => !button.disabled)`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-update-kind="launcher"] .outline-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.update-restart-screen') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.app-shell') === null && document.querySelector('.update-restart-screen [role="progressbar"]') !== null`,
+      ),
+      true,
+      'Updating from Home shows a dedicated restart screen and blocks other actions',
+    );
+    await capture(window, 'launcher-update-restarting.png');
+    finishLauncherInstall(
+      new Error('Fixture: Could not start launcher update.'),
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.app-shell') !== null && document.querySelector('[role="alert"]')?.textContent.includes('Could not start launcher update')`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Dismiss error"]').click()`,
     );
     await window.webContents.executeJavaScript(
       `document.querySelector('[aria-label="Dismiss modpack update notification"]').click()`,
@@ -1567,17 +1610,31 @@ app.whenReady().then(async () => {
       'Downloaded launcher updates stay in the splash until restart',
     );
     await capture(window, 'launcher-startup-update-ready.png');
+    const installsBeforeRestart = fixtureLauncherInstalls;
     await window.webContents.executeJavaScript(
       `document.querySelector('.splash-actions .play-button').click()`,
     );
-    assert.equal(fixtureLauncherInstalls, 1);
+    await waitForRenderer(
+      window,
+      `document.querySelector('.update-restart-screen')?.textContent.includes('1.1.0')`,
+    );
+    assert.equal(fixtureLauncherInstalls, installsBeforeRestart + 1);
+    await capture(window, 'launcher-startup-update-restarting.png');
+    finishLauncherInstall();
     fixtureLauncherUpdate = { status: 'current', version: '1.0.0' };
     fixtureStartupFlow = makeFixtureStartupFlow();
-    await window.loadFile(path.join(__dirname, '../dist/index.html'));
+    await window.loadFile(path.join(__dirname, '../dist/index.html'), {
+      query: { updated: '1' },
+    });
     await waitForRenderer(
       window,
       `document.querySelector('.app-shell') !== null`,
     );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.update-notices')?.textContent.includes('Launcher updated successfully')`,
+    );
+    await capture(window, 'launcher-update-complete.png');
 
     console.log('Electron UI checks passed:', JSON.stringify(home));
     console.log(

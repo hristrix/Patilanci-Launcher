@@ -42,8 +42,89 @@ test('new launcher releases download once, apply silently, and restart only when
   assert.equal(updater.autoDownload, false);
   assert.throws(controller.install, /Close Minecraft/);
   idle = true;
-  controller.install();
+  await controller.install();
   assert.equal(installs, 1);
+});
+
+async function downloadedUpdate(options = {}) {
+  const updater = new EventEmitter();
+  updater.checkForUpdates = async () => ({
+    isUpdateAvailable: true,
+    updateInfo: { version: '1.1.0' },
+  });
+  updater.downloadUpdate = async () =>
+    updater.emit('update-downloaded', { version: '1.1.0' });
+  updater.quitAndInstall = () => {};
+  const controller = createLauncherUpdates({
+    createUpdater: () => updater,
+    enabled: true,
+    version: '1.0.0',
+    ...options,
+  });
+  await controller.check();
+  return { controller, updater };
+}
+
+test('restart feedback is published before quitting and repeated clicks share one installation', async () => {
+  let proceed;
+  let installs = 0;
+  const states = [];
+  const { controller, updater } = await downloadedUpdate({
+    beforeInstall: () =>
+      new Promise((resolve) => {
+        proceed = resolve;
+      }),
+    onState: (state) => states.push(state.status),
+  });
+  updater.quitAndInstall = () => {
+    installs++;
+  };
+  const first = controller.install();
+  assert.equal(controller.state().status, 'installing');
+  assert.equal((await controller.check()).status, 'installing');
+  assert.equal(controller.install(), first);
+  assert.equal(
+    installs,
+    0,
+    'The updater must wait while restart feedback is shown',
+  );
+  proceed();
+  await first;
+  assert.equal(installs, 1);
+  assert.equal(states.at(-1), 'installing');
+});
+
+test('a failed restart returns to the downloaded update and can be retried', async () => {
+  const { controller, updater } = await downloadedUpdate();
+  updater.quitAndInstall = () => {
+    throw new Error('Could not start update');
+  };
+  await assert.rejects(controller.install(), /Could not start update/);
+  assert.equal(controller.state().status, 'downloaded');
+  assert.match(controller.state().error, /Could not start update/);
+  updater.quitAndInstall = () => {};
+  await controller.install();
+  assert.equal(controller.state().status, 'installing');
+});
+
+test('a game started during the restart handoff blocks installation', async () => {
+  let idle = true;
+  const { controller } = await downloadedUpdate({
+    canInstall: () => idle,
+    beforeInstall: async () => {
+      idle = false;
+    },
+  });
+  await assert.rejects(controller.install(), /Close Minecraft/);
+  assert.equal(controller.state().status, 'downloaded');
+});
+
+test('an updater install error is actionable instead of leaving the restart screen stuck', async () => {
+  const { controller, updater } = await downloadedUpdate();
+  updater.quitAndInstall = () =>
+    updater.emit('error', new Error('Missing installer'));
+  await assert.rejects(controller.install(), /could not be started/);
+  assert.equal(controller.state().status, 'downloaded');
 });
 
 test('up-to-date, development and failed checks never claim a downloaded release', async () => {

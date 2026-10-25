@@ -4,6 +4,7 @@ import './UpdateNotices.css';
 
 export default function UpdateNotices({
   launcherUpdate,
+  updatedVersion,
   modpackUpdate,
   busy,
   running,
@@ -12,13 +13,21 @@ export default function UpdateNotices({
 }) {
   const [dismissed, setDismissed] = useState([]);
   const notices = [];
+  if (updatedVersion) {
+    notices.push({
+      key: `updated:${updatedVersion}`,
+      kind: 'launcher',
+      title: 'Launcher updated successfully',
+      detail: `Version ${updatedVersion} is now running. Welcome back!`,
+    });
+  }
   if (['downloading', 'downloaded'].includes(launcherUpdate?.status)) {
     const ready = launcherUpdate.status === 'downloaded';
     notices.push({
       key: `launcher:${launcherUpdate.latestVersion}:${ready}`,
       kind: 'launcher',
       title: ready ? 'Launcher update ready' : 'Downloading launcher update',
-      detail: `Version ${launcherUpdate.latestVersion}${ready ? ' applies in the background when you restart.' : ` · ${launcherUpdate.percent || 0}%`}`,
+      detail: `Version ${launcherUpdate.latestVersion}${ready ? ' is ready. Restart to apply it and reopen Patilanci.' : ` · ${launcherUpdate.percent || 0}%`}`,
       action: ready ? 'Restart and update' : null,
       onClick: onRestart,
     });

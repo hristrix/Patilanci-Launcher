@@ -218,6 +218,7 @@ const launcherUpdates = createLauncherUpdates({
     updateMonitor?.launcherState(state);
   },
   canInstall: () => !busy && !running,
+  beforeInstall: () => new Promise((resolve) => setTimeout(resolve, 1200)),
 });
 async function restoreStartupAccount() {
   if (!account && savedSession.refreshToken) sessionReady = null;
@@ -498,10 +499,14 @@ app.whenReady().then(() => {
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
-  win.loadFile(path.join(__dirname, '../dist/index.html')).then(() => {
-    win.show();
-    win.focus();
-  });
+  win
+    .loadFile(path.join(__dirname, '../dist/index.html'), {
+      query: process.argv.includes('--updated') ? { updated: '1' } : {},
+    })
+    .then(() => {
+      win.show();
+      win.focus();
+    });
   updateMonitor.start();
   win.on('focus', () => {
     void updateMonitor.check();

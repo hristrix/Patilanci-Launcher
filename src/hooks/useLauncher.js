@@ -32,6 +32,9 @@ export default function useLauncher(api) {
   });
   const [launcherUpdate, setLauncherUpdate] = useState(null);
   const [modpackUpdate, setModpackUpdate] = useState(null);
+  const [afterUpdate] = useState(
+    () => new URLSearchParams(window.location.search).get('updated') === '1',
+  );
 
   const { server, serverRefreshing, refreshServer } = useServerStatus(api);
   const { storage, refreshStorage } = useInstanceStorage(
@@ -267,6 +270,7 @@ export default function useLauncher(api) {
       bootState,
       launcherUpdate,
       modpackUpdate,
+      afterUpdate,
       storage,
     },
     actions: {

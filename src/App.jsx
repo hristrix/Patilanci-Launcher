@@ -15,12 +15,22 @@ import ModsPage from './components/ModsPage';
 import StartupSplash from './components/StartupSplash';
 import UpdateNotices from './components/UpdateNotices';
 import WindowTitleBar from './components/WindowTitleBar';
+import UpdateRestartScreen from './components/UpdateRestartScreen';
 
 // Page composition lives here; desktop requests and subscriptions live in useLauncher.
 export default function App({ api }) {
   const [page, setPage] = useState('home');
   const { state, actions } = useLauncher(api);
   const updateBusy = state.busy || state.game.running;
+
+  if (state.launcherUpdate?.status === 'installing') {
+    return (
+      <>
+        <WindowTitleBar api={api} pageLabel="Updating launcher" />
+        <UpdateRestartScreen version={state.launcherUpdate.latestVersion} />
+      </>
+    );
+  }
 
   if (state.bootVisible) {
     return (
@@ -34,6 +44,8 @@ export default function App({ api }) {
           state={state.bootState}
           progress={state.progress}
           update={state.launcherUpdate}
+          afterUpdate={state.afterUpdate}
+          error={state.error}
           onRetry={actions.retryStartup}
           onContinue={actions.openAfterStartupFailure}
           onInstall={actions.installLauncherUpdate}
@@ -98,6 +110,9 @@ export default function App({ api }) {
               onRetryUpdate={actions.checkLauncherUpdate}
             />
             <UpdateNotices
+              updatedVersion={
+                state.afterUpdate ? state.launcherUpdate?.version : null
+              }
               launcherUpdate={state.launcherUpdate}
               modpackUpdate={state.modpackUpdate}
               busy={state.busy}

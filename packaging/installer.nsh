@@ -6,6 +6,13 @@
   ; A manual first installation still uses the normal setup wizard.
   ${if} ${isUpdated}
     SetSilent silent
+    Banner::show /NOUNLOAD /set 76 "Applying launcher update..." /set 1030 "Please wait. Patilanci will reopen automatically." "Patilanci Launcher - Updating"
+  ${endif}
+!macroend
+
+!macro customInstall
+  ${if} ${isUpdated}
+    Banner::destroy
   ${endif}
 !macroend
 

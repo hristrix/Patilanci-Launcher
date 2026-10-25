@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.12.4 - 2026-10-25
+
+### Improved
+
+- **Restart and update** now shows a dedicated restart screen before closing. A compact update status window stays visible while the launcher files are replaced, without reopening the setup wizard.
+- After reopening, the startup splash acknowledges the update and Home confirms the running version.
+- Repeated update clicks share one restart attempt. If preparation fails, the launcher returns to the downloaded update so you can retry.
+
 ## 1.12.3 - 2026-10-25
 
 ### Improved

@@ -17,6 +17,8 @@ export default function StartupSplash({
   state,
   progress,
   update,
+  afterUpdate = false,
+  error,
   onRetry,
   onContinue,
   onInstall,
@@ -53,9 +55,15 @@ export default function StartupSplash({
               ? 'Let’s get you ready.'
               : downloaded
                 ? 'A new adventure awaits.'
-                : 'Preparing your adventure.'}
+                : afterUpdate
+                  ? 'Your launcher is updated.'
+                  : 'Preparing your adventure.'}
           </h1>
-          <p>One launcher. Your account. The latest Patilanci world.</p>
+          <p>
+            {afterUpdate
+              ? 'The restart is complete. Getting your account and world ready.'
+              : 'One launcher. Your account. The latest Patilanci world.'}
+          </p>
         </div>
         <div className="splash-checks">
           {Object.entries(titles).map(([key, title]) => {
@@ -132,8 +140,13 @@ export default function StartupSplash({
         )}
         {downloaded && (
           <p className="splash-footnote">
-            The update applies in the background and the launcher reopens
-            automatically.
+            A status window will show while the update applies. The launcher
+            reopens automatically.
+          </p>
+        )}
+        {downloaded && (error || update?.error) && (
+          <p className="splash-footnote" role="alert">
+            {error || update.error}
           </p>
         )}
       </div>

@@ -4,9 +4,11 @@ function createLauncherUpdates({
   version,
   onState = () => {},
   canInstall = () => true,
+  beforeInstall = async () => {},
 }) {
   let updater;
   let pending;
+  let pendingInstall;
   let state = { status: enabled ? 'idle' : 'development', version };
   const update = (data) => {
     state = { ...state, ...data };
@@ -34,13 +36,15 @@ function createLauncherUpdates({
       update({
         status: 'error',
         error:
-          'Launcher update check or download failed. Check your connection and published releases.',
+          state.status === 'installing'
+            ? 'The launcher update could not be started. Please try again.'
+            : 'Launcher update check or download failed. Check your connection and published releases.',
       }),
     );
     return updater;
   }
   function check() {
-    if (!enabled || state.status === 'downloaded')
+    if (!enabled || ['downloaded', 'installing'].includes(state.status))
       return Promise.resolve({ ...state });
     if (pending) return pending;
     pending = (async () => {
@@ -77,14 +81,32 @@ function createLauncherUpdates({
     return pending;
   }
   function install() {
+    if (pendingInstall) return pendingInstall;
     if (state.status !== 'downloaded')
       throw new Error('Download the launcher update before installing it.');
     if (!canInstall())
       throw new Error(
         'Close Minecraft and wait for the current operation before updating the launcher.',
       );
-    // Apply the downloaded NSIS update without setup pages, then reopen the app.
-    getUpdater().quitAndInstall(true, true);
+    update({ status: 'installing', percent: null, error: null });
+    pendingInstall = (async () => {
+      try {
+        // Give the renderer time to display the restart screen before quitting.
+        await Promise.resolve().then(beforeInstall);
+        if (!canInstall())
+          throw new Error(
+            'Close Minecraft and wait for the current operation before updating the launcher.',
+          );
+        getUpdater().quitAndInstall(true, true);
+        if (state.status === 'error') throw new Error(state.error);
+      } catch (error) {
+        update({ status: 'downloaded', percent: 100, error: error.message });
+        throw error;
+      } finally {
+        pendingInstall = null;
+      }
+    })();
+    return pendingInstall;
   }
   return { check, install, state: () => ({ ...state }) };
 }
