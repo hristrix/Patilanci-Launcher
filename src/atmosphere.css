@@ -1,0 +1,235 @@
+/* Ambient movement uses SVG transforms; the skin remains a static render. */
+.world-smoke rect {
+  opacity: 0;
+}
+.world-fireflies rect {
+  opacity: 0.5;
+}
+.world-scene.is-paused * {
+  animation-play-state: paused !important;
+}
+
+.is-home .home-world-banner > .scene-motion-toggle {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #ead1a233;
+  border-radius: 4px;
+  background: #161417b8;
+  color: #e1c8a1;
+}
+.scene-motion-toggle:hover {
+  background: #30251e;
+}
+.app-shell button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.is-home .login-avatar-stage {
+  isolation: isolate;
+  background: radial-gradient(ellipse at 50% 35%, #f2b63217, transparent 68%);
+}
+.is-home .login-avatar-stage::before,
+.is-home .login-avatar-stage::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.is-home .login-avatar-stage::before {
+  inset: 6px 12% 10px;
+  border: 1px solid #d8ad5d1a;
+  background: linear-gradient(160deg, #e9ba6010, transparent 70%);
+  clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
+}
+.is-home .login-avatar-stage::after {
+  width: 90px;
+  height: 13px;
+  bottom: 10%;
+  left: calc(50% - 45px);
+  border: 1px solid #d5a45130;
+  border-radius: 50%;
+  background: #09090bb3;
+  box-shadow: 0 0 24px #e0a94826;
+}
+.is-home .login-avatar-stage .skin-preview {
+  background: transparent;
+}
+.is-home .login-card:has(#offline-pin-confirm) .login-avatar-stage::after {
+  display: none;
+}
+.home-player-sample > span {
+  padding: 4px 9px 4px 4px;
+  border: 1px solid #9b81432b;
+  background: #b8954e08;
+  border-radius: 4px;
+}
+.home-server-card {
+  background:
+    radial-gradient(ellipse at 0 0, #788c4314, transparent 70%), #131214;
+}
+.home-setup-card {
+  background:
+    radial-gradient(ellipse at 100% 0, #b58b3e12, transparent 70%), #131214;
+}
+.home-detail-card:focus-within {
+  border-color: #8c6b40;
+}
+
+.launch-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  color: #ac9c85;
+}
+.launch-steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.launch-steps li > span {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid #6f5b3f;
+  border-radius: 50%;
+  font-size: 10px;
+}
+.launch-steps [aria-current='step'] {
+  color: #f1d08a;
+}
+.launch-steps [aria-current='step'] > span {
+  border-color: #e0ad4c;
+  background: #9d743233;
+}
+.launch-steps .is-complete,
+.progress-summary.is-ready > svg {
+  color: #b1ce91;
+}
+.launch-steps .is-complete > span {
+  border-color: #819c5b88;
+}
+.launch-steps + .progress-summary {
+  margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .world-cloud {
+    animation: cloud-drift 22s ease-in-out infinite alternate;
+  }
+  .world-cloud:nth-child(2) {
+    animation-delay: -12s;
+    animation-duration: 30s;
+  }
+  .world-cloud:nth-child(3) {
+    animation-delay: -6s;
+    animation-duration: 26s;
+  }
+  .world-house-light {
+    animation: hearth-glow 5s ease-in-out infinite alternate;
+  }
+  .world-smoke rect {
+    animation: chimney-smoke 6s linear infinite;
+  }
+  .world-fireflies rect {
+    animation: firefly-drift 7s ease-in-out infinite;
+  }
+  .progress-track.is-indeterminate > div {
+    animation: preparation-sweep 1.5s ease-in-out infinite alternate;
+  }
+  .home-detail-card {
+    transition:
+      border-color 180ms,
+      box-shadow 180ms;
+  }
+  .home-detail-card:hover {
+    border-color: #735638;
+    box-shadow:
+      inset 0 1px #f2b63212,
+      0 5px 18px #0002;
+  }
+  .home-detail-link svg,
+  .home-pack-link svg,
+  .home-quick-status button svg:last-child {
+    transition: transform 180ms;
+  }
+  .home-detail-link:hover svg,
+  .home-pack-link:hover svg,
+  .home-quick-status button:hover svg:last-child {
+    transform: translate(2px, -2px);
+  }
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(18px);
+  }
+}
+@keyframes hearth-glow {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes chimney-smoke {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(16px, -48px);
+  }
+}
+@keyframes firefly-drift {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  40% {
+    opacity: 0.7;
+  }
+  70% {
+    opacity: 0.25;
+    transform: translate(7px, -12px);
+  }
+}
+@keyframes preparation-sweep {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(185%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-home .home-world-banner > .scene-motion-toggle {
+    display: none;
+  }
+  .world-fireflies {
+    display: none;
+  }
+}

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { createLauncherUpdates } = require('../electron/launcher-updates.cjs');
 
-test('new launcher releases download once and install only when idle', async () => {
+test('new launcher releases download once, apply silently, and restart only when idle', async () => {
   const updater = new EventEmitter();
   let checks = 0,
     downloads = 0,
@@ -19,7 +19,7 @@ test('new launcher releases download once and install only when idle', async () 
     updater.emit('update-downloaded', { version: '1.1.0' });
   };
   updater.quitAndInstall = (silent, run) => {
-    assert.equal(silent, false);
+    assert.equal(silent, true, 'Applying an update must skip the setup wizard');
     assert.equal(run, true);
     installs++;
   };

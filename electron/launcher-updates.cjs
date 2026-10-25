@@ -83,7 +83,8 @@ function createLauncherUpdates({
       throw new Error(
         'Close Minecraft and wait for the current operation before updating the launcher.',
       );
-    getUpdater().quitAndInstall(false, true);
+    // Apply the downloaded NSIS update without setup pages, then reopen the app.
+    getUpdater().quitAndInstall(true, true);
   }
   return { check, install, state: () => ({ ...state }) };
 }

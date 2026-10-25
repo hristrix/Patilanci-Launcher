@@ -196,9 +196,9 @@ function offlineProfiles() {
   );
   return offlineProfileStore;
 }
-const send = (message, percent = null) => {
+const send = (message, percent = null, launchPhase) => {
   if (win && !win.isDestroyed())
-    win.webContents.send('progress', { message, percent });
+    win.webContents.send('progress', { message, percent, launchPhase });
   if (consoleLog.active() && message !== lastConsoleMessage) {
     consoleLog.append(message);
     lastConsoleMessage = message;
@@ -890,7 +890,7 @@ ipcMain.handle('play', async (_, p) => {
       },
     });
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
-    send('Starting Minecraft…');
+    send('Starting Minecraft…', null, 'starting');
     attempt.service = startMinecraftService(
       {
         authorization,

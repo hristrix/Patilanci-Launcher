@@ -1,23 +1,26 @@
 /* Home uses the shared Patilanci palette and control treatments. */
 .is-home .home-overview {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(252px, 23vw, 320px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px 22px;
   align-items: stretch;
 }
 
-.home-overview > .account-panel {
+.home-hero > .account-panel {
   display: contents;
 }
 
 .is-home .home-world-banner {
-  grid-column: 1;
-  grid-row: 1;
-  align-items: flex-start;
-  min-height: 420px;
-  padding: 38px 32px 180px;
-  border: 1px solid #554332;
-  border-radius: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(270px, 24vw, 340px);
+  grid-template-rows: 1fr auto;
+  gap: 32px 38px;
+  align-items: stretch;
+  min-height: clamp(480px, 55vh, 660px);
+  padding: 40px 32px 32px 38px;
+  border: 1px solid #6b5134;
+  border-radius: 8px;
+  isolation: isolate;
   background: #24241f;
   box-shadow:
     inset 0 1px #f2b63214,
@@ -33,15 +36,27 @@
 }
 
 .is-home .home-world-banner::after {
+  z-index: 0;
   border-left: 3px solid var(--gold);
-  background: linear-gradient(0deg, #141214b8, transparent 48%);
+  background: linear-gradient(0deg, #141214c9, transparent 58%);
 }
 
 .is-home .home-banner-shade {
-  background: linear-gradient(90deg, #131113ef, #171416a8 45%, #17141610 85%);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    #131113f2,
+    #17141699 32%,
+    #17141626 48%,
+    #151315b3 68%,
+    #151315ed 100%
+  );
 }
 
 .is-home .home-banner-copy {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
   z-index: 1;
   max-width: 420px;
 }
@@ -94,11 +109,11 @@
 
 .is-home .launch-controls {
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 2;
   align-self: end;
   z-index: 2;
   min-width: 0;
-  padding: 0 32px 27px;
+  padding: 0;
 }
 
 .is-home .launch-controls .play-area {
@@ -148,21 +163,23 @@
 
 .is-home .login-card {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 1 / 3;
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: center;
   align-self: stretch;
-  padding: 16px 22px 20px;
-  border: 1px solid #493a30;
-  border-radius: 6px;
-  background:
-    radial-gradient(ellipse at 50% 0%, #a4763020, transparent 60%), #151416;
-  box-shadow: inset 0 1px #f2b63214;
+  padding: 12px 0 12px 28px;
+  border: 0;
+  border-left: 1px solid #d8ad5d26;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .login-avatar-stage {
+  position: relative;
   height: 140px;
   width: 100%;
   display: grid;
@@ -264,14 +281,14 @@
 }
 
 .is-home .login-card.is-signed-in {
-  align-self: center;
-  justify-content: flex-start;
+  align-self: stretch;
+  justify-content: center;
   gap: 12px;
-  padding: 20px;
+  padding: 12px 0 12px 28px;
 }
 
 .is-home .login-card.is-signed-in .login-avatar-stage {
-  height: 144px;
+  height: clamp(160px, 20vh, 240px);
 }
 
 .is-home .login-card.is-signed-in .login-accent {
@@ -443,6 +460,13 @@
   font-size: var(--text-caption);
 }
 
+.home-dashboard-caption {
+  color: #ac987b;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
 .is-home .home-quick-status > button {
   width: auto;
   min-height: 30px;
@@ -468,7 +492,7 @@
 .is-home .home-dashboard {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 18px;
 }
 
@@ -633,6 +657,12 @@
   .is-home .home-dashboard {
     display: none;
   }
+  .is-home .home-dashboard-caption {
+    display: none;
+  }
+  .is-home .home-quick-status {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 1000px) and (min-height: 781px) {
@@ -643,12 +673,13 @@
 
 @media (max-width: 1150px), (max-height: 780px) {
   .is-home .home-overview {
-    grid-template-columns: minmax(0, 1fr) 252px;
     gap: 12px;
   }
   .is-home .home-world-banner {
-    min-height: 397px;
-    padding: 25px 24px 165px;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    min-height: 414px;
+    padding: 24px;
+    gap: 24px;
   }
   .is-home .home-banner-copy h2 {
     font-size: 1.9rem;
@@ -659,7 +690,7 @@
     max-width: 280px;
   }
   .is-home .launch-controls {
-    padding: 0 24px 21px;
+    padding: 0;
   }
   .is-home .launch-controls .play-area {
     flex-direction: column;
@@ -673,14 +704,12 @@
   .is-home .launch-controls .progress-summary {
     margin-top: 12px;
   }
-  .is-home .login-card {
-    padding: 10px 17px 14px;
+  .is-home .login-card,
+  .is-home .login-card.is-signed-in {
+    padding: 0 0 0 18px;
   }
   .is-home .login-avatar-stage {
     height: 100px;
-  }
-  .is-home .login-card.is-signed-in {
-    padding: 16px;
   }
   .is-home .login-card.is-signed-in .login-avatar-stage {
     height: 112px;
@@ -701,14 +730,17 @@
 }
 
 @media (max-width: 850px) {
-  .is-home .home-overview {
+  .is-home .home-world-banner {
     grid-template-columns: minmax(0, 1fr);
   }
   .is-home .login-card {
     grid-column: 1;
-    grid-row: 2;
-  }
-  .is-home .home-quick-status {
     grid-row: 3;
+    border-left: 0;
+    border-top: 1px solid #d8ad5d26;
+    padding: 24px 0 0;
+  }
+  .is-home .login-card.is-signed-in {
+    padding: 24px 0 0;
   }
 }

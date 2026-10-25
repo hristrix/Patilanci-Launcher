@@ -44,6 +44,10 @@ let retryUpdates = 0;
 let fixtureProfiles;
 let fixtureSessions;
 let fixtureGameStarts = 0;
+let pauseLaunch = false;
+let failNextLaunch = false;
+let finishPreparation;
+let finishLaunch;
 let fixtureAccount = null;
 let fixtureSkinRequests = 0;
 let fixtureSkin;
@@ -132,7 +136,7 @@ ipcMain.handle('loginOffline', async (_, request) => {
   await fixtureSessions.write({ mode: 'offline', offlineName: profile.name });
   return profile;
 });
-ipcMain.handle('play', async (_, request) => {
+ipcMain.handle('play', async (event, request) => {
   assert.equal(
     fixtureGame.state().running,
     false,
@@ -142,6 +146,27 @@ ipcMain.handle('play', async (_, request) => {
   const session = await fixtureSessions.read();
   assert.equal(session.mode, 'offline');
   assert.equal(session.offlineName?.toLowerCase(), request.name.toLowerCase());
+  if (failNextLaunch) {
+    failNextLaunch = false;
+    throw new Error('Fixture: Minecraft preparation failed.');
+  }
+  if (pauseLaunch) {
+    event.sender.send('progress', {
+      message: 'Preparing fixture launch…',
+      percent: null,
+    });
+    await new Promise((resolve) => {
+      finishPreparation = resolve;
+    });
+    event.sender.send('progress', {
+      message: 'Starting Minecraft…',
+      percent: null,
+      launchPhase: 'starting',
+    });
+    await new Promise((resolve) => {
+      finishLaunch = resolve;
+    });
+  }
   fixtureGameStarts += 1;
   fixtureGame.track(
     Object.assign(new EventEmitter(), {
@@ -451,6 +476,62 @@ app.whenReady().then(async () => {
       `!document.querySelector('.play-button').disabled && document.querySelector('.progress-summary')?.textContent.includes('Latest modpack ready')`,
     );
     const home = await checkLayout(window, 'Welcome to Patilanci.');
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.launch-controls .progress-track') === null`,
+      ),
+      true,
+      'A completed startup must not leave a 100% progress bar on Home',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.scene-motion-toggle').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.scene-motion-toggle').getAttribute('aria-pressed') === 'true'`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `getComputedStyle(document.querySelector('.world-cloud')).animationPlayState`,
+      ),
+      'paused',
+      'The scenery control pauses ambient animation',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.scene-motion-toggle').click()`,
+    );
+    window.webContents.debugger.attach('1.3');
+    try {
+      await window.webContents.debugger.sendCommand(
+        'Emulation.setEmulatedMedia',
+        {
+          features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+        },
+      );
+      assert.deepEqual(
+        await window.webContents.executeJavaScript(`({
+          clouds: getComputedStyle(document.querySelector('.world-cloud')).animationName,
+          smoke: getComputedStyle(document.querySelector('.world-smoke rect')).animationName,
+          light: getComputedStyle(document.querySelector('.world-house-light')).animationName,
+          fireflies: getComputedStyle(document.querySelector('.world-fireflies rect')).animationName,
+          toggle: getComputedStyle(document.querySelector('.scene-motion-toggle')).display,
+        })`),
+        {
+          clouds: 'none',
+          smoke: 'none',
+          light: 'none',
+          fireflies: 'none',
+          toggle: 'none',
+        },
+        'Reduced motion disables all ambient animation',
+      );
+    } finally {
+      await window.webContents.debugger.sendCommand(
+        'Emulation.setEmulatedMedia',
+        { features: [] },
+      );
+      window.webContents.debugger.detach();
+    }
     window.webContents.send('launcherUpdate', {
       status: 'downloaded',
       latestVersion: '99.0.0',
@@ -644,6 +725,12 @@ app.whenReady().then(async () => {
       ],
       'Sidebar head uses the signed-in skin face with its transparent hat overlay',
     );
+    // The skin shares Home's animated background. Freeze scenery while checking
+    // that dragging and time do not animate or rotate the character itself.
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.scene-motion-toggle').click()`,
+    );
+    await waitForPaint(window);
     const skinBounds = await window.webContents.executeJavaScript(`(() => {
       const bounds = document.querySelector('.skin-preview').getBoundingClientRect();
       return { x: Math.ceil(bounds.x), y: Math.ceil(bounds.y), width: Math.floor(bounds.width), height: Math.floor(bounds.height) };
@@ -674,10 +761,15 @@ app.whenReady().then(async () => {
       clickCount: 1,
     });
     await new Promise((resolve) => setTimeout(resolve, 800));
-    assert.deepEqual(
-      (await window.webContents.capturePage(skinBounds)).toPNG(),
-      staticSkin,
+    assert.equal(
+      (await window.webContents.capturePage(skinBounds))
+        .toPNG()
+        .equals(staticSkin),
+      true,
       'The 3D skin stays fixed over time and after dragging',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.scene-motion-toggle').click()`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -950,14 +1042,48 @@ app.whenReady().then(async () => {
       0,
       'Restoring a session does not launch Minecraft',
     );
+    pauseLaunch = true;
     await window.webContents.executeJavaScript(
       `document.querySelector('.play-button').click()`,
     );
     await waitForRenderer(
       window,
+      `document.querySelector('.launch-controls').dataset.launchPhase === 'preparing' && document.querySelector('.progress-summary').textContent.includes('Preparing fixture launch')`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.launch-controls [role="progressbar"]').hasAttribute('aria-valuenow')`,
+      ),
+      false,
+      'Preparation with no measured percentage uses an indeterminate progress bar',
+    );
+    finishPreparation();
+    await waitForRenderer(
+      window,
+      `document.querySelector('.launch-controls').dataset.launchPhase === 'starting'`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.launch-steps [aria-current="step"]').textContent.includes('Starting') && document.querySelector('.play-button').disabled`,
+      ),
+      true,
+      'The starting step follows the launch event and prevents duplicate launches',
+    );
+    await capture(window, 'launcher-starting-fixture.png');
+    pauseLaunch = false;
+    finishLaunch();
+    await waitForRenderer(
+      window,
       `document.querySelector('.play-button')?.textContent.includes('STOP MINECRAFT')`,
     );
     assert.equal(fixtureGameStarts, 1);
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.launch-steps [aria-current="step"]').textContent.includes('Running') && document.querySelector('.launch-controls .progress-track') === null`,
+      ),
+      true,
+      'A running game completes the launch steps and clears the progress bar',
+    );
     await window.reload();
     await waitForRenderer(
       window,
@@ -971,6 +1097,24 @@ app.whenReady().then(async () => {
       'Reload retains the running-game Stop action',
     );
     await stopFixtureGame(window);
+    failNextLaunch = true;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.play-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[role="alert"]')?.textContent.includes('Fixture: Minecraft preparation failed.') && !document.querySelector('.play-button').disabled`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.launch-controls').dataset.launchPhase === 'idle' && document.querySelector('.launch-steps') === null && document.querySelector('.launch-controls .progress-track') === null`,
+      ),
+      true,
+      'A failed launch clears its steps and progress so the player can retry',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Dismiss error"]').click()`,
+    );
     await window.webContents.executeJavaScript(
       `document.querySelector('.play-button').click()`,
     );

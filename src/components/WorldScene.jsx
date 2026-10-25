@@ -112,7 +112,11 @@ function House() {
   return (
     <g>
       {blocks}
-      <path d={`M${doorX - 18} ${doorY} l13 -6 v29 l-13 6Z`} fill="#f2b632" />
+      <path
+        className="world-house-light"
+        d={`M${doorX - 18} ${doorY} l13 -6 v29 l-13 6Z`}
+        fill="#f2b632"
+      />
       <path
         d={`M${doorX - 12} ${doorY - 1} v25`}
         stroke="#795231"
@@ -129,7 +133,7 @@ function House() {
   );
 }
 
-export default function WorldScene() {
+export default function WorldScene({ paused = false }) {
   const terrain = [];
 
   for (let x = 0; x < 18; x += 1) {
@@ -158,7 +162,7 @@ export default function WorldScene() {
 
   return (
     <svg
-      className="world-scene"
+      className={`world-scene ${paused ? 'is-paused' : ''}`}
       viewBox="0 0 1100 620"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
@@ -183,9 +187,9 @@ export default function WorldScene() {
       <path fill="#e7b974" d="M803 110h65v65h-65z" />
       <path fill="#f4d09a" opacity="0.4" d="M803 110h65v9h-65z" />
       <g fill="#dfc7ab" opacity="0.18">
-        <path d="M585 97h79v13h35v12H571v-12h14z" />
-        <path d="M918 191h90v14h34v12H898v-12h20z" />
-        <path d="M320 162h52v12h24v11h-98v-11h22z" />
+        <path className="world-cloud" d="M585 97h79v13h35v12H571v-12h14z" />
+        <path className="world-cloud" d="M918 191h90v14h34v12H898v-12h20z" />
+        <path className="world-cloud" d="M320 162h52v12h24v11h-98v-11h22z" />
       </g>
       <g fill="#f4e7cf" opacity="0.5">
         <path d="M514 66h3v3h-3zM740 48h3v3h-3zM958 84h3v3h-3zM1030 141h3v3h-3zM425 123h3v3h-3z" />
@@ -227,8 +231,37 @@ export default function WorldScene() {
             colors={woodColors}
           />
         ))}
+        <g className="world-smoke" fill="#d9c8b5">
+          {[0, 1, 2].map((puff) => (
+            <rect
+              key={puff}
+              x="744"
+              y="170"
+              width="9"
+              height="9"
+              style={{ animationDelay: `${puff * -2}s` }}
+            />
+          ))}
+        </g>
       </g>
       <path fill="url(#island-shade)" d="M0 430h1100v190H0z" />
+      <g className="world-fireflies" fill="#f9d483">
+        {[
+          [583, 365],
+          [877, 415],
+          [761, 487],
+          [1008, 346],
+        ].map(([x, y], index) => (
+          <rect
+            key={x}
+            x={x}
+            y={y}
+            width="3"
+            height="3"
+            style={{ animationDelay: `${index * -1.7}s` }}
+          />
+        ))}
+      </g>
     </svg>
   );
 }

@@ -1,5 +1,14 @@
 ; Patilanci's artwork uses the same palette as the launcher.
 ; Keep the wizard's system controls for keyboard access and Windows scaling.
+
+!macro customInit
+  ; Older launchers send --updated without /S. Keep those upgrades silent too.
+  ; A manual first installation still uses the normal setup wizard.
+  ${if} ${isUpdated}
+    SetSilent silent
+  ${endif}
+!macroend
+
 !define MUI_BGCOLOR "0B0B0D"
 !define MUI_TEXTCOLOR "F4E7CF"
 !define MUI_HEADER_TRANSPARENT_TEXT

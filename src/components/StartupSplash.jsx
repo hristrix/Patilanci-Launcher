@@ -130,6 +130,12 @@ export default function StartupSplash({
             the latest modpack.
           </p>
         )}
+        {downloaded && (
+          <p className="splash-footnote">
+            The update applies in the background and the launcher reopens
+            automatically.
+          </p>
+        )}
       </div>
     </main>
   );

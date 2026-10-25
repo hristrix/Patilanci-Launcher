@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.12.3 - 2026-10-25
+
+### Improved
+
+- Home now has one larger hero combining the animated landscape, Play controls, and player sign-in area over a shared background.
+- The hero expands on larger windows and keeps account and PIN controls together at compact sizes. Short windows hide the dashboard caption along with its cards.
+
+## 1.12.2 - 2026-10-25
+
+### Fixed
+
+- **Restart and update** now applies downloaded launcher updates silently and reopens the launcher automatically, without taking players through setup again.
+- The installer also skips setup pages when an older launcher starts it as an update. Manual first-time installations keep the normal setup flow.
+
+## 1.12.1 - 2026-10-25
+
+### Maintenance
+
+- Reorganized the launcher interface into focused components and hooks for accounts, launch feedback, Home, settings, and shared layout. This is an internal readability improvement; player-facing layout and behavior are preserved.
+
+## 1.12.0 - 2026-10-25
+
+### Added
+
+- Home's voxel landscape now has drifting clouds, chimney smoke, warm house lighting, and fireflies. Pause the scenery with its corner control; reduced-motion preferences disable ambient animation, and movement pauses while the launcher is hidden.
+- Launch feedback now follows Preparing, Starting, and Running, with measured or indeterminate progress during preparation. Completed progress bars disappear once ready or running.
+
+### Improved
+
+- The player card has a softly lit character stage and more balanced spacing.
+- Home uses one connection-status indicator and two dashboard cards for community activity and pack/setup details, with direct shortcuts to the modpack, mods, and settings.
+- Dashboard cards and links respond more smoothly to hover and keyboard focus while compact layouts keep launch and account controls visible.
+
 ## 1.11.0 - 2026-10-25
 
 ### Added

@@ -18,7 +18,7 @@ export default function UpdateNotices({
       key: `launcher:${launcherUpdate.latestVersion}:${ready}`,
       kind: 'launcher',
       title: ready ? 'Launcher update ready' : 'Downloading launcher update',
-      detail: `Version ${launcherUpdate.latestVersion}${ready ? ' is ready to install.' : ` · ${launcherUpdate.percent || 0}%`}`,
+      detail: `Version ${launcherUpdate.latestVersion}${ready ? ' applies in the background when you restart.' : ` · ${launcherUpdate.percent || 0}%`}`,
       action: ready ? 'Restart and update' : null,
       onClick: onRestart,
     });
