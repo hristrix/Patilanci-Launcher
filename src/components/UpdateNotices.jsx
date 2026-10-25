@@ -1,6 +1,49 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowDownToLine, Bell, X } from 'lucide-react';
 import './UpdateNotices.css';
+
+function UpdateNotice({ notice, busy, running, onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(() => onDismiss(notice.key), 7000);
+    return () => clearTimeout(timer);
+  }, [notice.key, onDismiss]);
+
+  return (
+    <section
+      className="update-notice"
+      key={notice.key}
+      data-update-kind={notice.kind}
+    >
+      <span className="update-notice-icon" aria-hidden="true">
+        <Bell size={19} />
+      </span>
+      <div className="update-notice-copy">
+        <strong>{notice.title}</strong>
+        <p>{notice.detail}</p>
+        {notice.action && running && (
+          <small>Close Minecraft to apply this update.</small>
+        )}
+      </div>
+      {notice.action && (
+        <button
+          className="outline-button"
+          disabled={busy || running}
+          onClick={notice.onClick}
+        >
+          <ArrowDownToLine size={15} />
+          {notice.action}
+        </button>
+      )}
+      <button
+        className="update-notice-dismiss"
+        aria-label={`Dismiss ${notice.kind} update notification`}
+        onClick={() => onDismiss(notice.key)}
+      >
+        <X size={17} />
+      </button>
+    </section>
+  );
+}
 
 export default function UpdateNotices({
   launcherUpdate,
@@ -12,6 +55,9 @@ export default function UpdateNotices({
   onUpdatePack,
 }) {
   const [dismissed, setDismissed] = useState([]);
+  const dismiss = useCallback((key) => {
+    setDismissed((previous) => [...previous.slice(-99), key]);
+  }, []);
   const notices = [];
   if (updatedVersion) {
     notices.push({
@@ -50,41 +96,13 @@ export default function UpdateNotices({
       {notices
         .filter((notice) => !dismissed.includes(notice.key))
         .map((notice) => (
-          <section
-            className="update-notice"
+          <UpdateNotice
             key={notice.key}
-            data-update-kind={notice.kind}
-          >
-            <span className="update-notice-icon" aria-hidden="true">
-              <Bell size={19} />
-            </span>
-            <div className="update-notice-copy">
-              <strong>{notice.title}</strong>
-              <p>{notice.detail}</p>
-              {notice.action && running && (
-                <small>Close Minecraft to apply this update.</small>
-              )}
-            </div>
-            {notice.action && (
-              <button
-                className="outline-button"
-                disabled={busy || running}
-                onClick={notice.onClick}
-              >
-                <ArrowDownToLine size={15} />
-                {notice.action}
-              </button>
-            )}
-            <button
-              className="update-notice-dismiss"
-              aria-label={`Dismiss ${notice.kind} update notification`}
-              onClick={() =>
-                setDismissed((previous) => [...previous.slice(-99), notice.key])
-              }
-            >
-              <X size={17} />
-            </button>
-          </section>
+            notice={notice}
+            busy={busy}
+            running={running}
+            onDismiss={dismiss}
+          />
         ))}
     </div>
   );

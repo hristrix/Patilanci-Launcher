@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.5 - 2026-10-25
+
+### Improved
+
+- Update notification banners, including the successful-update confirmation, now disappear automatically after seven seconds. Update actions remain available in Settings and Modpack.
+
 ## 1.12.4 - 2026-10-25
 
 ### Improved
