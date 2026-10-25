@@ -39,6 +39,7 @@ for (const name of [
   'loginOffline',
   'folder',
   'packPage',
+  'authorWebsite',
   'mods',
   'addMods',
   'removeMod',

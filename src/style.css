@@ -1048,8 +1048,19 @@ input::placeholder {
   text-align: center;
   line-height: 1.5;
 }
-.launcher-legal > span {
+.launcher-legal > a {
   display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.launcher-legal > a:hover {
+  color: var(--cream);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.launcher-legal > a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
 }
 .server-address {
   display: flex;

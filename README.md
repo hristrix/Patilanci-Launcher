@@ -22,6 +22,8 @@ npm run version:major  # Breaking change: 1.1.0 -> 2.0.0
 
 Installers and the launcher version display use the package version. When publishing a production release, use GitHub tag `v<version>` (for example, `v1.0.1`) with the installer and updater metadata built from that same version. Bumping a version does not publish a release.
 
+Made by [Hristrix](https://hristrix.com). The launcher footer opens the creator website in your system default browser; installer finish pages include the same link.
+
 ## Renderer code structure
 
 The renderer separates page composition, desktop operations, and presentation:

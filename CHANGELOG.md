@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.12.6 - 2026-10-25
+
+### Improved
+
+- Launcher and installer attribution now credit Hristrix, including the Windows executable copyright metadata.
+- The footer's **Made by Hristrix** credit opens hristrix.com in your default browser. Installer finish pages also provide a website link.
+
 ## 1.12.5 - 2026-10-25
 
 ### Improved
@@ -113,7 +120,7 @@
 
 ### Changed
 
-- Updated the launcher company metadata, installer legal notice, and copyright to MADEARC LTD.
+- Updated the launcher company metadata, installer legal notice, and copyright.
 
 ## 1.9.0 - 2026-10-19
 

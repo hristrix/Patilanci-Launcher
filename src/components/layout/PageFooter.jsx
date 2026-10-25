@@ -2,8 +2,22 @@ import { useState } from 'react';
 import { Check, Copy, RefreshCw } from 'lucide-react';
 import { SERVER_ADDRESS } from '../../config';
 
-export default function PageFooter({ onRefresh, refreshing, onError }) {
+export default function PageFooter({
+  onRefresh,
+  refreshing,
+  onError,
+  onOpenAuthor,
+}) {
   const [copied, setCopied] = useState(false);
+  async function openAuthor(event) {
+    if (!onOpenAuthor) return;
+    event.preventDefault();
+    try {
+      await onOpenAuthor();
+    } catch {
+      onError('Could not open hristrix.com in your browser.');
+    }
+  }
   async function copyAddress() {
     try {
       await navigator.clipboard.writeText(SERVER_ADDRESS);
@@ -22,7 +36,15 @@ export default function PageFooter({ onRefresh, refreshing, onError }) {
         {copied ? <Check size={12} /> : <Copy size={12} />}
       </button>
       <div className="launcher-legal">
-        <span>© 2026 MADEARC LTD. All rights reserved.</span>
+        <a
+          href="https://hristrix.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={openAuthor}
+          title="Visit Hristrix's website"
+        >
+          © 2026 · Made by Hristrix
+        </a>
       </div>
       <button
         className="refresh-link"

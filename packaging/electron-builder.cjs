@@ -5,7 +5,7 @@ module.exports = {
   appId: 'com.patilanci.launcher',
   productName: 'Patilanci Launcher',
   executableName: 'Patilanci Launcher',
-  copyright: 'Copyright © 2026 MADEARC LTD. All rights reserved.',
+  copyright: 'Copyright © 2026 Hristrix. All rights reserved.',
   asar: true,
   publish: [LAUNCHER_PUBLISH],
   directories: {

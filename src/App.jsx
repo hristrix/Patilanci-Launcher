@@ -184,6 +184,7 @@ export default function App({ api }) {
               />
             )}
             <PageFooter
+              onOpenAuthor={api ? () => api.authorWebsite() : undefined}
               onRefresh={actions.refreshServer}
               refreshing={state.serverRefreshing}
               onError={actions.setError}

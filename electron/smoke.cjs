@@ -54,6 +54,7 @@ let fixtureSkin;
 let fixtureOfflineSkinAvailable = true;
 let fixtureSkinUploads = 0;
 let fixtureWindow;
+let fixtureAuthorWebsiteRequests = 0;
 let finishGameStop;
 const fixtureGame = createGameProcess({
   onChange: (state) => fixtureWindow?.webContents.send('gameState', state),
@@ -71,6 +72,14 @@ ipcMain.handle('windowState', () => windowState(fixtureWindow));
 ipcMain.handle('windowAction', (event, action) =>
   windowAction(fixtureWindow, event.sender, action),
 );
+ipcMain.handle('authorWebsite', (_, destination) => {
+  assert.equal(
+    destination,
+    undefined,
+    'The renderer must not choose an external URL',
+  );
+  fixtureAuthorWebsiteRequests++;
+});
 ipcMain.handle('login', () => {
   fixtureAccount = {
     id: 'a'.repeat(32),
@@ -494,6 +503,15 @@ app.whenReady().then(async () => {
       `!document.querySelector('.play-button').disabled && document.querySelector('.progress-summary')?.textContent.includes('Latest modpack ready')`,
     );
     const home = await checkLayout(window, 'Welcome to Patilanci.');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.launcher-legal a').click()`,
+    );
+    await waitForPaint(window);
+    assert.equal(
+      fixtureAuthorWebsiteRequests,
+      1,
+      'Clicking the footer requests the fixed author website through the desktop bridge',
+    );
     assert.equal(
       await window.webContents.executeJavaScript(
         `document.querySelector('.launch-controls .progress-track') === null`,

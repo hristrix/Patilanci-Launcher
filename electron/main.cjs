@@ -971,6 +971,16 @@ ipcMain.handle('folder', async () => {
 ipcMain.handle('packPage', () =>
   shell.openExternal('https://www.curseforge.com/minecraft/modpacks/patilanci'),
 );
+ipcMain.handle('authorWebsite', (event) => {
+  if (
+    !win ||
+    win.isDestroyed() ||
+    event.sender !== win.webContents ||
+    event.senderFrame !== win.webContents.mainFrame
+  )
+    throw new Error('The author website can only be opened from the launcher.');
+  return shell.openExternal('https://hristrix.com');
+});
 
 async function modInventory() {
   return { ...(await listMods(root())), canModify: !busy && !running };
