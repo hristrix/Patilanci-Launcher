@@ -10,6 +10,7 @@ export default function Sidebar({
   account,
   username,
   session,
+  offlineSkin,
 }) {
   const offline = session?.authenticated && session.mode === 'offline';
   const playerName = offline ? username : account?.name;
@@ -18,6 +19,7 @@ export default function Sidebar({
         id: `offline:${session.name.toLowerCase()}`,
         name: session.name,
         mode: 'offline',
+        skinRevision: offlineSkin?.revision,
       }
     : account;
   const navigation = [

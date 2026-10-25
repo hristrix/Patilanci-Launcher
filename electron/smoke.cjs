@@ -18,6 +18,7 @@ const {
 } = require('./startup-update.cjs');
 const { createOfflineProfiles } = require('./offline-profiles.cjs');
 const { createSessionStore } = require('./sessions.cjs');
+const { createOfflineSkinSelections } = require('./offline-skin-selection.cjs');
 const { EventEmitter } = require('node:events');
 const { createGameProcess } = require('./game-process.cjs');
 const {
@@ -43,6 +44,7 @@ let startupFailure = false;
 let retryUpdates = 0;
 let fixtureProfiles;
 let fixtureSessions;
+let fixtureSkinSelections;
 let fixtureGameStarts = 0;
 let pauseLaunch = false;
 let failNextLaunch = false;
@@ -100,6 +102,8 @@ ipcMain.handle('skin', async (_, request) => {
       'Offline skin lookup needs a signed-in profile',
     );
     fixtureSkinRequests += 1;
+    const saved = await fixtureSkinSelections.read(request.name);
+    if (saved) return saved.texture;
     if (!fixtureOfflineSkinAvailable) return null;
     return { dataUrl: fixtureSkin, model: 'default', source: 'Ely.by' };
   }
@@ -116,6 +120,22 @@ ipcMain.handle('chooseSkin', () => ({
   texture: { dataUrl: fixtureSkin, model: 'default' },
   legacy: false,
 }));
+ipcMain.handle('offlineSkinSelection', async () => {
+  const session = await fixtureSessions.read();
+  assert.equal(session.mode, 'offline');
+  const saved = await fixtureSkinSelections.read(session.offlineName);
+  return saved
+    ? { selection: saved.selection, revision: saved.revision }
+    : null;
+});
+ipcMain.handle('saveOfflineSkin', async (_, selection) => {
+  const session = await fixtureSessions.read();
+  assert.equal(session.mode, 'offline');
+  return fixtureSkinSelections.save(session.offlineName, selection);
+});
+ipcMain.handle('resetOfflineSkin', async () =>
+  fixtureSkinSelections.clear((await fixtureSessions.read()).offlineName),
+);
 ipcMain.handle('applySkin', (_, request) => {
   assert.ok(fixtureAccount);
   assert.equal(fixtureGame.state().running, false);
@@ -308,6 +328,20 @@ async function prepareModsFixture() {
   assert.equal(path.dirname(fixtureDirectory), path.resolve(os.tmpdir()));
   assert.ok(path.basename(fixtureDirectory).startsWith('patilanci-ui-mods-'));
   fixtureInstance = path.join(fixtureDirectory, 'instance');
+  fixtureSkinSelections = createOfflineSkinSelections(
+    path.join(fixtureDirectory, 'skin-selections'),
+    {
+      loadTexture: async () => ({
+        dataUrl: nativeImage
+          .createFromBitmap(Buffer.alloc(64 * 64 * 4, 255), {
+            width: 64,
+            height: 64,
+          })
+          .toDataURL(),
+        model: 'slim',
+      }),
+    },
+  );
   fixtureProfiles = createOfflineProfiles(
     path.join(fixtureDirectory, 'offline-profiles.json'),
   );
@@ -369,6 +403,13 @@ ipcMain.handle('config', async () => ({
   javaPaths: {},
   installed: fixturePack,
   account: fixtureAccount,
+  offlineSkin:
+    (await fixtureSessions.read()).mode === 'offline' &&
+    (await fixtureSessions.read()).offlineName
+      ? await fixtureSkinSelections.read(
+          (await fixtureSessions.read()).offlineName,
+        )
+      : null,
   game: fixtureGame.state(),
   session: {
     mode: fixtureAccount ? 'microsoft' : (await fixtureSessions.read()).mode,
@@ -1068,6 +1109,29 @@ app.whenReady().then(async () => {
       window,
       `document.querySelector('#server-skin-command')?.value === '/skin set web classic "https://example.com/skin.png"'`,
     );
+    await window.webContents.executeJavaScript(`(() => {
+      const model = document.querySelector('#server-skin-model');
+      model.value = 'slim'; model.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    const lookupsBeforeSave = fixtureSkinRequests;
+    await window.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('.skin-command-actions button')).find(button => button.textContent === 'Save for launcher').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.skin-notice')?.textContent.includes('Skin saved') && document.querySelector('.login-avatar-stage .skin-preview')?.dataset.skinState === 'ready'`,
+    );
+    assert.equal(
+      fixtureSkinRequests,
+      lookupsBeforeSave + 1,
+      'Saving a source refreshes the shared head and character texture',
+    );
+    assert.deepEqual(
+      await window.webContents.executeJavaScript(
+        `Array.from(document.querySelector('.player-skin-head').getContext('2d').getImageData(0,0,1,1).data)`,
+      ),
+      [255, 255, 255, 255],
+    );
     window.setContentSize(1034, 675);
     await waitForPaint(window);
     assert.equal(
@@ -1084,6 +1148,42 @@ app.whenReady().then(async () => {
       `document.querySelector('[aria-label="Close skin settings"]').click()`,
     );
     window.setContentSize(1344, 835);
+    await window.reload();
+    await waitForRenderer(
+      window,
+      `document.querySelector('.login-avatar-stage .skin-preview')?.dataset.skinState === 'ready'`,
+    );
+    assert.deepEqual(
+      await window.webContents.executeJavaScript(
+        `Array.from(document.querySelector('.player-skin-head').getContext('2d').getImageData(0,0,1,1).data)`,
+      ),
+      [255, 255, 255, 255],
+      'The selected skin is restored after reopening the renderer',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Set skin"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#server-skin-value')?.value === 'https://example.com/skin.png' && !document.querySelector('#server-skin-value').disabled`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#server-skin-source').value === 'web' && document.querySelector('#server-skin-model').value === 'slim'`,
+      ),
+      true,
+      'Skin settings restore the source, URL, and model',
+    );
+    await window.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('.skin-command-actions button')).find(button => button.textContent === 'Reset launcher skin').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.skin-notice')?.textContent.includes('Launcher skin reset')`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Close skin settings"]').click()`,
+    );
     assert.equal(
       await window.webContents.executeJavaScript(
         `document.querySelectorAll('.account-tabs button').length === 1 && !document.querySelector('.account-tabs').textContent.includes('Microsoft') && document.querySelector('#minecraft-username').disabled`,

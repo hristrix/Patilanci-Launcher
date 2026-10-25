@@ -11,7 +11,7 @@ const requests = new WeakMap();
 // when the profile is no longer displayed, so signing in again refreshes it.
 export default function usePlayerSkin(account, api) {
   const key = account
-    ? `${account.mode || 'microsoft'}:${account.id}:${account.name}:${account.skin?.url || ''}:${account.skin?.model || ''}`
+    ? `${account.mode || 'microsoft'}:${account.id}:${account.name}:${account.skin?.url || ''}:${account.skin?.model || ''}:${account.skinRevision || ''}`
     : 'default';
   const [result, setResult] = useState(null);
   useEffect(() => {

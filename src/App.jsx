@@ -63,6 +63,7 @@ export default function App({ api }) {
       launchPhase={state.launchPhase}
       username={state.username}
       account={state.account}
+      offlineSkin={state.config.offlineSkin}
       busy={state.busy}
       installed={state.config.installed}
       progress={state.progress}
@@ -94,6 +95,7 @@ export default function App({ api }) {
           account={state.account}
           username={state.username}
           session={state.config.session}
+          offlineSkin={state.config.offlineSkin}
         />
         <main className="main-shell">
           <div className="page-content">

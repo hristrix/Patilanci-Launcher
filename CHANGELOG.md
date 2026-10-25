@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.12.7 - 2026-10-25
+
+### Fixed
+
+- Offline skin settings now offer **Save for launcher**, remembering the selected Ely.by name, Minecraft name, or public PNG URL and model for each signed-in profile.
+- Saved skins refresh both the Home character and sidebar head immediately and remain available after restart, including without a skin-service connection.
+- Reopening skin settings restores the saved source. **Reset launcher skin** returns to the player-name lookup; server skins still require the copied command in Minecraft.
+
 ## 1.12.6 - 2026-10-25
 
 ### Improved

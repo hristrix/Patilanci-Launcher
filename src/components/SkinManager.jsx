@@ -27,7 +27,33 @@ export default function SkinManager({
   const [model, setModel] = useState('classic');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const locked = busy || running;
+  const [loadingSelection, setLoadingSelection] = useState(mode === 'offline');
+  const locked = busy || running || loadingSelection;
+
+  useEffect(() => {
+    if (mode !== 'offline') return;
+    let active = true;
+    api
+      .offlineSkinSelection()
+      .then((saved) => {
+        if (!active || !saved) return;
+        setSource(saved.selection.source);
+        setValue(saved.selection.value);
+        setModel(saved.selection.model);
+      })
+      .catch(() => {
+        if (active)
+          setError(
+            'Could not load the saved skin choice. You can save a new skin or reset it.',
+          );
+      })
+      .finally(() => {
+        if (active) setLoadingSelection(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [api, mode]);
 
   useEffect(() => {
     const element = dialog.current;
@@ -208,12 +234,15 @@ export default function SkinManager({
           </p>
           <p>
             Choose a source, copy the command, then run it in Minecraft chat
-            after joining. The launcher preview stays separate from your server
-            skin.
+            after joining.{' '}
+            {mode === 'offline'
+              ? 'Save for launcher to remember this source and update your launcher preview.'
+              : 'The launcher preview stays separate from your server skin.'}
           </p>
           <label htmlFor="server-skin-source">Skin source</label>
           <select
             id="server-skin-source"
+            disabled={busy || loadingSelection}
             value={source}
             onChange={(event) => {
               setSource(event.target.value);
@@ -251,6 +280,7 @@ export default function SkinManager({
           </label>
           <input
             id="server-skin-value"
+            disabled={busy || loadingSelection}
             value={value}
             autoComplete="off"
             spellCheck={false}
@@ -270,6 +300,7 @@ export default function SkinManager({
               <label htmlFor="server-skin-model">Skin model</label>
               <select
                 id="server-skin-model"
+                disabled={busy || loadingSelection}
                 value={model}
                 onChange={(event) => {
                   setModel(event.target.value);
@@ -296,14 +327,51 @@ export default function SkinManager({
               'Ready to copy. Your server must allow this skin source and command.'}
           </small>
           <div className="skin-command-actions">
+            {mode === 'offline' && (
+              <button
+                className="play-button"
+                disabled={locked || !command}
+                onClick={() =>
+                  act(async () => {
+                    await api.saveOfflineSkin({ source, value, model });
+                    await onApplied();
+                    setNotice(
+                      'Skin saved for this offline profile. The launcher will remember it after restarting. Run the skin command in Minecraft to change the server skin.',
+                    );
+                  })
+                }
+              >
+                Save for launcher
+              </button>
+            )}
             <button
-              className="play-button"
-              disabled={!command}
+              className={mode === 'offline' ? 'outline-button' : 'play-button'}
+              disabled={!command || busy || loadingSelection}
               onClick={() => copy(command)}
             >
               <Copy size={16} />
               Copy skin command
             </button>
+            {mode === 'offline' && (
+              <button
+                className="outline-button"
+                disabled={locked}
+                onClick={() =>
+                  act(async () => {
+                    await api.resetOfflineSkin();
+                    setSource('ely.by');
+                    setValue(name);
+                    setModel('classic');
+                    await onApplied();
+                    setNotice(
+                      'Launcher skin reset to the player-name lookup. Your server skin is unchanged.',
+                    );
+                  })
+                }
+              >
+                Reset launcher skin
+              </button>
+            )}
             <button
               className="outline-button"
               onClick={() => copy('/skin reset')}

@@ -26,6 +26,7 @@ export default function PlayerAccountCard({
   mode,
   sessionMode,
   account,
+  offlineSkin,
   username,
   onUsernameChange,
   busy,
@@ -48,6 +49,7 @@ export default function PlayerAccountCard({
               id: `offline:${username.toLowerCase()}`,
               name: username,
               mode: 'offline',
+              skinRevision: offlineSkin?.revision,
             }}
             api={api}
           />

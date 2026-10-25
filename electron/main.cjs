@@ -46,6 +46,10 @@ const { createConsoleLog } = require('./console-log.cjs');
 const { createConsoleWindow } = require('./console-window.cjs');
 const { createOfflineSkinResolver } = require('./offline-skins.cjs');
 const {
+  createOfflineSkinSelections,
+  createSkinSourceLoader,
+} = require('./offline-skin-selection.cjs');
+const {
   validateSkinUpload,
   uploadMinecraftSkin,
 } = require('./skin-upload.cjs');
@@ -132,6 +136,20 @@ const instanceStorage = createInstanceStorage({
 });
 let offlineProfileStore;
 let offlineSkinResolver;
+let offlineSkinSelections;
+function skinSelections() {
+  return (offlineSkinSelections ||= createOfflineSkinSelections(
+    path.join(app.getPath('userData'), 'offline-skin-selections'),
+    { loadTexture: createSkinSourceLoader({ ely: offlineSkins() }) },
+  ));
+}
+async function offlineSkinName() {
+  await restoreSession();
+  const session = activeSession();
+  if (session.mode !== 'offline' || !session.authenticated)
+    throw new Error('Sign in to an offline profile to save its skin.');
+  return session.name;
+}
 function offlineSkins() {
   return (offlineSkinResolver ||= createOfflineSkinResolver(
     path.join(app.getPath('userData'), 'offline-skin-cache'),
@@ -533,6 +551,12 @@ ipcMain.handle('windowAction', (event, action) =>
 ipcMain.handle('config', async () => {
   await restoreSession();
   const s = await settings();
+  const offlineSkin =
+    activeSession().mode === 'offline' && activeSession().authenticated
+      ? await skinSelections()
+          .read(activeSession().name)
+          .catch(() => null)
+      : null;
   return {
     memory: s.memory,
     javaPath: s.javaPath,
@@ -540,6 +564,9 @@ ipcMain.handle('config', async () => {
     installed: await installed(),
     host: HOST,
     account: playerProfile,
+    offlineSkin: offlineSkin
+      ? { selection: offlineSkin.selection, revision: offlineSkin.revision }
+      : null,
     session: activeSession(),
     game: game.state(),
     launcherUpdate: launcherUpdates.state(),
@@ -709,6 +736,30 @@ ipcMain.handle('skinHelp', (_, destination) => {
     throw new Error('Unknown skin help page.');
   return shell.openExternal(pages[destination]);
 });
+ipcMain.handle('offlineSkinSelection', async () => {
+  const saved = await skinSelections().read(await offlineSkinName());
+  return saved
+    ? { selection: saved.selection, revision: saved.revision }
+    : null;
+});
+ipcMain.handle('saveOfflineSkin', async (_, selection) => {
+  requireAccountChange();
+  busy = true;
+  try {
+    return await skinSelections().save(await offlineSkinName(), selection);
+  } finally {
+    busy = false;
+  }
+});
+ipcMain.handle('resetOfflineSkin', async () => {
+  requireAccountChange();
+  busy = true;
+  try {
+    await skinSelections().clear(await offlineSkinName());
+  } finally {
+    busy = false;
+  }
+});
 ipcMain.handle('skin', async (_, request) => {
   await restoreSession();
   if (request?.mode === 'offline') {
@@ -720,7 +771,8 @@ ipcMain.handle('skin', async (_, request) => {
       request.name.toLowerCase() !== session.name.toLowerCase()
     )
       throw new Error('Sign in to this offline profile to view its skin.');
-    return offlineSkins().get(session.name);
+    const saved = await skinSelections().read(session.name);
+    return saved?.texture || offlineSkins().get(session.name);
   }
   if (!account || !playerProfile)
     throw new Error('Sign in with Microsoft to view your skin.');

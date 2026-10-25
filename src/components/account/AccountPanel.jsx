@@ -15,6 +15,7 @@ export default function AccountPanel({
   username,
   onUsernameChange,
   account,
+  offlineSkin,
   busy,
   onLogin,
   onOfflineLogin,
@@ -41,6 +42,7 @@ export default function AccountPanel({
         mode={mode}
         sessionMode={sessionMode}
         account={account}
+        offlineSkin={offlineSkin}
         username={username}
         onUsernameChange={onUsernameChange}
         busy={busy}
