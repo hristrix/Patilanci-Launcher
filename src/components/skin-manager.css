@@ -1,0 +1,146 @@
+.skin-dialog {
+  width: min(760px, calc(100vw - 40px));
+  max-height: calc(100vh - 90px);
+  margin: auto;
+  padding: 24px;
+  overflow: auto;
+  color: var(--cream);
+  background: #171517;
+  border: 1px solid #88623d;
+  border-radius: 6px;
+  box-shadow: 0 20px 80px #0009;
+}
+.skin-dialog::backdrop {
+  background: #09090cd9;
+}
+.skin-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.skin-dialog h2 {
+  margin: 4px 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+}
+.skin-dialog h3 {
+  margin: 0;
+}
+.skin-dialog p,
+.skin-dialog small {
+  color: #c4b5a1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.skin-dialog label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.skin-dialog input,
+.skin-dialog select,
+.skin-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  background: #0e0d10;
+  color: var(--cream);
+  border: 1px solid #66503d;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 13px;
+}
+.skin-dialog textarea {
+  resize: vertical;
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+.skin-dialog input:focus,
+.skin-dialog select:focus,
+.skin-dialog textarea:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.skin-tabs,
+.skin-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.skin-tabs [aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--control-selected);
+}
+.skin-account-editor {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+  gap: 24px;
+}
+.skin-upload-preview {
+  min-height: 230px;
+  display: flex;
+}
+.skin-upload-preview .skin-preview {
+  height: 260px;
+  width: 100%;
+}
+.skin-upload-controls > .play-button {
+  margin-top: 20px;
+}
+.skin-file-name {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: #d8c39e;
+}
+.skin-dialog .skin-notice {
+  padding: 12px;
+  border: 1px solid #655535;
+  color: #e7cf94;
+  background: #31291c;
+}
+.skin-dialog .skin-error {
+  padding: 12px;
+  color: #ffb3a5;
+  background: #3a1b1e;
+}
+.skin-ely-help {
+  padding: 0 12px 12px;
+  border: 1px solid #493a30;
+  margin-top: 12px;
+}
+.skin-server-note {
+  border-top: 1px solid #493a30;
+  padding-top: 12px;
+}
+.login-player-heading {
+  position: relative;
+}
+.login-player-heading .set-skin-button {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+}
+.login-player-heading:has(.set-skin-button) .home-player-name {
+  padding-right: 34px;
+}
+@media (max-width: 600px) {
+  .skin-dialog {
+    padding: 18px;
+  }
+  .skin-account-editor {
+    grid-template-columns: 1fr;
+  }
+  .skin-upload-preview .skin-preview {
+    height: 160px;
+  }
+  .skin-upload-preview {
+    min-height: 160px;
+  }
+}

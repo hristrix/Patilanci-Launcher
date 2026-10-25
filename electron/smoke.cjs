@@ -48,6 +48,7 @@ let fixtureAccount = null;
 let fixtureSkinRequests = 0;
 let fixtureSkin;
 let fixtureOfflineSkinAvailable = true;
+let fixtureSkinUploads = 0;
 let fixtureWindow;
 let finishGameStop;
 const fixtureGame = createGameProcess({
@@ -95,6 +96,29 @@ ipcMain.handle('skin', async (_, request) => {
   );
   fixtureSkinRequests += 1;
   return { dataUrl: fixtureSkin, model: 'default' };
+});
+ipcMain.handle('chooseSkin', () => ({
+  id: 'fixture-skin-selection',
+  name: 'fixture-skin.png',
+  texture: { dataUrl: fixtureSkin, model: 'default' },
+  legacy: false,
+}));
+ipcMain.handle('applySkin', (_, request) => {
+  assert.ok(fixtureAccount);
+  assert.equal(fixtureGame.state().running, false);
+  assert.deepEqual(request, { id: 'fixture-skin-selection', variant: 'slim' });
+  fixtureSkinUploads++;
+  fixtureAccount = {
+    ...fixtureAccount,
+    skin: {
+      url: 'https://textures.minecraft.net/texture/' + 'b'.repeat(64),
+      model: 'slim',
+    },
+  };
+  return fixtureAccount;
+});
+ipcMain.handle('skinHelp', (_, destination) => {
+  assert.ok(['ely', 'commands'].includes(destination));
 });
 ipcMain.handle('offlineProfile', async (_, name) => ({
   ...(await fixtureProfiles.status(name)),
@@ -669,6 +693,50 @@ app.whenReady().then(async () => {
       'Premium sign-in hides the offline account choice',
     );
     await capture(window, 'launcher-microsoft-skin-fixture.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Set skin"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.skin-dialog[open]') !== null`,
+    );
+    await window.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('.skin-dialog button')).find(button => button.textContent.includes('Choose PNG')).click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.skin-file-name')?.textContent === 'fixture-skin.png'`,
+    );
+    await window.webContents.executeJavaScript(`(() => {
+      const select = document.querySelector('#account-skin-model');
+      select.value = 'slim'; select.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    await window.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('.skin-dialog button')).find(button => button.textContent.includes('Apply to Minecraft account')).click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.skin-notice')?.textContent.includes('account skin updated')`,
+    );
+    assert.equal(fixtureSkinUploads, 1);
+    await waitForRenderer(
+      window,
+      `document.querySelectorAll('[data-skin-state="ready"]').length >= 2`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.skin-dialog').scrollWidth <= document.querySelector('.skin-dialog').clientWidth`,
+      ),
+      true,
+    );
+    await capture(window, 'launcher-skin-account-settings.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Close skin settings"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.skin-dialog') === null`,
+    );
     for (const [width, height] of [
       [1034, 675],
       [1280, 720],
@@ -721,6 +789,7 @@ app.whenReady().then(async () => {
     );
 
     // Exercise the offline profile form and each navigation destination.
+    const requestsBeforeOfflineSignIn = fixtureSkinRequests;
     await window.webContents.executeJavaScript(`
       Array.from(document.querySelectorAll('.account-tabs button'))
         .find(button => button.textContent.includes('Offline')).click();
@@ -759,7 +828,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       fixtureSkinRequests,
-      1,
+      requestsBeforeOfflineSignIn,
       'Unsigned offline profiles must not request a skin',
     );
     window.setContentSize(1034, 675);
@@ -813,6 +882,55 @@ app.whenReady().then(async () => {
       'Signed-in offline profiles get a static public skin preview',
     );
     await capture(window, 'launcher-offline-public-skin-fixture.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Set skin"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#server-skin-command') !== null`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#server-skin-command').value`,
+      ),
+      '/skin set ely.by ProtectedPlayer',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#account-skin-model') === null`,
+      ),
+      true,
+      'Offline profiles cannot upload to a premium account',
+    );
+    await window.webContents.executeJavaScript(`(() => {
+      const select = document.querySelector('#server-skin-source');
+      select.value = 'web'; select.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    await fillInput(
+      window,
+      '#server-skin-value',
+      'https://example.com/skin.png',
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('#server-skin-command')?.value === '/skin set web classic "https://example.com/skin.png"'`,
+    );
+    window.setContentSize(1034, 675);
+    await waitForPaint(window);
+    assert.equal(
+      await window.webContents.executeJavaScript(`(() => {
+      const dialog = document.querySelector('.skin-dialog');
+      const bounds = dialog.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.bottom <= innerHeight && dialog.scrollWidth <= dialog.clientWidth;
+    })()`),
+      true,
+      'Skin settings remain bounded and scrollable in the compact window',
+    );
+    await capture(window, 'launcher-skin-server-settings-compact.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Close skin settings"]').click()`,
+    );
+    window.setContentSize(1344, 835);
     assert.equal(
       await window.webContents.executeJavaScript(
         `document.querySelectorAll('.account-tabs button').length === 1 && !document.querySelector('.account-tabs').textContent.includes('Microsoft') && document.querySelector('#minecraft-username').disabled`,

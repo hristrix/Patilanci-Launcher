@@ -5,6 +5,7 @@ const {
   shell,
   safeStorage,
   dialog,
+  nativeImage,
 } = require('electron');
 const fs = require('node:fs/promises'),
   path = require('node:path'),
@@ -45,6 +46,10 @@ const { createConsoleLog } = require('./console-log.cjs');
 const { createConsoleWindow } = require('./console-window.cjs');
 const { createOfflineSkinResolver } = require('./offline-skins.cjs');
 const {
+  validateSkinUpload,
+  uploadMinecraftSkin,
+} = require('./skin-upload.cjs');
+const {
   publicMinecraftProfile,
   loadPlayerSkin,
 } = require('./player-profile.cjs');
@@ -69,6 +74,7 @@ let win,
   account,
   playerProfile = null,
   skinRequest = null,
+  skinSelection = null,
   busy = false,
   running = false;
 const consoleLog = createConsoleLog();
@@ -182,6 +188,7 @@ async function acceptMicrosoft(xbox) {
   account = minecraft;
   playerProfile = profile;
   skinRequest = null;
+  skinSelection = null;
 }
 function offlineProfiles() {
   offlineProfileStore ||= createOfflineProfiles(
@@ -598,6 +605,104 @@ ipcMain.handle('logout', async () => {
   account = null;
   playerProfile = null;
   skinRequest = null;
+  skinSelection = null;
+});
+ipcMain.handle('chooseSkin', async () => {
+  requireAccountChange();
+  busy = true;
+  try {
+    await restoreSession();
+    if (activeSession().mode !== 'microsoft' || !account || !playerProfile)
+      throw new Error('Sign in with Microsoft to upload an account skin.');
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Choose your Minecraft skin',
+      buttonLabel: 'Preview skin',
+      filters: [{ name: 'Minecraft skin PNG', extensions: ['png'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    const file = await fs.open(result.filePaths[0], 'r');
+    let image;
+    try {
+      const size = (await file.stat()).size;
+      if (size > 1024 * 1024)
+        throw new Error('Choose a skin PNG smaller than 1 MB.');
+      // Bound reads even if another application changes the file after stat.
+      const buffer = Buffer.alloc(1024 * 1024 + 1);
+      const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+      image = buffer.subarray(0, bytesRead);
+    } finally {
+      await file.close();
+    }
+    const texture = validateSkinUpload(image, 'classic');
+    const decoded = nativeImage.createFromBuffer(image);
+    if (decoded.isEmpty())
+      throw new Error(
+        'This PNG could not be decoded. Choose a valid skin image.',
+      );
+    const dimensions = decoded.getSize();
+    if (dimensions.width !== 64 || ![32, 64].includes(dimensions.height))
+      throw new Error('Choose a 64 × 64 or 64 × 32 Minecraft skin PNG.');
+    skinSelection = {
+      id: crypto.randomUUID(),
+      accountId: playerProfile.id,
+      image,
+    };
+    return {
+      id: skinSelection.id,
+      name: path.basename(result.filePaths[0]),
+      texture,
+      legacy: dimensions.height === 32,
+    };
+  } finally {
+    busy = false;
+  }
+});
+ipcMain.handle('applySkin', async (_, request) => {
+  requireAccountChange();
+  busy = true;
+  try {
+    await restoreSession();
+    if (activeSession().mode !== 'microsoft' || !account || !playerProfile)
+      throw new Error('Sign in with Microsoft to upload an account skin.');
+    const selected = skinSelection;
+    if (
+      !selected ||
+      selected.id !== request?.id ||
+      selected.accountId !== playerProfile.id
+    )
+      throw new Error('Choose a skin PNG for this account first.');
+    validateSkinUpload(selected.image, request.variant);
+    if (!account.validate())
+      await acceptMicrosoft(
+        await new Auth('select_account').refresh(savedSession.refreshToken),
+      );
+    if (selected.accountId !== playerProfile.id)
+      throw new Error('Your account changed. Choose the skin PNG again.');
+    const profile = await uploadMinecraftSkin({
+      token: account.mcToken,
+      expectedId: playerProfile.id,
+      image: selected.image,
+      variant: request.variant,
+    });
+    playerProfile = profile;
+    skinRequest = Promise.resolve(
+      validateSkinUpload(selected.image, request.variant),
+    );
+    skinSelection = null;
+    return profile;
+  } finally {
+    busy = false;
+  }
+});
+ipcMain.handle('skinHelp', (_, destination) => {
+  const pages = {
+    ely: 'https://ely.by/skins',
+    commands: 'https://github.com/Suiranoil/SkinRestorer/wiki/Commands',
+  };
+  if (!Object.hasOwn(pages, destination))
+    throw new Error('Unknown skin help page.');
+  return shell.openExternal(pages[destination]);
 });
 ipcMain.handle('skin', async (_, request) => {
   await restoreSession();

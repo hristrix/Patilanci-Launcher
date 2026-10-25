@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.0 - 2026-10-25
+
+### Added
+
+- Signed-in players can open Set skin from the shirt button beside their player name.
+- Premium accounts can preview a PNG, choose Classic or Slim, and upload it to their Minecraft Java account without exposing account tokens.
+- Offline and premium players can prepare and copy Mojang, Ely.by, and PNG URL commands for Lionarius's SkinRestorer server mod, with an Ely.by upload shortcut and reset command. Run the copied command in Minecraft chat to apply the server skin.
+
 ## 1.10.1 - 2026-10-20
 
 ### Fixed

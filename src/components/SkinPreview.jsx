@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import PlayerAvatar from './PlayerAvatar';
 import usePlayerSkin from './usePlayerSkin';
 
-export default function SkinPreview({ account, api }) {
+export default function SkinPreview({ account, api, previewTexture }) {
   const container = useRef(null);
   const canvas = useRef(null);
   const [phase, setPhase] = useState('loading');
-  const { texture, phase: texturePhase } = usePlayerSkin(account, api);
+  const loaded = usePlayerSkin(previewTexture ? null : account, api);
+  const texture = previewTexture || loaded.texture;
+  const texturePhase = previewTexture ? 'ready' : loaded.phase;
 
   useEffect(() => {
     let active = true;

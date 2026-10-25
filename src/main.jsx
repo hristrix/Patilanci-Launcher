@@ -20,6 +20,7 @@ import {
   Signal,
   Swords,
   Users,
+  Shirt,
   X,
 } from 'lucide-react';
 import '@fontsource/manrope/400.css';
@@ -39,6 +40,7 @@ import MemorySettings from './components/MemorySettings';
 import JavaSettings from './components/JavaSettings';
 import WindowTitleBar from './components/WindowTitleBar';
 import SkinPreview from './components/SkinPreview';
+import SkinManager from './components/SkinManager';
 import PlayerHead from './components/PlayerHead';
 import StartupSplash from './components/StartupSplash';
 import GameConsole from './components/GameConsole';
@@ -342,6 +344,8 @@ function AccountPanel({
   onSignOut,
   onPlay,
   onCommunity,
+  onAction,
+  onSkinApplied,
   installed,
   progress,
 }) {
@@ -351,6 +355,7 @@ function AccountPanel({
   const [profileError, setProfileError] = useState('');
   const [profileRefresh, setProfileRefresh] = useState(0);
   const [managingAccount, setManagingAccount] = useState(false);
+  const [managingSkin, setManagingSkin] = useState(false);
   const validName = /^[A-Za-z0-9_]{3,16}$/.test(username);
 
   useEffect(() => {
@@ -447,6 +452,17 @@ function AccountPanel({
         </div>
         <div className="login-accent" />
         <div className="login-player-heading">
+          {sessionMode && (
+            <button
+              className="icon-button set-skin-button"
+              aria-label="Set skin"
+              title="Set skin"
+              disabled={busy}
+              onClick={() => setManagingSkin(true)}
+            >
+              <Shirt size={16} />
+            </button>
+          )}
           <strong className="home-player-name">
             {mode === 'microsoft'
               ? account?.name || 'Your account'
@@ -615,6 +631,19 @@ function AccountPanel({
           </form>
         )}
       </div>
+      {managingSkin && sessionMode && (
+        <SkinManager
+          api={launcher}
+          account={account}
+          name={sessionMode === 'offline' ? username : account?.name}
+          mode={sessionMode}
+          busy={busy}
+          running={game.running}
+          onAction={onAction}
+          onApplied={onSkinApplied}
+          onClose={() => setManagingSkin(false)}
+        />
+      )}
       <div className="launch-controls">
         <div className="play-area">
           <div className="install-state">
@@ -1066,6 +1095,8 @@ function App() {
       }
       onPlay={handlePlay}
       onCommunity={() => setPage('players')}
+      onAction={performAction}
+      onSkinApplied={() => loadConfiguration({ resetDraft: false })}
       installed={config.installed}
       progress={progress}
     />
