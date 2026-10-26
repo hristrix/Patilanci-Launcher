@@ -34,6 +34,7 @@ const {
   recordBundledMods,
   addLocalMods,
   removePersonalMod,
+  setPersonalModEnabled,
 } = require('./mods.cjs');
 
 let fixtureDirectory;
@@ -305,6 +306,12 @@ ipcMain.handle('addMods', async () => {
 });
 ipcMain.handle('removeMod', async (_, fileName) => {
   await removePersonalMod(fixtureInstance, fileName);
+  return { ...(await listMods(fixtureInstance)), canModify: true };
+});
+ipcMain.handle('setModEnabled', async (_, request) => {
+  if (fixtureGame.state().running)
+    throw new Error('Close Minecraft before changing mods.');
+  await setPersonalModEnabled(fixtureInstance, request);
   return { ...(await listMods(fixtureInstance)), canModify: true };
 });
 
@@ -737,6 +744,32 @@ app.whenReady().then(async () => {
     await waitForRenderer(
       window,
       `document.querySelector('.app-shell') !== null && document.querySelector('[role="alert"]')?.textContent.includes('Действието не можа да завърши')`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="mods"]').click()`,
+    );
+    for (const [width, height] of [
+      [1034, 675],
+      [1344, 835],
+    ]) {
+      window.setContentSize(width, height);
+      await waitForPaint(window);
+      assert.deepEqual(
+        await window.webContents.executeJavaScript(`(() => {
+        const controls = [...document.querySelectorAll('.notification-button, .notifications-panel')];
+        const alerts = [...document.querySelectorAll('.error-banner, .launcher-update-notice, .update-notice')];
+        return controls.flatMap(control => alerts.filter(alert => {
+          const a = control.getBoundingClientRect(), b = alert.getBoundingClientRect();
+          return a.width && a.height && b.width && b.height && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        }).map(alert => control.className + ' overlaps ' + alert.className));
+      })()`),
+        [],
+        'Notifications must never overlap error or update banners',
+      );
+    }
+    await capture(window, 'launcher-notifications-error-mods.png');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').click()`,
     );
     await window.webContents.executeJavaScript(
       `document.querySelector('[aria-label="Скрий съобщението за грешка"]').click()`,
@@ -1747,6 +1780,26 @@ app.whenReady().then(async () => {
     );
     await capture(window, 'launcher-mods-test-fixture.png');
     assert.equal((await listMods(fixtureInstance)).personal.length, 1);
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-origin="personal"] .mod-toggle').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-origin="personal"] .mod-toggle')?.getAttribute('aria-checked') === 'false'`,
+    );
+    assert.equal((await listMods(fixtureInstance)).personal[0].enabled, false);
+    await assert.rejects(
+      fs.stat(path.join(fixtureInstance, 'mods/extra-fixture.jar')),
+      { code: 'ENOENT' },
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-origin="personal"] .mod-toggle').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('[data-origin="personal"] .mod-toggle')?.getAttribute('aria-checked') === 'true'`,
+    );
+    assert.equal((await listMods(fixtureInstance)).personal[0].enabled, true);
     await window.webContents.executeJavaScript(
       `document.querySelector('[data-origin="personal"] .mod-menu-button').click()`,
     );

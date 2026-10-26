@@ -2,6 +2,10 @@
 // keep their original values so diagnostics and user data remain accurate.
 const messages = new Map(
   Object.entries({
+    'Patilanci modpack files are protected. Only mods added through this launcher can be enabled or disabled.':
+      'Добавките от основния пакет са защитени. Можеш да включваш и изключваш само добавките, добавени от теб чрез приложението.',
+    'The selected mod file is missing. Refresh the mod list.':
+      'Файлът на избраната добавка липсва. Обнови списъка с добавки.',
     'Checking launcher updates': 'Проверка за нова версия на приложението',
     'Checking launcher updates…': 'Проверка за нова версия на приложението…',
     'Restoring your account': 'Зареждане на запомнения профил',

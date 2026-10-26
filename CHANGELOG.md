@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.1 - 2026-10-27
+
+### Fixed
+
+- Notifications now reserve their own space in the page layout, preventing the bell and expanded panel from overlapping error and update banners.
+- Personal mod switches now enable and disable imported mods correctly. Disabled mods remain visible, can be restored or removed, and stay disabled through pack updates. Required pack mods remain protected.
+
 ## 2.1.0 - 2026-10-27
 
 ### Added

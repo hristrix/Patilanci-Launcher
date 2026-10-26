@@ -133,6 +133,9 @@ export default function ModsPage({
           enabled: mod.enabled === false,
         }),
       );
+      setNotice(
+        `Добавката ${mod.name} е ${mod.enabled === false ? 'включена' : 'изключена'}.`,
+      );
     });
   }
 
@@ -311,7 +314,7 @@ export default function ModsPage({
                             <button
                               type="button"
                               role="switch"
-                              aria-label={`Включи ${mod.name}`}
+                              aria-label={`${enabled ? 'Изключи' : 'Включи'} ${mod.name}`}
                               aria-checked={enabled}
                               className={`mod-toggle ${enabled ? 'is-enabled' : ''}`}
                               disabled={bundled || !canModify || !mod.present}

@@ -9,6 +9,7 @@ const {
   recordBundledMods,
   addLocalMods,
   removePersonalMod,
+  setPersonalModEnabled,
   preservePersonalMods,
 } = require('../electron/mods.cjs');
 
@@ -51,6 +52,129 @@ async function jar(directory, filename, id, options = {}) {
   await fs.writeFile(target, zip.toBuffer());
   return target;
 }
+
+test('personal mods disable and re-enable without changing bytes or imported source files', async (t) => {
+  const directory = await fixture(t);
+  const root = await instance(directory);
+  await recordBundledMods(root);
+  const source = await jar(
+    path.join(directory, 'downloads'),
+    'extra.jar',
+    'personal_mod',
+  );
+  const original = await fs.readFile(source);
+  await addLocalMods(root, [source]);
+  await setPersonalModEnabled(root, { fileName: 'extra.jar', enabled: false });
+  await assert.rejects(fs.stat(path.join(root, 'mods/extra.jar')), {
+    code: 'ENOENT',
+  });
+  assert.deepEqual(
+    await fs.readFile(path.join(root, 'mods/extra.jar.disabled')),
+    original,
+  );
+  assert.deepEqual(
+    (await listMods(root)).personal.map((mod) => [
+      mod.fileName,
+      mod.enabled,
+      mod.present,
+    ]),
+    [['extra.jar', false, true]],
+  );
+  await setPersonalModEnabled(root, { fileName: 'extra.jar', enabled: false });
+  await assert.rejects(addLocalMods(root, [source]), /conflicts/);
+  await setPersonalModEnabled(root, { fileName: 'extra.jar', enabled: true });
+  assert.deepEqual(
+    await fs.readFile(path.join(root, 'mods/extra.jar')),
+    original,
+  );
+  assert.equal((await listMods(root)).personal[0].enabled, true);
+  assert.deepEqual(await fs.readFile(source), original);
+});
+
+test('disabled personal mods stay disabled through consecutive pack updates and can be removed', async (t) => {
+  const directory = await fixture(t);
+  let previous = await instance(directory, 'first');
+  await recordBundledMods(previous);
+  const source = await jar(
+    path.join(directory, 'downloads'),
+    'extra.jar',
+    'personal_mod',
+  );
+  await addLocalMods(previous, [source]);
+  await setPersonalModEnabled(previous, {
+    fileName: 'extra.jar',
+    enabled: false,
+  });
+  for (const name of ['second', 'third']) {
+    const next = await instance(directory, name);
+    await jar(path.join(next, 'mods'), 'required.jar', 'required_mod');
+    await recordBundledMods(next);
+    await preservePersonalMods(previous, next);
+    assert.equal((await listMods(next)).personal[0].enabled, false);
+    await assert.rejects(fs.stat(path.join(next, 'mods/extra.jar')), {
+      code: 'ENOENT',
+    });
+    assert.deepEqual(
+      await fs.readFile(path.join(next, 'mods/extra.jar.disabled')),
+      await fs.readFile(source),
+    );
+    previous = next;
+  }
+  await removePersonalMod(previous, 'extra.jar');
+  await assert.rejects(
+    fs.stat(path.join(previous, 'mods/extra.jar.disabled')),
+    { code: 'ENOENT' },
+  );
+  assert.equal((await listMods(previous)).personal.length, 0);
+});
+
+test('mod switches reject protected, untracked, malformed and conflicting files', async (t) => {
+  const directory = await fixture(t);
+  const root = await instance(directory);
+  const required = await jar(
+    path.join(root, 'mods'),
+    'required.jar',
+    'required_mod',
+  );
+  await recordBundledMods(root);
+  const bytes = await fs.readFile(required);
+  await jar(path.join(root, 'mods'), 'untracked.jar', 'untracked_mod');
+  for (const fileName of ['required.jar', 'untracked.jar'])
+    await assert.rejects(
+      setPersonalModEnabled(root, { fileName, enabled: false }),
+      /protected/,
+    );
+  for (const request of [
+    null,
+    {},
+    { fileName: '../required.jar', enabled: false },
+    { fileName: 'required.jar', enabled: 'false' },
+  ])
+    await assert.rejects(setPersonalModEnabled(root, request));
+  assert.deepEqual(await fs.readFile(required), bytes);
+  const source = await jar(
+    path.join(directory, 'downloads'),
+    'extra.jar',
+    'personal_mod',
+  );
+  await addLocalMods(root, [source]);
+  await fs.writeFile(
+    path.join(root, 'mods/extra.jar.disabled'),
+    'existing user file',
+  );
+  await assert.rejects(
+    setPersonalModEnabled(root, { fileName: 'extra.jar', enabled: false }),
+    /Both enabled and disabled/,
+  );
+  assert.equal(
+    await fs.readFile(path.join(root, 'mods/extra.jar.disabled'), 'utf8'),
+    'existing user file',
+  );
+  assert.deepEqual(
+    await fs.readFile(path.join(root, 'mods/extra.jar')),
+    await fs.readFile(source),
+  );
+});
 
 test('required pack mods cannot be deleted through the backend', async (t) => {
   const directory = await fixture(t);

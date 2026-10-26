@@ -22,8 +22,11 @@ function validateFileName(fileName) {
   return fileName;
 }
 
-function modPath(instance, fileName) {
-  return safePath(path.join(instance, 'mods'), validateFileName(fileName));
+function modPath(instance, fileName, enabled = true) {
+  return safePath(
+    path.join(instance, 'mods'),
+    validateFileName(fileName) + (enabled ? '' : '.disabled'),
+  );
 }
 
 function readJarMetadata(data, fileName, strict = false) {
@@ -93,13 +96,24 @@ async function scanMods(instance) {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   const mods = [];
   for (const entry of entries) {
-    if (!entry.name.toLowerCase().endsWith('.jar')) continue;
+    const disabled = entry.name.toLowerCase().endsWith('.jar.disabled');
+    if (!disabled && !entry.name.toLowerCase().endsWith('.jar')) continue;
     if (!entry.isFile()) throw new Error(`Unsupported mod file: ${entry.name}`);
-    const filename = modPath(instance, entry.name);
+    const fileName = disabled ? entry.name.slice(0, -9) : entry.name;
+    if (
+      mods.some((mod) => mod.fileName.toLowerCase() === fileName.toLowerCase())
+    )
+      throw new Error(
+        `Both enabled and disabled copies exist for ${fileName}. Keep only one copy.`,
+      );
+    const filename = modPath(instance, fileName, !disabled);
     const stat = await fs.stat(filename);
     if (stat.size > MAX_JAR_SIZE)
       throw new Error(`Mod exceeds the 128 MB limit: ${entry.name}`);
-    mods.push(readJarMetadata(await fs.readFile(filename), entry.name));
+    mods.push({
+      ...readJarMetadata(await fs.readFile(filename), fileName),
+      enabled: !disabled,
+    });
   }
   return mods;
 }
@@ -199,6 +213,12 @@ async function listMods(instance) {
   const present = (mod) => ({
     ...mod,
     present: names.has(mod.fileName.toLowerCase()),
+    enabled:
+      files.find(
+        (file) => file.fileName.toLowerCase() === mod.fileName.toLowerCase(),
+      )?.enabled ??
+      mod.enabled ??
+      true,
   });
   return {
     installed: true,
@@ -278,7 +298,7 @@ async function addLocalMods(instance, selectedFiles) {
 
 async function removePersonalMod(instance, fileName) {
   validateFileName(fileName);
-  const { inventory } = await currentState(instance);
+  const { inventory, files } = await currentState(instance);
   const selected = inventory.personal.find((mod) => mod.fileName === fileName);
   if (!selected || inventory.bundled.some((mod) => conflicts(mod, selected))) {
     throw new Error(
@@ -286,7 +306,11 @@ async function removePersonalMod(instance, fileName) {
     );
   }
 
-  const filename = modPath(instance, fileName);
+  const filename = modPath(
+    instance,
+    fileName,
+    files.find((file) => file.fileName === fileName)?.enabled !== false,
+  );
   const temporary = path.join(instance, `.removed-mod-${crypto.randomUUID()}`);
   let moved = false;
   try {
@@ -309,6 +333,52 @@ async function removePersonalMod(instance, fileName) {
     throw error;
   }
   if (moved) await fs.rm(temporary, { force: true });
+}
+
+async function setPersonalModEnabled(instance, request) {
+  if (!request || typeof request.enabled !== 'boolean')
+    throw new Error('Invalid mod enabled state.');
+  const { fileName, enabled } = request;
+  validateFileName(fileName);
+  if (!(await readInstalledPack(instance)))
+    throw new Error('Install the Patilanci modpack before changing mods.');
+  const { inventory, files } = await currentState(instance);
+  const selected = inventory.personal.find((mod) => mod.fileName === fileName);
+  const file = files.find((mod) => mod.fileName === fileName);
+  if (
+    !selected ||
+    inventory.bundled.some(
+      (mod) => conflicts(mod, selected) || (file && conflicts(mod, file)),
+    )
+  )
+    throw new Error(
+      'Patilanci modpack files are protected. Only mods added through this launcher can be enabled or disabled.',
+    );
+  if (!file)
+    throw new Error('The selected mod file is missing. Refresh the mod list.');
+  if (file.enabled === enabled) return;
+  const source = modPath(instance, fileName, file.enabled);
+  const target = modPath(instance, fileName, enabled);
+  // COPYFILE_EXCL protects a destination created outside the launcher too.
+  await fs.copyFile(source, target, fs.constants.COPYFILE_EXCL);
+  try {
+    await fs.unlink(source);
+  } catch (error) {
+    await fs.rm(target, { force: true });
+    throw error;
+  }
+  try {
+    await writeInventory(instance, {
+      ...inventory,
+      personal: inventory.personal.map((mod) =>
+        mod === selected ? { ...file, enabled } : mod,
+      ),
+    });
+  } catch (error) {
+    await fs.copyFile(target, source, fs.constants.COPYFILE_EXCL);
+    await fs.unlink(target);
+    throw error;
+  }
 }
 
 async function preservePersonalMods(previousInstance, nextInstance) {
@@ -340,8 +410,8 @@ async function preservePersonalMods(previousInstance, nextInstance) {
     }
     await fs.mkdir(path.join(nextInstance, 'mods'), { recursive: true });
     await fs.copyFile(
-      modPath(previousInstance, mod.fileName),
-      modPath(nextInstance, mod.fileName),
+      modPath(previousInstance, mod.fileName, file.enabled !== false),
+      modPath(nextInstance, mod.fileName, file.enabled !== false),
       fs.constants.COPYFILE_EXCL,
     );
     (personalNames.has(mod.fileName) ? next.personal : next.external).push(
@@ -359,5 +429,6 @@ module.exports = {
   ensureModInventory,
   addLocalMods,
   removePersonalMod,
+  setPersonalModEnabled,
   preservePersonalMods,
 };

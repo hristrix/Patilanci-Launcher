@@ -46,6 +46,7 @@ for (const name of [
   'mods',
   'addMods',
   'removeMod',
+  'setModEnabled',
 ])
   api[name] = (data) => ipcRenderer.invoke(name, data);
 api.onProgress = (callback) => {

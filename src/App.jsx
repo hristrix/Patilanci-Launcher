@@ -103,27 +103,6 @@ export default function App({ api }) {
       <div
         className={`app-shell page-${page} ${page === 'home' ? 'is-home' : ''}`}
       >
-        <button
-          className="notification-button"
-          aria-label="Известия"
-          aria-controls="notifications-panel"
-          aria-expanded={notificationsOpen}
-          onClick={() => setNotificationsOpen(!notificationsOpen)}
-        >
-          <Bell size={25} />
-          {(state.error ||
-            state.modpackUpdate?.status === 'available' ||
-            ['downloading', 'downloaded'].includes(
-              state.launcherUpdate?.status,
-            )) && <i />}
-        </button>
-        {notificationsOpen && (
-          <NotificationsPanel
-            state={state}
-            actions={actions}
-            onClose={() => setNotificationsOpen(false)}
-          />
-        )}
         <Sidebar
           api={api}
           page={page}
@@ -137,6 +116,29 @@ export default function App({ api }) {
         />
         <main className="main-shell">
           <div className="page-content">
+            <div className="notification-area">
+              <button
+                className="notification-button"
+                aria-label="Известия"
+                aria-controls="notifications-panel"
+                aria-expanded={notificationsOpen}
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+              >
+                <Bell size={25} />
+                {(state.error ||
+                  state.modpackUpdate?.status === 'available' ||
+                  ['downloading', 'downloaded'].includes(
+                    state.launcherUpdate?.status,
+                  )) && <i />}
+              </button>
+              {notificationsOpen && (
+                <NotificationsPanel
+                  state={state}
+                  actions={actions}
+                  onClose={() => setNotificationsOpen(false)}
+                />
+              )}
+            </div>
             {page !== 'mods' && page !== 'console' && (
               <PageHeading
                 page={PAGES[page]}

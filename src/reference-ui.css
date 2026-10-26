@@ -2001,11 +2001,15 @@ input[type='checkbox'] {
 .is-embedded .console-line {
   grid-template-columns: 120px 55px minmax(0, 1fr);
 }
+.notification-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 .notification-button {
-  position: fixed;
-  right: calc(var(--page-padding) + 10px);
-  top: calc(var(--titlebar-height) + 26px);
-  z-index: 17;
+  position: relative;
   color: #c4c9d4;
   padding: 5px;
 }
@@ -2020,11 +2024,8 @@ input[type='checkbox'] {
   box-shadow: 0 0 0 2px #101214;
 }
 .notifications-panel {
-  position: fixed;
-  z-index: 30;
-  top: calc(var(--titlebar-height) + 65px);
-  right: var(--page-padding);
-  width: min(360px, 60vw);
+  position: relative;
+  width: 100%;
   padding: 20px;
   border: 1px solid #3b414b;
   border-radius: 8px;
@@ -2054,16 +2055,25 @@ input[type='checkbox'] {
 }
 .notifications-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 16px;
+  align-items: stretch;
+}
+.notifications-list > p {
+  grid-column: 1 / -1;
 }
 .notification-item {
   display: grid;
   gap: 10px;
   min-width: 0;
+  align-content: start;
+  border: 1px solid #3b414b;
+  border-radius: 6px;
+  padding: 12px;
 }
 .notification-item + .notification-item {
   border-top: 1px solid #3b414b;
-  padding-top: 16px;
+  padding-top: 12px;
 }
 .notification-item strong {
   font-size: var(--text-small);
@@ -2113,7 +2123,7 @@ input[type='checkbox'] {
 .is-home:has(.needs-sign-in) .page-content {
   padding: 0;
 }
-.is-home:has(.needs-sign-in) .notification-button {
+.is-home:has(.needs-sign-in) .notification-area {
   display: none;
 }
 .is-home:has(.needs-sign-in) .page-footer {

@@ -73,6 +73,7 @@ const {
   ensureModInventory,
   addLocalMods,
   removePersonalMod,
+  setPersonalModEnabled,
   preservePersonalMods,
 } = require('./mods.cjs');
 const HOST = 'hushed-mongoose.shulker.com',
@@ -1161,5 +1162,9 @@ ipcMain.handle('addMods', async () => {
 });
 ipcMain.handle('removeMod', async (_, fileName) => {
   await changeMods(() => removePersonalMod(root(), fileName));
+  return modInventory();
+});
+ipcMain.handle('setModEnabled', async (_, request) => {
+  await changeMods(() => setPersonalModEnabled(root(), request));
   return modInventory();
 });

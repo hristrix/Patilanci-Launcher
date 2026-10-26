@@ -126,6 +126,8 @@ Player counts come from direct Java server status queries with SRV support, refr
 
 ## Manage mods
 
+Use the switch beside an imported personal mod to enable or disable it while Minecraft is closed. Disabled mods stay in the list and remain disabled through pack updates; they can also be removed. Required pack mods and untracked files remain protected. Disabling a mod does not disable its dependencies automatically.
+
 The Mods page has **Patilanci mods** and **My mods** tabs with search, versions, and filenames. Install the pack first, then choose **Add mods** to import one or more downloaded Fabric `.jar` files through the native file picker. JAR metadata is checked for Fabric support and duplicate mod IDs, aliases, and filenames. Imports are limited to 128 MB per JAR. Use mods and dependencies compatible with the pack's Minecraft version; the launcher does not download additional dependencies or guarantee compatibility for player additions.
 
 The main process records ownership in `patilanci-mods.json`. Pack-provided files (including override JARs), existing files from older launcher installations, and untracked files are protected. Only files recorded as player additions receive a Remove action, and backend removal checks enforce the same rule. Imports cannot overwrite existing files or replace a bundled mod under another filename. Add/remove operations are blocked while Minecraft or an installation is running. Removal deletes the instance copy and leaves the original imported download intact.
