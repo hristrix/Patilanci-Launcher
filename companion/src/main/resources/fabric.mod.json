@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "patilanci_skin_companion",
+  "version": "${version}",
+  "name": "Patilanci Skin Companion",
+  "description": "Applies the launcher's saved offline skin on the Patilanci server using SkinRestorer.",
+  "authors": ["Hristrix"],
+  "license": "ISC",
+  "environment": "client",
+  "entrypoints": { "client": ["com.hristrix.skin.SkinCompanion"] },
+  "depends": {
+    "fabricloader": ">=0.17.3",
+    "minecraft": "1.21.10",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

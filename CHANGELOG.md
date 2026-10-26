@@ -1,5 +1,95 @@
 # Changelog
 
+## 2.0.0 - 2026-10-26
+
+### Improved
+
+- Версията на приложението е 2.0.0. Новият облик, екранът за подготовка и разделите на пакета са включени в тази версия; запазените настройки и данни за играта остават съвместими.
+
+### Fixed
+
+- Иконите на приложението, прозореца с логовете, инсталацията и премахването използват новото прозрачно лого „P“ вместо старото SMP изображение.
+- След обновяване Windows получава известие да опресни иконите на приложението и запазените преки пътища.
+
+## 1.17.0 - 2026-10-26
+
+### Improved
+
+- Екранът за подготовка следва новия облик с панорамното село, голямо лого, последователни проверки на приложението, акаунта и Patilanci Adventures и червена лента за напредъка.
+- При изтегляне се показват действителният брой готови файлове, прехвърлените данни и скоростта, когато са налични. Без избран акаунт подготовката продължава, а входът остава достъпен след стартиране.
+
+### Added
+
+- Бутонът „Виж лога“ отваря текущите съобщения за подготовката, без да прекъсва проверките и изтеглянията.
+
+## 1.16.1 - 2026-10-26
+
+### Fixed
+
+- Разделите „Общ преглед“, „Включени добавки“ и „Активност на приложението“ вече показват собствено съдържание в страницата на пакета, без да отварят „Моите добавки“.
+- Включените добавки могат да се разглеждат и търсят в пакета, а активността показва текущите съобщения на приложението. Разделите поддържат и навигация с клавиатура.
+
+## 1.16.0 - 2026-10-26
+
+### Improved
+
+- Преведени са екраните, бутоните, подсказките, настройките, изборът на външен вид, подготовката на играта, обновяванията и прозорците за избор на файлове на ясен български език.
+- Съобщенията за грешки и напредък вече дават разбираеми указания на български. Имената на играчите, файловете, добавките и оригиналните съобщения от Minecraft се запазват.
+- Общността, управлението на профила, изборът на външен вид и екраните за подготовка и обновяване използват тъмните повърхности, светлите заглавия и червените акценти на новия облик.
+- Инсталацията, премахването и прозорецът за обновяване са на български. Изображенията на инсталацията следват новия облик.
+
+## 1.15.1 - 2026-10-26
+
+### Fixed
+
+- Signed-out Home now fills the entire content area with the village wallpaper, with the login panel floating over the scene on the right.
+
+## 1.15.0 - 2026-10-26
+
+### Added
+
+- Settings now include saved game-window dimensions, fullscreen, restore defaults, and an option to hide the launcher after Minecraft starts and show it again when the game exits.
+- The notification bell opens current launcher and modpack notices.
+
+### Improved
+
+- Matched the supplied screens more closely across the dashboard, sign-in, modpack, Settings, and console: spacing, sidebar, bottom launch bar, installation facts, local-profile card, and console actions.
+- Settings show a compact Java selector for all four supported versions and a memory dropdown with a matching slider; memory warnings remain visible when needed.
+- Home shows the actual last update-check time and game folder, and console lines show 24-hour timestamps and severity levels.
+
+## 1.14.0 - 2026-10-26
+
+### Added
+
+- Personal mods can now be enabled or disabled with the status switches. Disabled mods remain installed, stay disabled after restart and modpack updates, and can still be removed from the row menu.
+- Mod rows show descriptions and PNG icons from local Fabric metadata when available, with source and status columns, All/Active/Disabled filters, and per-mod menus for filenames, versions, and removal.
+
+### Improved
+
+- Rebuilt My Mods to follow the supplied mod-management reference: Add mod beside the page heading, a compact search and filter toolbar, a four-column table, and a single information strip below the list.
+- My Mods opens personal additions by default. Included pack mods remain accessible from Modpack and the link below the table, with backend protection against removal or disabling.
+
+## 1.13.1 - 2026-10-26
+
+### Fixed
+
+- Mod and console search fields now have a single border, aligned text and search icons, and a focus outline around the whole control.
+- Clicking the mod search icon focuses its input.
+
+## 1.13.0 - 2026-10-26
+
+### Added
+
+- Play and Stop Minecraft are available from a persistent bottom bar on every page, with shortcuts to memory settings and the modpack.
+- A Console tab shows the same live, redacted game logs as the separate Minecraft console, with search, filters, copy, clear, autoscroll, and log export.
+- Settings now group game preferences, launcher updates, and account management into tabs.
+
+### Improved
+
+- Rebuilt the launcher around the supplied UI references: a compact sidebar, Bulgarian navigation, dark panels, cream headings, and red actions.
+- Home and Modpack use the supplied Bulgarian mountain village panorama, with optional subtle motion that respects reduced-motion preferences.
+- Sign-in shows Microsoft and local profile entry together. Local PIN protection, remembered sessions, skin settings, protected pack mods, storage information, Java overrides, and automatic updates remain available.
+
 ## 1.12.7 - 2026-10-25
 
 ### Fixed

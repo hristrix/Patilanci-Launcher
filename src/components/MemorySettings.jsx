@@ -50,13 +50,25 @@ export default function MemorySettings({ api, allocation, onChange }) {
   const assessment = assessMemory(allocation, loadError ? null : snapshot);
   const warning = ['danger', 'warning'].includes(assessment.severity);
   const formatBytes = (bytes) =>
-    `${(bytes / BYTES_PER_GB).toFixed(1).replace(/\.0$/, '')} GB`;
+    `${(bytes / BYTES_PER_GB).toFixed(1).replace(/\.0$/, '')} ГБ`;
 
   return (
     <div className="settings-group memory-settings">
-      <label htmlFor="memory">
-        Allocated memory<span>{allocation} GB</span>
-      </label>
+      <h3>Памет</h3>
+      <div className="memory-allocation">
+        <label htmlFor="memory">Оперативна памет</label>
+        <select
+          aria-label="Памет за играта"
+          value={allocation}
+          onChange={(event) => onChange(Number(event.target.value))}
+        >
+          {Array.from({ length: 31 }, (_, i) => i + 2).map((gb) => (
+            <option key={gb} value={gb}>
+              {gb} ГБ
+            </option>
+          ))}
+        </select>
+      </div>
       <input
         id="memory"
         type="range"
@@ -64,84 +76,97 @@ export default function MemorySettings({ api, allocation, onChange }) {
         max="32"
         step="1"
         value={allocation}
+        style={{ '--memory-fill': `${((allocation - 2) / 30) * 100}%` }}
         onChange={(event) => onChange(Number(event.target.value))}
         aria-describedby="memory-guidance memory-assessment"
       />
-      <small id="memory-guidance">
-        The pack usually needs 4–6 GB. More memory does not always mean smoother
-        gameplay.
-      </small>
+      <div className="memory-scale" aria-hidden="true">
+        <span>2 ГБ</span>
+        <span>12 ГБ</span>
+        <span>22 ГБ</span>
+        <span>32 ГБ</span>
+      </div>
       <div className="memory-system">
         <Cpu size={17} />
         <div>
           <span>
             {snapshot && !loadError
-              ? `${formatBytes(snapshot.totalBytes)} installed · ${formatBytes(snapshot.availableBytes)} free now`
+              ? `${formatBytes(snapshot.totalBytes)} общо · ${formatBytes(snapshot.availableBytes)} свободни в момента`
               : loadError
-                ? 'System memory check unavailable'
-                : 'Checking your computer’s memory…'}
+                ? 'Паметта не може да бъде проверена.'
+                : 'Проверяваме паметта на компютъра…'}
           </span>
-          <small>Refreshes every 10 seconds.</small>
+          <small>Обновява се на всеки 10 секунди.</small>
         </div>
         <button
           className="icon-button"
           type="button"
-          aria-label="Refresh memory information"
-          title="Refresh memory information"
+          aria-label="Провери паметта отново"
+          title="Провери паметта отново"
           onClick={refresh}
           disabled={refreshing}
         >
           <RefreshCw size={14} />
         </button>
       </div>
-      <div
-        id="memory-assessment"
-        className={`memory-assessment is-${assessment.severity}`}
-        data-memory-severity={assessment.severity}
-        role={warning ? 'alert' : 'status'}
-        aria-live="polite"
-      >
-        {assessment.severity !== 'unknown' && (
-          <>
-            {warning ? <AlertTriangle size={19} /> : <CheckCircle2 size={19} />}
-            <div>
-              <strong>{assessment.title}</strong>
-              <p>{assessment.message}</p>
-              {assessment.recommendedGb !== null && (
-                <span className="memory-recommendation">
-                  Suggested now: {assessment.recommendedGb} GB
-                  {allocation !== assessment.recommendedGb && (
-                    <button
-                      type="button"
-                      className="outline-button"
-                      onClick={() => onChange(assessment.recommendedGb)}
-                    >
-                      Use {assessment.recommendedGb} GB
-                    </button>
-                  )}
-                </span>
+      <details className="memory-details" open={warning}>
+        <summary>Препоръки за паметта</summary>
+        <small id="memory-guidance" className="memory-guidance">
+          Пакет с добавкиът обикновено изисква 4–6 ГБ. Повече памет невинаги
+          означава по-плавна игра.
+        </small>
+        <div
+          id="memory-assessment"
+          className={`memory-assessment is-${assessment.severity}`}
+          data-memory-severity={assessment.severity}
+          role={warning ? 'alert' : 'status'}
+          aria-live="polite"
+        >
+          {assessment.severity !== 'unknown' && (
+            <>
+              {warning ? (
+                <AlertTriangle size={19} />
+              ) : (
+                <CheckCircle2 size={19} />
               )}
-              {assessment.recommendedGb === null && (
-                <p>
-                  No 4 GB starting allocation fits the current safety estimate.
-                  Free up memory and check again.
-                </p>
-              )}
-            </div>
-          </>
-        )}
-        {assessment.severity === 'unknown' && (
-          <p>
-            {loadError
-              ? 'Memory usage could not be checked. Refresh to try again.'
-              : 'The memory estimate will appear once the system check finishes.'}
-          </p>
-        )}
-      </div>
-      <small className="memory-estimate-note">
-        This is an estimate, not a performance guarantee. Saving is still
-        allowed.
-      </small>
+              <div>
+                <strong>{assessment.title}</strong>
+                <p>{assessment.message}</p>
+                {assessment.recommendedGb !== null && (
+                  <span className="memory-recommendation">
+                    Препоръчително в момента: {assessment.recommendedGb} ГБ
+                    {allocation !== assessment.recommendedGb && (
+                      <button
+                        type="button"
+                        className="outline-button"
+                        onClick={() => onChange(assessment.recommendedGb)}
+                      >
+                        Използвай {assessment.recommendedGb} ГБ
+                      </button>
+                    )}
+                  </span>
+                )}
+                {assessment.recommendedGb === null && (
+                  <p>
+                    В момента няма достатъчно свободна памет за 4 ГБ. Затвори
+                    други приложения и провери отново.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+          {assessment.severity === 'unknown' && (
+            <p>
+              {loadError
+                ? 'Паметта не може да бъде проверена. Опитай отново с бутона за обновяване.'
+                : 'Препоръката ще се появи след проверката на паметта.'}
+            </p>
+          )}
+        </div>
+        <small className="memory-estimate-note">
+          Това е приблизителна препоръка. Можеш да запазиш и друга стойност.
+        </small>
+      </details>
     </div>
   );
 }

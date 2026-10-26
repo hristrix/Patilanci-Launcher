@@ -1,9 +1,9 @@
 import { Check } from 'lucide-react';
 
 const LAUNCH_STEPS = [
-  { id: 'preparing', label: 'Preparing' },
-  { id: 'starting', label: 'Starting' },
-  { id: 'running', label: 'Running' },
+  { id: 'preparing', label: 'Подготовка' },
+  { id: 'starting', label: 'Стартиране' },
+  { id: 'running', label: 'Играта работи' },
 ];
 
 function LaunchSteps({ activePhase }) {
@@ -11,7 +11,10 @@ function LaunchSteps({ activePhase }) {
   if (currentStep === -1) return null;
 
   return (
-    <ol className="launch-steps" aria-label="Minecraft launch progress">
+    <ol
+      className="launch-steps"
+      aria-label="Напредък при стартиране на Minecraft"
+    >
       {LAUNCH_STEPS.map(({ id, label }, index) => {
         const completed = currentStep > index;
         return (
@@ -58,9 +61,9 @@ export default function LaunchProgress({ game, launchPhase, busy, progress }) {
         )}
         <span>
           {game.stopping
-            ? 'Stopping Minecraft…'
+            ? 'Спиране на Minecraft…'
             : game.running
-              ? 'Minecraft is running.'
+              ? 'Minecraft работи.'
               : progress.message}
         </span>
         {showProgress && percent !== null && <b>{percent}%</b>}
@@ -69,7 +72,7 @@ export default function LaunchProgress({ game, launchPhase, busy, progress }) {
         <div
           className={`progress-track ${percent === null ? 'is-indeterminate' : ''}`}
           role="progressbar"
-          aria-label="Minecraft preparation"
+          aria-label="Подготовка на Minecraft"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent ?? undefined}

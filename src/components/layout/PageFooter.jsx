@@ -15,7 +15,7 @@ export default function PageFooter({
     try {
       await onOpenAuthor();
     } catch {
-      onError('Could not open hristrix.com in your browser.');
+      onError('Страницата hristrix.com не може да бъде отворена.');
     }
   }
   async function copyAddress() {
@@ -24,7 +24,7 @@ export default function PageFooter({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      onError('Could not copy the server address.');
+      onError('Адресът на сървъра не може да бъде копиран.');
     }
   }
 
@@ -32,7 +32,7 @@ export default function PageFooter({
     <footer className="page-footer">
       <button className="server-address" onClick={copyAddress}>
         <span className="status-dot" />
-        {copied ? 'Address copied' : SERVER_ADDRESS}
+        {copied ? 'Адресът е копиран' : SERVER_ADDRESS}
         {copied ? <Check size={12} /> : <Copy size={12} />}
       </button>
       <div className="launcher-legal">
@@ -41,9 +41,9 @@ export default function PageFooter({
           target="_blank"
           rel="noopener noreferrer"
           onClick={openAuthor}
-          title="Visit Hristrix's website"
+          title="Отвори страницата на Hristrix"
         >
-          © 2026 · Made by Hristrix
+          © 2026 · Създадено от Hristrix
         </a>
       </div>
       <button
@@ -53,7 +53,7 @@ export default function PageFooter({
         aria-busy={refreshing}
       >
         <RefreshCw size={12} />
-        {refreshing ? 'Refreshing…' : 'Refresh status'}
+        {refreshing ? 'Обновяване…' : 'Провери връзката'}
       </button>
     </footer>
   );

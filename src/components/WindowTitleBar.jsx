@@ -1,20 +1,13 @@
 import { useEffect, useState } from 'react';
-import {
-  ChevronRight,
-  Copy,
-  Folder,
-  Minus,
-  Square,
-  Terminal,
-  X,
-} from 'lucide-react';
+import { Copy, Folder, Minus, Square, Terminal, X } from 'lucide-react';
 
 export default function WindowTitleBar({
   api,
   pageLabel,
   onOpenFolder,
   onOpenConsole,
-  closeLabel = 'Close launcher',
+  closeLabel = 'Затвори приложението',
+  startup = false,
 }) {
   const [maximized, setMaximized] = useState(false);
   const [actionError, setActionError] = useState('');
@@ -43,31 +36,36 @@ export default function WindowTitleBar({
       const state = await api.windowAction(command);
       setMaximized(state.maximized);
     } catch {
-      setActionError('Window controls unavailable');
+      setActionError('Управлението на прозореца не е достъпно');
     }
   }
 
   return (
     <header
-      className="window-titlebar"
-      aria-label="Patilanci Launcher title bar"
+      className={`window-titlebar${startup ? ' is-startup' : ''}`}
+      aria-label="Заглавна лента на Патиланци"
     >
       <div className="window-brand">
-        <img src="./brand/patilanci-icon.png" alt="" draggable="false" />
+        <img
+          src={
+            startup
+              ? './brand/patilanci-monogram.svg'
+              : './brand/patilanci-icon.png'
+          }
+          alt=""
+          draggable="false"
+        />
         <strong>
-          PATILANCI <span>LAUNCHER</span>
+          ПАТИЛАНЦИ <span>{startup ? 'LAUNCHER' : 'ПРИЛОЖЕНИЕ'}</span>
         </strong>
         <span className="window-brand-divider" />
-        <span className="window-page">
-          <ChevronRight size={12} /> {pageLabel}
-        </span>
       </div>
       <div className="window-controls">
         {onOpenConsole && (
           <button
             className="window-control"
-            aria-label="Open Minecraft console"
-            title="Minecraft console"
+            aria-label="Отвори Логовеа на Minecraft"
+            title="Логове на Minecraft"
             onClick={onOpenConsole}
           >
             <Terminal size={16} />
@@ -76,8 +74,8 @@ export default function WindowTitleBar({
         {onOpenFolder && (
           <button
             className="window-control window-folder"
-            aria-label="Open game folder"
-            title="Open game folder"
+            aria-label="Отвори папката на играта"
+            title="Отвори папката на играта"
             onClick={onOpenFolder}
           >
             <Folder size={15} />
@@ -85,8 +83,8 @@ export default function WindowTitleBar({
         )}
         <button
           className="window-control"
-          aria-label="Minimize window"
-          title="Minimize"
+          aria-label="Свий прозореца"
+          title="Свий"
           disabled={!api}
           onClick={() => action('minimize')}
         >
@@ -94,8 +92,10 @@ export default function WindowTitleBar({
         </button>
         <button
           className="window-control"
-          aria-label={maximized ? 'Restore window' : 'Maximize window'}
-          title={maximized ? 'Restore' : 'Maximize'}
+          aria-label={
+            maximized ? 'Възстанови размера на прозореца' : 'Увеличи прозореца'
+          }
+          title={maximized ? 'Възстанови размера' : 'Увеличи'}
           disabled={!api}
           onClick={() => action('toggleMaximize')}
         >
@@ -104,7 +104,7 @@ export default function WindowTitleBar({
         <button
           className="window-control window-close"
           aria-label={closeLabel}
-          title="Close"
+          title="Затвори"
           disabled={!api}
           onClick={() => action('close')}
         >

@@ -1,54 +1,71 @@
-import { useEffect, useState } from 'react';
-import { ArrowUpRight, Layers, Pause, Play } from 'lucide-react';
-import WorldScene from '../WorldScene';
+import { ArrowUpRight, Box, CheckCircle2 } from 'lucide-react';
+import Panorama from '../Panorama';
+import GrassBlock from '../GrassBlock';
 
-export default function HomeHero({ installed, onNavigate, children }) {
-  const [motionPaused, setMotionPaused] = useState(false);
-  const [hidden, setHidden] = useState(document.hidden);
-  useEffect(() => {
-    const onVisibility = () => setHidden(document.hidden);
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, []);
-
+export default function HomeHero({
+  installed,
+  onNavigate,
+  server,
+  updateState,
+  updateAvailable,
+  refreshing,
+}) {
   return (
-    <section
-      className="home-world-banner home-hero"
-      aria-label="Patilanci Adventures"
-    >
-      <WorldScene paused={motionPaused || hidden} />
-      <div className="home-banner-shade" />
-      <button
-        className="scene-motion-toggle"
-        aria-label={
-          motionPaused ? 'Resume scenery animation' : 'Pause scenery animation'
-        }
-        aria-pressed={motionPaused}
-        title={
-          motionPaused ? 'Resume scenery animation' : 'Pause scenery animation'
-        }
-        onClick={() => setMotionPaused((paused) => !paused)}
-      >
-        {motionPaused ? <Play size={14} /> : <Pause size={14} />}
-      </button>
-      <div className="home-banner-copy">
-        <span className="home-banner-eyebrow">PATILANCI ADVENTURES</span>
-        <h2>Minecraft {installed?.minecraft || '1.21.10'}</h2>
-        <span className="home-modpack-pill">
-          <Layers size={12} /> Custom modpack
-        </span>
-        <p className="home-pack-description">
-          A world worth coming back to. Explore new places, build something
-          extraordinary, and make your next adventure a shared one on Patilanci.
-        </p>
-        <button
-          className="home-pack-link"
-          onClick={() => onNavigate('modpack')}
+    <section className="village-hero" aria-label="Patilanci Adventures">
+      <div className="village-hero-art">
+        <Panorama controls />
+        <div className="village-shade" />
+        <span
+          className={`hero-server-status server-status ${server?.online ? 'is-online' : ''}`}
+          role="status"
         >
-          Explore the modpack <ArrowUpRight size={13} />
+          <span className="status-dot" />
+          {refreshing || server === null
+            ? 'Проверка на връзката'
+            : server?.online
+              ? 'Сървърът е достъпен'
+              : 'Няма връзка със сървъра'}
+        </span>
+        <div className="village-hero-copy">
+          <span className="overline">ОФИЦИАЛЕН ПАКЕТ</span>
+          <h2>Patilanci Adventures</h2>
+          <p>Нашият свят. Твоите приключения.</p>
+        </div>
+      </div>
+      <div className="hero-specs">
+        <span>
+          <GrassBlock />
+          <span>
+            <small>Minecraft</small>
+            <strong>{installed?.minecraft || '—'}</strong>
+          </span>
+        </span>
+        <span>
+          <Box size={24} />
+          <strong>Fabric</strong>
+        </span>
+        <span
+          className={
+            installed && updateState?.status === 'ready' && !updateAvailable
+              ? 'text-green'
+              : ''
+          }
+        >
+          <CheckCircle2 size={22} />
+          {updateAvailable
+            ? 'Нова версия'
+            : updateState?.status === 'checking'
+              ? 'Проверка…'
+              : installed
+                ? updateState?.status === 'ready'
+                  ? 'Актуален'
+                  : 'Инсталиран'
+                : 'Готов за инсталиране'}
+        </span>
+        <button onClick={() => onNavigate('modpack')}>
+          Подробности <ArrowUpRight size={16} />
         </button>
       </div>
-      {children}
     </section>
   );
 }

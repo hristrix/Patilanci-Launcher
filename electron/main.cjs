@@ -14,6 +14,8 @@ const Zip = require('adm-zip');
 const os = require('node:os');
 const { Authenticator } = require('minecraft-launcher-core');
 const { startMinecraftService } = require('./minecraft-service.cjs');
+const { prepareAutomaticSkin } = require('./automatic-skin.cjs');
+const { prepareSharedSkins } = require('./shared-skins.cjs');
 const { prepareJava, probeJava, JAVA_VERSIONS } = require('./java-runtime.cjs');
 const { Auth } = require('msmc');
 const { status } = require('minecraft-server-util');
@@ -120,6 +122,10 @@ async function stopConsoleGame() {
   else if (attempt?.service) await attempt.service.stop();
   await attempt?.javaPreparation?.catch(() => {});
 }
+// Match the installed shortcuts so Windows groups the launcher and its console
+// under the same taskbar identity after an update.
+if (process.platform === 'win32')
+  app.setAppUserModelId('com.patilanci.launcher');
 const ownsLauncherLock = app.requestSingleInstanceLock();
 if (!ownsLauncherLock) app.quit();
 app.on('second-instance', () => {
@@ -214,9 +220,15 @@ function offlineProfiles() {
   );
   return offlineProfileStore;
 }
-const send = (message, percent = null, launchPhase) => {
+const { readDownload } = require('./download-progress.cjs');
+const send = (message, percent = null, launchPhase, details = {}) => {
   if (win && !win.isDestroyed())
-    win.webContents.send('progress', { message, percent, launchPhase });
+    win.webContents.send('progress', {
+      ...details,
+      message,
+      percent,
+      launchPhase,
+    });
   if (consoleLog.active() && message !== lastConsoleMessage) {
     consoleLog.append(message);
     lastConsoleMessage = message;
@@ -323,7 +335,7 @@ async function latestPackFile() {
     ),
   );
 }
-async function download(url, file, hash) {
+async function download(url, file, hash, onProgress, totalBytes) {
   const u = new URL(url);
   if (u.protocol !== 'https:') throw Error('HTTPS required');
   const headers = {};
@@ -331,7 +343,7 @@ async function download(url, file, hash) {
     headers['x-api-key'] = (await settings()).apiKey;
   const r = await fetch(u, { headers, signal: AbortSignal.timeout(180000) });
   if (!r.ok) throw Error(`Download failed (${r.status})`);
-  const data = Buffer.from(await r.arrayBuffer());
+  const data = await readDownload(r, { onProgress, totalBytes });
   if (
     hash &&
     crypto.createHash('sha1').update(data).digest('hex').toLowerCase() !==
@@ -341,7 +353,7 @@ async function download(url, file, hash) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, data);
 }
-async function fileDownload(mod, id, directory) {
+async function fileDownload(mod, id, directory, onProgress) {
   const info = await cf(`/mods/${mod}/files/${id}`);
   const url =
     info.downloadUrl || (await cf(`/mods/${mod}/files/${id}/download-url`));
@@ -350,7 +362,13 @@ async function fileDownload(mod, id, directory) {
       `Third-party downloads unavailable for ${info.displayName}. Installation was not activated.`,
     );
   const dest = safePath(directory, info.fileName);
-  await download(url, dest, info.hashes?.find((h) => h.algo === 1)?.value);
+  await download(
+    url,
+    dest,
+    info.hashes?.find((h) => h.algo === 1)?.value,
+    onProgress,
+    info.fileLength,
+  );
   return dest;
 }
 async function installed() {
@@ -386,7 +404,21 @@ async function install({ refreshInventory = true } = {}) {
       return old;
     }
     await fs.mkdir(staging, { recursive: true });
-    const archive = await fileDownload(PROJECT, latest.id, staging),
+    const archive = await fileDownload(
+        PROJECT,
+        latest.id,
+        staging,
+        (transfer) => {
+          send(
+            'Изтегляне на пакета…',
+            transfer.total
+              ? 3 + Math.min(7, (transfer.transferred / transfer.total) * 7)
+              : null,
+            undefined,
+            { ...transfer, stage: 'archive' },
+          );
+        },
+      ),
       zip = new Zip(archive);
     const entry = zip.getEntry('manifest.json');
     if (!entry) throw Error('Missing pack manifest');
@@ -411,11 +443,37 @@ async function install({ refreshInventory = true } = {}) {
       send(
         `Downloading mod ${i + 1} of ${mods.length}`,
         10 + Math.round((i / Math.max(mods.length, 1)) * 75),
+        undefined,
+        { stage: 'mods', completedFiles: i, totalFiles: mods.length },
       );
       await fileDownload(
         mods[i].projectID,
         mods[i].fileID,
         path.join(instance, 'mods'),
+        (transfer) =>
+          send(
+            `Downloading mod ${i + 1} of ${mods.length}`,
+            10 +
+              ((i +
+                (transfer.total
+                  ? Math.min(1, transfer.transferred / transfer.total)
+                  : 0)) /
+                mods.length) *
+                75,
+            undefined,
+            {
+              ...transfer,
+              stage: 'mods',
+              completedFiles: i,
+              totalFiles: mods.length,
+            },
+          ),
+      );
+      send(
+        `Downloading mod ${i + 1} of ${mods.length}`,
+        10 + ((i + 1) / mods.length) * 75,
+        undefined,
+        { stage: 'mods', completedFiles: i + 1, totalFiles: mods.length },
       );
     }
     send('Preparing Fabric…', 90);
@@ -947,10 +1005,35 @@ ipcMain.handle('play', async (_, p) => {
       },
     });
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
+    send('Preparing shared skins…', null, 'starting');
+    const savedSkin =
+      p.mode === 'offline'
+        ? await skinSelections().read(savedSession.offlineName)
+        : null;
+    await prepareSharedSkins({
+      instance: root(),
+      minecraft: pack.minecraft,
+      mode: p.mode,
+      name: savedSession.offlineName,
+      saved: savedSkin,
+      cache: path.join(app.getPath('userData'), 'skin-mods'),
+      signal: attempt.javaAbort.signal,
+    });
+    const skinArguments = await prepareAutomaticSkin({
+      mode: p.mode,
+      name: savedSession.offlineName,
+      server: HOST,
+      minecraft: pack.minecraft,
+      instance: root(),
+      readSelection: (name) => skinSelections().read(name),
+      savedSelection: savedSkin,
+    });
+    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     send('Starting Minecraft…', null, 'starting');
     attempt.service = startMinecraftService(
       {
         authorization,
+        customArgs: skinArguments,
         root: root(),
         javaPath,
         version: {

@@ -74,7 +74,7 @@ export default function SkinPreview({ account, api, previewTexture }) {
     >
       <canvas
         ref={canvas}
-        aria-label={`Static 3D Minecraft skin for ${account?.name || 'Steve'}.`}
+        aria-label={`Триизмерен изглед на героя на ${account?.name || 'Стив'}.`}
         role="img"
       />
       {phase !== 'ready' && (
@@ -82,10 +82,10 @@ export default function SkinPreview({ account, api, previewTexture }) {
           <PlayerAvatar />
           <span>
             {phase === 'loading'
-              ? 'Loading your skin…'
+              ? 'Зареждане на външния вид…'
               : phase === 'missing'
-                ? 'No public skin found'
-                : 'Skin preview unavailable'}
+                ? 'Не е намерено достъпно изображение'
+                : 'Изгледът на героя не е достъпен'}
           </span>
         </div>
       )}

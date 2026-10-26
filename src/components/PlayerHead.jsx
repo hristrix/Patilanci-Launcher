@@ -54,8 +54,8 @@ export default function PlayerHead({ account, api }) {
       role="img"
       aria-label={
         account
-          ? `${account.name}'s Minecraft skin head`
-          : 'Steve Minecraft skin head'
+          ? `Лице на героя на ${account.name}`
+          : 'Лице на Стив от Minecraft'
       }
     />
   );

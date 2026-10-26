@@ -4,4 +4,7 @@ release/
 package-lock.json
 public/brand/*.svg
 artifacts/
+companion/.gradle/
+companion/build/
+companion/run/
 packaging/resources/

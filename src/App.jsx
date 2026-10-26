@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Bell, X } from 'lucide-react';
 import { PAGES } from './config';
 import { storageLabel } from './lib/storage.mjs';
 import useLauncher from './hooks/useLauncher';
@@ -16,17 +17,30 @@ import StartupSplash from './components/StartupSplash';
 import UpdateNotices from './components/UpdateNotices';
 import WindowTitleBar from './components/WindowTitleBar';
 import UpdateRestartScreen from './components/UpdateRestartScreen';
+import LaunchBar from './components/layout/LaunchBar';
+import GameConsole from './components/GameConsole';
 
 // Page composition lives here; desktop requests and subscriptions live in useLauncher.
 export default function App({ api }) {
   const [page, setPage] = useState('home');
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [modsCollection, setModsCollection] = useState('personal');
   const { state, actions } = useLauncher(api);
   const updateBusy = state.busy || state.game.running;
+  function navigate(nextPage) {
+    if (nextPage === 'mods') setModsCollection('personal');
+    setPage(nextPage);
+  }
+  function openAccount() {
+    setPage('home');
+    setAccountOpen(true);
+  }
 
   if (state.launcherUpdate?.status === 'installing') {
     return (
       <>
-        <WindowTitleBar api={api} pageLabel="Updating launcher" />
+        <WindowTitleBar api={api} pageLabel="Обновяване на приложението" />
         <UpdateRestartScreen version={state.launcherUpdate.latestVersion} />
       </>
     );
@@ -35,14 +49,11 @@ export default function App({ api }) {
   if (state.bootVisible) {
     return (
       <>
-        <WindowTitleBar
-          api={api}
-          pageLabel="Starting up"
-          onOpenFolder={() => api?.folder().catch(() => {})}
-        />
+        <WindowTitleBar api={api} pageLabel="Подготовка" startup />
         <StartupSplash
           state={state.bootState}
           progress={state.progress}
+          logs={state.logs}
           update={state.launcherUpdate}
           afterUpdate={state.afterUpdate}
           error={state.error}
@@ -56,6 +67,7 @@ export default function App({ api }) {
 
   const accountPanel = (
     <AccountPanel
+      showLaunch={false}
       api={api}
       mode={state.mode}
       sessionMode={state.sessionMode}
@@ -87,23 +99,65 @@ export default function App({ api }) {
         onOpenFolder={() => actions.performAction(() => api.folder())}
         onOpenConsole={() => actions.performAction(() => api.openConsole())}
       />
-      <div className={`app-shell ${page === 'home' ? 'is-home' : ''}`}>
+      <div
+        className={`app-shell page-${page} ${page === 'home' ? 'is-home' : ''}`}
+      >
+        <button
+          className="notification-button"
+          aria-label="Известия"
+          aria-expanded={notificationsOpen}
+          onClick={() => setNotificationsOpen(!notificationsOpen)}
+        >
+          <Bell size={25} />
+          {(state.error ||
+            state.modpackUpdate?.status === 'available' ||
+            state.launcherUpdate?.status === 'downloaded') && <i />}
+        </button>
+        {notificationsOpen && (
+          <section className="notifications-panel" aria-label="Известия">
+            <button
+              className="icon-button"
+              aria-label="Затвори известията"
+              onClick={() => setNotificationsOpen(false)}
+            >
+              <X size={18} />
+            </button>
+            <h3>Известия</h3>
+            <p>
+              {state.error ||
+                (state.launcherUpdate?.status === 'downloaded'
+                  ? `Версия ${state.launcherUpdate.latestVersion} на приложението е готова за инсталиране.`
+                  : state.modpackUpdate?.status === 'available'
+                    ? `Налична е нова версия: ${state.modpackUpdate.releaseName}`
+                    : 'Няма нови известия.')}
+            </p>
+          </section>
+        )}
         <Sidebar
           api={api}
           page={page}
-          onNavigate={setPage}
+          onNavigate={navigate}
           account={state.account}
           username={state.username}
           session={state.config.session}
           offlineSkin={state.config.offlineSkin}
+          onAccount={openAccount}
+          onConsole={() => setPage('console')}
         />
         <main className="main-shell">
           <div className="page-content">
-            <PageHeading
-              page={PAGES[page]}
-              server={state.server}
-              refreshing={state.serverRefreshing}
-            />
+            {page !== 'mods' && page !== 'console' && (
+              <PageHeading
+                page={PAGES[page]}
+                server={state.server}
+                refreshing={state.serverRefreshing}
+                playerName={
+                  state.sessionMode === 'offline'
+                    ? state.username
+                    : state.account?.name
+                }
+              />
+            )}
             <LauncherAlerts
               error={state.error}
               onDismiss={() => actions.setError('')}
@@ -128,7 +182,19 @@ export default function App({ api }) {
                 server={state.server}
                 storageText={storageLabel(state.storage)}
                 accountPanel={accountPanel}
-                onNavigate={setPage}
+                onNavigate={navigate}
+                sessionMode={state.sessionMode}
+                accountOpen={accountOpen}
+                onCloseAccount={() => setAccountOpen(false)}
+                updateState={state.updateState}
+                lastChecked={
+                  state.modpackUpdate?.checkedAt || state.updateState.checkedAt
+                }
+                updateAvailable={state.modpackUpdate?.status === 'available'}
+                onOpenFolder={() => actions.performAction(() => api.folder())}
+                onUpdate={actions.installPack}
+                busy={updateBusy}
+                refreshing={state.serverRefreshing}
               />
             )}
             {page === 'players' && (
@@ -144,7 +210,9 @@ export default function App({ api }) {
             )}
             {page === 'modpack' && (
               <ModpackPage
+                api={api}
                 config={state.config}
+                onOpenFolder={() => actions.performAction(() => api.folder())}
                 storage={state.storage}
                 onRefreshStorage={actions.refreshStorage}
                 busy={updateBusy}
@@ -155,7 +223,7 @@ export default function App({ api }) {
                     : null
                 }
                 onRetry={actions.installPack}
-                onManageMods={() => setPage('mods')}
+                onAction={actions.performAction}
                 onOpenCurseForge={() =>
                   actions.performAction(() => api.packPage())
                 }
@@ -165,12 +233,13 @@ export default function App({ api }) {
             )}
             {page === 'settings' && (
               <Preferences
+                accountPanel={accountPanel}
                 api={api}
                 draft={state.draft}
                 onChange={actions.setDraft}
                 busy={state.busy}
                 onSave={actions.savePreferences}
-                saved={state.progress.message === 'Settings saved'}
+                saved={state.progress.message === 'Настройките са запазени'}
                 launcherUpdate={state.launcherUpdate}
                 onCheckUpdate={actions.checkLauncherUpdate}
                 onInstallUpdate={actions.installLauncherUpdate}
@@ -179,21 +248,32 @@ export default function App({ api }) {
             )}
             {page === 'mods' && (
               <ModsPage
+                collection={modsCollection}
+                onCollectionChange={setModsCollection}
                 api={api}
-                busy={state.busy}
+                busy={updateBusy}
                 onAction={actions.performAction}
                 onInstall={() => setPage('modpack')}
               />
             )}
-            <PageFooter
-              onOpenAuthor={api ? () => api.authorWebsite() : undefined}
-              onRefresh={actions.refreshServer}
-              refreshing={state.serverRefreshing}
-              onError={actions.setError}
-            />
+            {page === 'console' && <GameConsole embedded api={api} />}
+            {page !== 'mods' && (
+              <PageFooter
+                onOpenAuthor={api ? () => api.authorWebsite() : undefined}
+                onRefresh={actions.refreshServer}
+                refreshing={state.serverRefreshing}
+                onError={actions.setError}
+              />
+            )}
           </div>
         </main>
       </div>
+      <LaunchBar
+        state={state}
+        actions={actions}
+        onNavigate={navigate}
+        onAccount={openAccount}
+      />
     </>
   );
 }

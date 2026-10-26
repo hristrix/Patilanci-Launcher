@@ -21,7 +21,7 @@ function UpdateNotice({ notice, busy, running, onDismiss }) {
         <strong>{notice.title}</strong>
         <p>{notice.detail}</p>
         {notice.action && running && (
-          <small>Close Minecraft to apply this update.</small>
+          <small>Затвори Minecraft, за да се приложи обновяването.</small>
         )}
       </div>
       {notice.action && (
@@ -36,7 +36,11 @@ function UpdateNotice({ notice, busy, running, onDismiss }) {
       )}
       <button
         className="update-notice-dismiss"
-        aria-label={`Dismiss ${notice.kind} update notification`}
+        aria-label={
+          notice.kind === 'launcher'
+            ? 'Скрий известието за приложението'
+            : 'Скрий известието за пакета'
+        }
         onClick={() => onDismiss(notice.key)}
       >
         <X size={17} />
@@ -63,8 +67,8 @@ export default function UpdateNotices({
     notices.push({
       key: `updated:${updatedVersion}`,
       kind: 'launcher',
-      title: 'Launcher updated successfully',
-      detail: `Version ${updatedVersion} is now running. Welcome back!`,
+      title: 'Приложението е обновено успешно',
+      detail: `Версия ${updatedVersion} вече е готова за използване. Добре дошъл отново!`,
     });
   }
   if (['downloading', 'downloaded'].includes(launcherUpdate?.status)) {
@@ -72,9 +76,11 @@ export default function UpdateNotices({
     notices.push({
       key: `launcher:${launcherUpdate.latestVersion}:${ready}`,
       kind: 'launcher',
-      title: ready ? 'Launcher update ready' : 'Downloading launcher update',
-      detail: `Version ${launcherUpdate.latestVersion}${ready ? ' is ready. Restart to apply it and reopen Patilanci.' : ` · ${launcherUpdate.percent || 0}%`}`,
-      action: ready ? 'Restart and update' : null,
+      title: ready
+        ? 'Новата версия на приложението е готова'
+        : 'Изтегляне на новата версия на приложението',
+      detail: `Версия ${launcherUpdate.latestVersion}${ready ? ' е готова. Рестартирай приложението, за да я използваш.' : ` · ${launcherUpdate.percent || 0}%`}`,
+      action: ready ? 'Рестартирай и обнови' : null,
       onClick: onRestart,
     });
   }
@@ -82,9 +88,9 @@ export default function UpdateNotices({
     notices.push({
       key: `modpack:${modpackUpdate.fileId}`,
       kind: 'modpack',
-      title: 'New modpack available',
+      title: 'Има нова версия на пакета',
       detail: modpackUpdate.releaseName,
-      action: 'Update modpack',
+      action: 'Обнови пакета',
       onClick: onUpdatePack,
     });
   return (

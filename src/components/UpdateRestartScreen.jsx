@@ -5,20 +5,20 @@ export default function UpdateRestartScreen({ version }) {
   return (
     <main
       className="startup-splash update-restart-screen"
-      aria-label="Launcher update restart"
+      aria-label="Рестартиране за обновяване"
       aria-busy="true"
     >
       <section className="splash-card">
         <div className="splash-brand">
           <BrandLogo />
-          <span>PATILANCI LAUNCHER</span>
+          <span>ПАТИЛАНЦИ</span>
         </div>
         <div className="splash-heading">
-          <span className="overline">YOUR UPDATE IS READY</span>
-          <h1>Updating and restarting…</h1>
+          <span className="overline">НОВАТА ВЕРСИЯ Е ГОТОВА</span>
+          <h1>Обновяване и рестартиране…</h1>
           <p>
-            {version ? `Applying launcher ${version}. ` : ''}Patilanci will
-            close briefly and reopen automatically.
+            {version ? `Инсталиране на версия ${version}. ` : ''}Приложението ще
+            се затвори за кратко и ще се отвори отново автоматично.
           </p>
         </div>
         <div className="splash-checks">
@@ -27,8 +27,10 @@ export default function UpdateRestartScreen({ version }) {
               <Check size={18} />
             </span>
             <div>
-              <strong>Update downloaded</strong>
-              <small>The new launcher is ready to apply.</small>
+              <strong>Новата версия е изтеглена</strong>
+              <small>
+                Новата версия на приложението е готова за инсталиране.
+              </small>
             </div>
           </div>
           <div className="splash-check is-active" role="status">
@@ -36,10 +38,10 @@ export default function UpdateRestartScreen({ version }) {
               <LoaderCircle size={18} className="splash-spinner" />
             </span>
             <div>
-              <strong>Preparing to restart</strong>
+              <strong>Подготовка за рестартиране</strong>
               <small>
-                An update status window will stay visible while files are
-                replaced.
+                Докато файловете се подменят, ще виждаш напредъка в отделен
+                прозорец.
               </small>
             </div>
           </div>
@@ -48,21 +50,21 @@ export default function UpdateRestartScreen({ version }) {
               <RefreshCw size={18} />
             </span>
             <div>
-              <strong>Reopening Patilanci</strong>
-              <small>Your account and Minecraft files stay in place.</small>
+              <strong>Повторно отваряне на Патиланци</strong>
+              <small>Профилът ти и файловете на Minecraft се запазват.</small>
             </div>
           </div>
         </div>
         <div
           className="splash-progress-track is-indeterminate"
           role="progressbar"
-          aria-label="Preparing launcher update"
+          aria-label="Подготовка на обновяването"
         >
           <span />
         </div>
         <p className="splash-footnote">
-          Please wait for Patilanci to reopen. You do not need to start setup or
-          launch another copy.
+          Изчакай приложението да се отвори отново. Не е необходимо да стартираш
+          инсталацията или да го отваряш повторно.
         </p>
       </section>
     </main>

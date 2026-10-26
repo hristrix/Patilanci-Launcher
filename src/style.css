@@ -47,6 +47,11 @@ textarea,
   -webkit-user-select: text;
   user-select: text;
 }
+
+.no-bottom-border {
+  border-bottom: 0 !important;
+}
+
 button,
 input {
   font: inherit;

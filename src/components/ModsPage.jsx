@@ -1,28 +1,60 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Check,
-  FileArchive,
-  FolderPlus,
+  CirclePlus,
+  File,
+  Info,
+  Layers,
   LockKeyhole,
-  Plus,
+  MoreHorizontal,
+  Package,
   RefreshCw,
   Search,
-  ShieldCheck,
   Trash2,
+  X,
 } from 'lucide-react';
+import PageHeading from './layout/PageHeading';
+import { PAGES } from '../config';
+import { localizeMessage } from '../../electron/messages.mjs';
 
-export default function ModsPage({ api, busy, onAction, onInstall }) {
+function ModIcon({ mod }) {
+  const [failed, setFailed] = useState(null);
+  return mod.iconDataUrl && failed !== mod.iconDataUrl ? (
+    <img
+      src={mod.iconDataUrl}
+      alt=""
+      onError={() => setFailed(mod.iconDataUrl)}
+    />
+  ) : (
+    <Package size={29} />
+  );
+}
+
+export default function ModsPage({
+  api,
+  busy,
+  onAction,
+  onInstall,
+  collection = 'personal',
+  onCollectionChange,
+  embedded = false,
+}) {
   const [inventory, setInventory] = useState(null);
-  const [tab, setTab] = useState('bundled');
+  const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loadError, setLoadError] = useState('');
   const [notice, setNotice] = useState('');
+  const [menu, setMenu] = useState(null);
+  const [menuUp, setMenuUp] = useState(false);
+  const bundled = collection === 'bundled';
 
   useEffect(() => {
     let active = true;
     if (!api) {
-      setLoadError('Open the desktop launcher to manage your mods.');
+      setLoadError(
+        'Отвори приложението на компютъра, за да управляваш добавките.',
+      );
       return;
     }
     api
@@ -31,12 +63,40 @@ export default function ModsPage({ api, busy, onAction, onInstall }) {
         if (active) setInventory(result);
       })
       .catch((error) => {
-        if (active) setLoadError(error.message);
+        if (active) setLoadError(localizeMessage(error));
       });
     return () => {
       active = false;
     };
   }, [api]);
+
+  useEffect(() => {
+    setFilter('all');
+    setSearch('');
+    setMenu(null);
+  }, [collection]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), 6000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+  useEffect(() => {
+    if (!menu) return;
+    const close = (event) => {
+      if (
+        event.type === 'keydown'
+          ? event.key === 'Escape'
+          : !event.target.closest('.mod-actions')
+      )
+        setMenu(null);
+    };
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [menu]);
 
   function refresh() {
     return onAction(async () => {
@@ -44,247 +104,391 @@ export default function ModsPage({ api, busy, onAction, onInstall }) {
       setLoadError('');
     });
   }
-
   function addMods() {
     return onAction(async () => {
       const result = await api.addMods();
       setInventory(result);
       if (result.added > 0) {
-        setTab('personal');
+        onCollectionChange?.('personal');
+        setFilter('all');
         setSearch('');
-        setNotice(
-          `${result.added} ${result.added === 1 ? 'mod added' : 'mods added'} to your instance.`,
-        );
+        setNotice(`Добавени добавки: ${result.added}.`);
       }
     });
   }
-
   function removeMod(mod) {
+    setMenu(null);
     return onAction(async () => {
       setInventory(await api.removeMod(mod.fileName));
       setNotice(
-        `${mod.name} was removed. Your original downloaded file is unchanged.`,
+        `Добавката ${mod.name} е премахната. Оригиналният изтеглен файл е запазен.`,
+      );
+    });
+  }
+  function toggleMod(mod) {
+    return onAction(async () => {
+      setInventory(
+        await api.setModEnabled({
+          fileName: mod.fileName,
+          enabled: mod.enabled === false,
+        }),
       );
     });
   }
 
-  const canModify = inventory?.installed && inventory.canModify && !busy;
-  const mods = inventory?.[tab] || [];
+  const canModify = Boolean(
+    inventory?.installed && inventory.canModify && !busy,
+  );
+  const mods = inventory?.[collection] || [];
   const query = search.toLocaleLowerCase().trim();
-  const filtered = mods.filter((mod) =>
-    [mod.name, mod.id, mod.fileName].some((value) =>
-      value?.toLocaleLowerCase().includes(query),
-    ),
+  const filtered = mods.filter(
+    (mod) =>
+      (filter === 'all' ||
+        (filter === 'active'
+          ? mod.present && mod.enabled !== false
+          : mod.present && mod.enabled === false)) &&
+      [mod.name, mod.id, mod.fileName, mod.description].some((value) =>
+        value?.toLocaleLowerCase().includes(query),
+      ),
+  );
+  const page = bundled
+    ? {
+        ...PAGES.mods,
+        title: 'Включени добавки',
+        description:
+          'Добавките от основния пакет се управляват от приложението.',
+      }
+    : PAGES.mods;
+  const headingAction = (
+    <div className="mods-heading">
+      <button className="play-button" onClick={addMods} disabled={!canModify}>
+        <CirclePlus size={22} />
+        Добави файл
+      </button>
+    </div>
   );
 
   return (
-    <section className="panel mods-panel">
-      <div className="mods-heading">
-        <div>
-          <span className="overline">YOUR INSTANCE, YOUR EXTRAS</span>
-          <h2>THE MOD COLLECTION.</h2>
-          <p>
-            {inventory?.installed
-              ? `Fabric · Minecraft ${inventory.minecraft} · Pack ${inventory.packVersion}`
-              : 'Install Patilanci Adventures to view and customize its mods.'}
-          </p>
-        </div>
-        <button className="play-button" onClick={addMods} disabled={!canModify}>
-          <Plus size={18} />
-          ADD MODS
-        </button>
-      </div>
-      <div className="mods-policy">
-        <ShieldCheck size={19} />
-        <div>
-          <strong>The Patilanci pack stays together.</strong>
-          <p>
-            Required mods are locked. You can remove the extras you add through
-            this launcher.
-          </p>
-        </div>
-      </div>
-      {loadError && (
-        <div className="mods-message" role="alert">
-          {loadError}
-          <button className="outline-button" onClick={refresh} disabled={busy}>
-            Retry
-          </button>
-        </div>
-      )}
-      {notice && (
-        <div className="mods-notice" role="status">
-          <Check size={15} />
-          {notice}
-        </div>
-      )}
-      {inventory && !inventory.installed ? (
-        <div className="mods-empty">
-          <Box size={38} />
-          <h3>Your collection starts with Patilanci.</h3>
-          <p>
-            Install the official pack first. Then add your own Fabric mods here.
-          </p>
-          <button className="outline-button" onClick={onInstall}>
-            Go to modpack
-          </button>
-        </div>
+    <div className="mods-page">
+      {embedded ? (
+        <h3 className="installation-heading">Включени добавки</h3>
       ) : (
-        <>
-          <div className="mods-toolbar">
-            <div
-              className="mods-tabs"
-              role="tablist"
-              aria-label="Mod collections"
-            >
-              <button
-                id="bundled-tab"
-                role="tab"
-                aria-selected={tab === 'bundled'}
-                aria-controls="mods-list"
-                onClick={() => setTab('bundled')}
-              >
-                <LockKeyhole size={14} />
-                Patilanci mods<span>{inventory?.bundled.length || 0}</span>
-              </button>
-              <button
-                id="personal-tab"
-                role="tab"
-                aria-selected={tab === 'personal'}
-                aria-controls="mods-list"
-                onClick={() => setTab('personal')}
-              >
-                <FolderPlus size={14} />
-                My mods<span>{inventory?.personal.length || 0}</span>
-              </button>
-            </div>
-            <div className="mods-search">
-              <Search size={15} />
-              <input
-                aria-label="Search mods"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Find a mod…"
-              />
-            </div>
+        <PageHeading page={page} actions={headingAction} />
+      )}
+      <section
+        className="panel mods-panel"
+        aria-label={bundled ? 'Добавки в пакета' : 'Моите добавки'}
+      >
+        {loadError && (
+          <div className="mods-message" role="alert">
+            {loadError}
             <button
-              className="icon-button"
-              title="Refresh mods"
+              className="outline-button"
               onClick={refresh}
               disabled={busy}
             >
-              <RefreshCw size={15} />
+              Опитай отново
             </button>
           </div>
-          <div
-            id="mods-list"
-            role="tabpanel"
-            aria-labelledby={tab === 'bundled' ? 'bundled-tab' : 'personal-tab'}
-          >
-            {!inventory ? (
-              <div className="mods-empty" role="status">
-                Reading your mod collection…
-              </div>
-            ) : filtered.length > 0 ? (
-              <div className="mod-list">
-                {filtered.map((mod) => (
-                  <article
-                    className="mod-row"
-                    key={mod.fileName}
-                    data-origin={tab}
+        )}
+        {notice && (
+          <div className="mods-notice" role="status">
+            <Check size={16} />
+            <span>{notice}</span>
+            <button
+              className="icon-button"
+              onClick={() => setNotice('')}
+              aria-label="Скрий съобщението за добавките"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+        {inventory && !inventory.installed ? (
+          <div className="mods-empty">
+            <Box size={38} />
+            <h3>Първо инсталирай Patilanci.</h3>
+            <p>
+              {bundled
+                ? 'След инсталацията тук ще се показват добавките от пакета.'
+                : 'След инсталацията добави свои Fabric добавки тук.'}
+            </p>
+            <button className="outline-button" onClick={onInstall}>
+              Към пакета с добавки
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mods-toolbar">
+              <label className="mods-search">
+                <Search size={22} aria-hidden="true" />
+                <input
+                  aria-label="Търси добавки"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setMenu(null);
+                  }}
+                  placeholder="Търси добавка…"
+                />
+              </label>
+              <div
+                className="mods-tabs mods-filters"
+                role="group"
+                aria-label="Показване на добавките"
+              >
+                {[
+                  ['all', 'Всички'],
+                  ['active', 'Включени'],
+                  ['disabled', 'Изключени'],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    aria-pressed={filter === id}
+                    onClick={() => {
+                      setFilter(id);
+                      setMenu(null);
+                    }}
                   >
-                    <div
-                      className={`mod-icon ${tab === 'bundled' ? 'is-protected' : ''}`}
-                    >
-                      <FileArchive size={22} />
-                    </div>
-                    <div className="mod-info">
-                      <h3>{mod.name}</h3>
-                      <span className="mod-file" title={mod.fileName}>
-                        {mod.fileName}
-                      </span>
-                      <small>
-                        {mod.id || 'Pack file'}
-                        {mod.minecraft ? ` · Minecraft ${mod.minecraft}` : ''}
-                      </small>
-                    </div>
-                    <span className="mod-version" title={mod.version}>
-                      {mod.version}
-                    </span>
-                    {!mod.present && (
-                      <span className="mod-missing">File missing</span>
-                    )}
-                    {tab === 'bundled' ? (
-                      <span className="mod-lock">
-                        <LockKeyhole size={13} />
-                        Required
-                      </span>
-                    ) : (
-                      <button
-                        className="remove-mod-button"
-                        disabled={!canModify}
-                        onClick={() => removeMod(mod)}
-                        aria-label={`Remove ${mod.name}`}
-                      >
-                        <Trash2 size={14} />
-                        Remove
-                      </button>
-                    )}
-                  </article>
+                    {label}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <div className="mods-empty">
-                <FileArchive size={32} />
-                <h3>
-                  {query
-                    ? 'No matching mods.'
-                    : tab === 'personal'
-                      ? 'Make a little room for more.'
-                      : 'No mod files found.'}
-                </h3>
-                <p>
-                  {query
-                    ? 'Try a different name or filename.'
-                    : tab === 'personal'
-                      ? 'Add downloaded Fabric .jar files to personalize your instance.'
-                      : 'Refresh the list after installing your modpack.'}
-                </p>
-                {!query && tab === 'personal' && (
-                  <button
-                    className="outline-button"
-                    onClick={addMods}
-                    disabled={!canModify}
-                  >
-                    <Plus size={15} />
-                    Add your first mod
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          {inventory?.installed && (
-            <div className="mods-footer">
-              <span>
-                <LockKeyhole size={13} />
-                {tab === 'bundled'
-                  ? 'Pack files cannot be removed or replaced here.'
-                  : 'Your additions are kept when the Patilanci pack updates.'}
-              </span>
-              <small>
-                Choose Fabric mods for Minecraft {inventory.minecraft}. Add any
-                required dependencies too.
-              </small>
-              {!inventory.canModify && (
-                <small>
-                  Close Minecraft or wait for the current operation, then
-                  refresh to edit.
-                </small>
+            </div>
+            <div className="mod-list">
+              <table
+                className="mods-table"
+                aria-label={
+                  bundled
+                    ? 'Списък с добавките в пакета'
+                    : 'Списък с твоите добавки'
+                }
+              >
+                <colgroup>
+                  <col className="mod-column-name" />
+                  <col className="mod-column-source" />
+                  <col className="mod-column-status" />
+                  <col className="mod-column-actions" />
+                </colgroup>
+                <thead>
+                  <tr className="mod-table-heading">
+                    <th scope="col">Добавка</th>
+                    <th scope="col">Източник</th>
+                    <th scope="col">Статус</th>
+                    <th scope="col">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((mod) => {
+                    const enabled = mod.present && mod.enabled !== false;
+                    return (
+                      <tr
+                        className="mod-row"
+                        key={mod.fileName}
+                        data-origin={collection}
+                      >
+                        <td>
+                          <div className="mod-identity">
+                            <div
+                              className={`mod-icon ${bundled ? 'is-protected' : ''}`}
+                            >
+                              <ModIcon mod={mod} />
+                            </div>
+                            <div className="mod-info">
+                              <h3>{mod.name}</h3>
+                              <p>{mod.description || mod.fileName}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="mod-source">
+                            <File size={19} />
+                            {bundled ? 'Основен пакет' : 'Файл от компютъра'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="mod-status">
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-label={`Включи ${mod.name}`}
+                              aria-checked={enabled}
+                              className={`mod-toggle ${enabled ? 'is-enabled' : ''}`}
+                              disabled={bundled || !canModify || !mod.present}
+                              title={
+                                bundled
+                                  ? 'Добавката се управлява от приложението'
+                                  : !mod.present
+                                    ? 'Файлът липсва'
+                                    : enabled
+                                      ? 'Изключи добавката'
+                                      : 'Включи добавката'
+                              }
+                              onClick={() => toggleMod(mod)}
+                            >
+                              <span />
+                            </button>
+                            <span>
+                              {!mod.present
+                                ? 'Липсва файл'
+                                : enabled
+                                  ? 'Включена'
+                                  : 'Изключена'}
+                            </span>
+                            {bundled && (
+                              <LockKeyhole
+                                size={14}
+                                aria-label="Необходима добавка"
+                              />
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="mod-actions">
+                            <button
+                              className="icon-button mod-menu-button"
+                              aria-label={`Действия за ${mod.name}`}
+                              aria-expanded={menu === mod.fileName}
+                              aria-controls={`mod-menu-${encodeURIComponent(mod.fileName)}`}
+                              onClick={(event) => {
+                                const bottom =
+                                  document
+                                    .querySelector('.main-shell')
+                                    ?.getBoundingClientRect().bottom ||
+                                  innerHeight;
+                                setMenuUp(
+                                  event.currentTarget.getBoundingClientRect()
+                                    .bottom +
+                                    230 >
+                                    bottom,
+                                );
+                                setMenu(
+                                  menu === mod.fileName ? null : mod.fileName,
+                                );
+                              }}
+                            >
+                              <MoreHorizontal size={23} />
+                            </button>
+                            {menu === mod.fileName && (
+                              <div
+                                className={`mod-action-menu ${menuUp ? 'opens-up' : ''}`}
+                                id={`mod-menu-${encodeURIComponent(mod.fileName)}`}
+                              >
+                                <strong>{mod.name}</strong>
+                                <span className="mod-version">
+                                  Версия: {mod.version}
+                                </span>
+                                <span className="mod-file">{mod.fileName}</span>
+                                {bundled ? (
+                                  <span className="mod-lock">
+                                    <LockKeyhole size={14} />
+                                    Необходима добавка
+                                  </span>
+                                ) : (
+                                  <button
+                                    className="remove-mod-button"
+                                    disabled={!canModify}
+                                    onClick={() => removeMod(mod)}
+                                    aria-label={`Премахни ${mod.name}`}
+                                  >
+                                    <Trash2 size={16} />
+                                    Премахни добавката
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!inventory ? (
+                <div className="mods-empty" role="status">
+                  Зареждане на добавките…
+                </div>
+              ) : (
+                filtered.length === 0 && (
+                  <div className="mods-empty">
+                    <Package size={34} />
+                    <h3>
+                      {query
+                        ? 'Няма намерени добавки.'
+                        : filter !== 'all'
+                          ? 'Няма добавки с този статус.'
+                          : bundled
+                            ? 'Няма намерени добавки в пакета.'
+                            : 'Все още няма добавени добавки.'}
+                    </h3>
+                    <p>
+                      {query
+                        ? 'Опитай друго име или име на файл.'
+                        : filter !== 'all'
+                          ? 'Избери друг филтър, за да видиш останалите добавки.'
+                          : bundled
+                            ? 'Обнови списъка или провери инсталацията от общия преглед.'
+                            : 'Добави Fabric .jar файлове за версията на Minecraft в пакета с добавки.'}
+                    </p>
+                  </div>
+                )
               )}
             </div>
-          )}
-        </>
-      )}
-    </section>
+            <div className="mods-footer">
+              <details className="mods-inventory-tools">
+                <summary
+                  aria-label="Информация и действия за добавките"
+                  title="Информация и действия за добавките"
+                >
+                  <Info size={21} />
+                </summary>
+                <div className="mods-secondary-actions">
+                  {!embedded && (
+                    <button
+                      className="text-button mods-collection-link"
+                      onClick={() =>
+                        onCollectionChange?.(bundled ? 'personal' : 'bundled')
+                      }
+                    >
+                      <Layers size={15} />
+                      {bundled ? 'Моите добавки' : 'Включени добавки'}
+                    </button>
+                  )}
+                  <button
+                    className="text-button"
+                    title="Обнови списъка с добавки"
+                    aria-label="Обнови списъка с добавки"
+                    onClick={refresh}
+                    disabled={busy}
+                  >
+                    <RefreshCw size={15} />
+                    Обнови списъка
+                  </button>
+                  <small>
+                    {inventory?.minecraft
+                      ? `Fabric · Minecraft ${inventory.minecraft}`
+                      : 'Fabric'}{' '}
+                    · Добави и необходимите зависимости.
+                  </small>
+                </div>
+              </details>
+              <span>
+                Добавките от основния пакет се управляват от приложението.
+              </span>
+              <span className="mods-count">
+                {mods.length}{' '}
+                {bundled ? 'добавки в пакета' : 'добавени добавки'}
+              </span>
+            </div>
+            {inventory?.installed && !inventory.canModify && (
+              <p className="mods-edit-warning" role="status">
+                Затвори Minecraft или изчакай текущата операция, след което
+                обнови списъка.
+              </p>
+            )}
+          </>
+        )}
+      </section>
+    </div>
   );
 }

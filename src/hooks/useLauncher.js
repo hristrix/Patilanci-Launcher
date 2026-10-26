@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../config';
+import { localizeMessage } from '../../electron/messages.mjs';
 import useServerStatus from './useServerStatus';
 import useInstanceStorage from './useInstanceStorage';
 
@@ -18,8 +19,8 @@ export default function useLauncher(api) {
   });
   const [progress, setProgress] = useState({
     message: api
-      ? 'Checking for modpack updates…'
-      : 'Ready for your next adventure',
+      ? 'Проверка за нова версия на пакета…'
+      : 'Готово за следващото приключение',
     percent: null,
   });
   const [error, setError] = useState('');
@@ -57,6 +58,8 @@ export default function useLauncher(api) {
         memory: configuration.memory,
         javaPath: configuration.javaPath,
         javaPaths: configuration.javaPaths || {},
+        gameWindow: configuration.gameWindow || DEFAULT_SETTINGS.gameWindow,
+        hideOnLaunch: configuration.hideOnLaunch || false,
       });
     }
     setAccount(configuration.account);
@@ -80,15 +83,15 @@ export default function useLauncher(api) {
       if (result.launcher) setLauncherUpdate(result.launcher);
       if (result.status === 'ready') {
         await loadConfiguration();
-        setUpdateState({ status: 'ready' });
-        setProgress({ message: 'Latest modpack ready to play.', percent: 100 });
+        setUpdateState({ status: 'ready', checkedAt: Date.now() });
+        setProgress({
+          message: 'Последната версия на пакета е готова за игра.',
+          percent: 100,
+        });
         setBootVisible(false);
       }
     } catch (error) {
-      const message = error.message.replace(
-        /^Error invoking remote method '[^']+': Error: /,
-        '',
-      );
+      const message = localizeMessage(error);
       setBootState((previous) => ({
         ...previous,
         status: 'failed',
@@ -104,7 +107,7 @@ export default function useLauncher(api) {
     try {
       await loadConfiguration({ resetDraft: false });
     } catch (error) {
-      setError(error.message);
+      setError(localizeMessage(error));
     }
     setBootVisible(false);
     setBusy(false);
@@ -115,9 +118,14 @@ export default function useLauncher(api) {
     // Listen before requesting the update so the first progress event is visible.
     const unsubscribe = api?.onProgress((update) => {
       if (!active) return;
-      setProgress(update);
+      setProgress({ ...update, message: localizeMessage(update.message) });
       if (update.launchPhase === 'starting') setLaunchPhase('starting');
-      setLogs((previous) => [...previous.slice(-99), update.message]);
+      const message = localizeMessage(update.message);
+      setLogs((previous) =>
+        previous.at(-1) === message
+          ? previous
+          : [...previous.slice(-99), message],
+      );
     });
     const unsubscribeGame = api?.onGameState((state) => {
       if (active) setGame(state);
@@ -145,7 +153,9 @@ export default function useLauncher(api) {
 
   async function performAction(callback) {
     if (!api) {
-      setError('Open the desktop launcher to use this feature.');
+      setError(
+        'Отвори приложението на компютъра, за да използваш тази възможност.',
+      );
       return;
     }
     if (busy) return;
@@ -155,12 +165,7 @@ export default function useLauncher(api) {
     try {
       await callback();
     } catch (error) {
-      setError(
-        error.message.replace(
-          /^Error invoking remote method '[^']+': Error: /,
-          '',
-        ),
-      );
+      setError(localizeMessage(error));
     } finally {
       setBusy(false);
     }
@@ -188,7 +193,7 @@ export default function useLauncher(api) {
   function handlePlay() {
     return performAction(async () => {
       setLaunchPhase('preparing');
-      setProgress({ message: 'Preparing your adventure…', percent: null });
+      setProgress({ message: 'Подготовка на приключението…', percent: null });
       try {
         await api.play({ mode, name: username });
         await loadConfiguration();
@@ -209,7 +214,7 @@ export default function useLauncher(api) {
       try {
         await api.install();
         await loadConfiguration({ resetDraft: false });
-        setUpdateState({ status: 'ready' });
+        setUpdateState({ status: 'ready', checkedAt: Date.now() });
       } catch (error) {
         setUpdateState({ status: 'failed' });
         throw error;
@@ -221,7 +226,7 @@ export default function useLauncher(api) {
     return performAction(async () => {
       await api.save(draft);
       await loadConfiguration();
-      setProgress({ message: 'Settings saved', percent: null });
+      setProgress({ message: 'Настройките са запазени', percent: null });
     });
   }
 

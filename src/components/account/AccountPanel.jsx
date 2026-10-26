@@ -25,6 +25,7 @@ export default function AccountPanel({
   onSkinApplied,
   installed,
   progress,
+  showLaunch = true,
 }) {
   const [managingSkin, setManagingSkin] = useState(false);
   const offlineForm = useOfflineProfile({
@@ -67,17 +68,19 @@ export default function AccountPanel({
         />
       )}
 
-      <LaunchControls
-        game={game}
-        launchPhase={launchPhase}
-        busy={busy}
-        installed={installed}
-        progress={progress}
-        mode={mode}
-        offlineRemembered={offlineForm.currentProfile?.remembered}
-        onPlay={onPlay}
-        onStop={onStop}
-      />
+      {showLaunch && (
+        <LaunchControls
+          game={game}
+          launchPhase={launchPhase}
+          busy={busy}
+          installed={installed}
+          progress={progress}
+          mode={mode}
+          offlineRemembered={offlineForm.currentProfile?.remembered}
+          onPlay={onPlay}
+          onStop={onStop}
+        />
+      )}
     </section>
   );
 }

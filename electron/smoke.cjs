@@ -12,6 +12,8 @@ const os = require('node:os');
 const Zip = require('adm-zip');
 const { lockWindowZoom } = require('./window-zoom.cjs');
 const { verifyResponsiveText } = require('./responsive-check.cjs');
+const { checkModpackTabs } = require('./modpack-tabs-check.cjs');
+const { checkStartupSplash } = require('./startup-splash-check.cjs');
 const {
   createStartupUpdate,
   createStartupFlow,
@@ -380,7 +382,7 @@ async function waitForRenderer(window, expression) {
     const deadline = Date.now() + 5000;
     const timer = setInterval(() => {
       if (${expression}) { clearInterval(timer); resolve(); }
-      else if (Date.now() > deadline) { clearInterval(timer); reject(new Error('UI state timed out')); }
+      else if (Date.now() > deadline) { clearInterval(timer); reject(new Error(${JSON.stringify(`UI state timed out: ${expression}`)})); }
     }, 20);
   })`);
   await waitForPaint(window);
@@ -528,7 +530,10 @@ app.whenReady().then(async () => {
     await window.loadFile(path.join(__dirname, '../dist/index.html'));
     await waitForRenderer(
       window,
-      `document.querySelector('.splash-progress')?.textContent.includes('Downloading startup update fixture')`,
+      process.argv.includes('--modpack-tabs') ||
+        process.argv.includes('--splash')
+        ? `document.querySelector('.splash-progress b')?.textContent === '35%'`
+        : `document.querySelector('.splash-progress')?.textContent.includes('Downloading startup update fixture')`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -538,7 +543,58 @@ app.whenReady().then(async () => {
       'Play must wait for the startup update to finish',
     );
     await capture(window, 'launcher-startup-splash.png');
+    if (process.argv.includes('--splash')) {
+      await checkStartupSplash(window, { waitForRenderer, capture });
+      finishStartup();
+      await waitForRenderer(
+        window,
+        `document.querySelector('.app-shell') !== null && document.querySelector('.startup-splash') === null`,
+      );
+      console.log(
+        'Startup splash passed: reference layout, responsive sizes, live progress, log dialog, signed-out state, errors, restart action, and startup completion.',
+      );
+      window.destroy();
+      await fs.rm(fixtureDirectory, { recursive: true, force: true });
+      app.exit(0);
+      return;
+    }
     finishStartup();
+    if (process.argv.includes('--modpack-tabs')) {
+      await waitForRenderer(
+        window,
+        `document.querySelector('.app-shell') !== null`,
+      );
+      await checkModpackTabs(window, { waitForRenderer, fillInput, capture });
+      showModFixture = false;
+      await window.webContents.executeJavaScript(
+        `document.querySelector('[data-page="modpack"]').click()`,
+      );
+      await waitForRenderer(
+        window,
+        `document.querySelector('#pack-tab-mods') !== null`,
+      );
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#pack-tab-mods').click()`,
+      );
+      await waitForRenderer(
+        window,
+        `document.querySelector('#pack-panel-mods .mods-empty button') !== null`,
+      );
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#pack-panel-mods .mods-empty button').click()`,
+      );
+      await waitForRenderer(
+        window,
+        `document.querySelector('#pack-tab-overview').getAttribute('aria-selected') === 'true'`,
+      );
+      console.log(
+        'Modpack tabs passed: local panels, bundled inventory, search, protected mods, live activity, keyboard navigation, responsive layout, and uninstalled state.',
+      );
+      window.destroy();
+      await fs.rm(fixtureDirectory, { recursive: true, force: true });
+      app.exit(0);
+      return;
+    }
     await waitForRenderer(
       window,
       `!document.querySelector('.play-button').disabled && document.querySelector('.progress-summary')?.textContent.includes('Latest modpack ready')`,
@@ -1122,6 +1178,13 @@ app.whenReady().then(async () => {
       `document.querySelector('.skin-notice')?.textContent.includes('Skin saved') && document.querySelector('.login-avatar-stage .skin-preview')?.dataset.skinState === 'ready'`,
     );
     assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.skin-server-note')?.textContent.includes('in-game name')`,
+      ),
+      true,
+      'Offline skin settings explain the shared-name requirement',
+    );
+    assert.equal(
       fixtureSkinRequests,
       lookupsBeforeSave + 1,
       'Saving a source refreshes the shared head and character texture',
@@ -1405,16 +1468,16 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.pack-retry') === null && !document.querySelector('.pack-activity').open`,
+        `document.querySelector('.pack-retry') === null && document.querySelector('.pack-activity').hidden`,
       ),
       true,
-      'Automatic updates need no manual install button and activity starts collapsed',
+      'Automatic updates need no manual install button and activity starts hidden',
     );
     await capture(window, 'launcher-modpack.png');
     await window.webContents.executeJavaScript(
       `document.querySelector('.pack-links .outline-button').click()`,
     );
-    await checkLayout(window, 'The essentials. And your extras.');
+    await checkLayout(window, 'Familiar survival. More possibilities.');
 
     await window.webContents.executeJavaScript(
       `document.querySelectorAll('.nav-item')[2].click()`,

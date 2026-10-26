@@ -42,7 +42,7 @@ export default function useOfflineProfile({
         if (active) {
           setProfile(null);
           setProfileError(
-            'Could not read local PIN protection. Try again after restarting the launcher.',
+            'Защитата с ПИН код не може да бъде проверена. Рестартирай приложението и опитай отново.',
           );
         }
       }
@@ -67,15 +67,15 @@ export default function useOfflineProfile({
   function getPinHelp() {
     if (profileError) return profileError;
     if (locked)
-      return 'This profile is temporarily locked after repeated incorrect PINs.';
+      return 'Профилът е временно заключен след няколко грешни ПИН кода.';
     if (!validName)
-      return 'Choose a name with 3–16 letters, numbers or underscores.';
-    if (!currentProfile) return 'Checking local profile protection…';
+      return 'Избери име от 3 до 16 латински букви, цифри или долни черти.';
+    if (!currentProfile) return 'Проверка на защитата на профила…';
     if (currentProfile.remembered)
-      return 'Signed in on this computer. Your session is saved.';
+      return 'Вече си влязъл на този компютър. Входът ти е запомнен.';
     if (creatingPin)
-      return 'Create a 6–12 digit PIN. Protects this profile on this computer only.';
-    return 'Enter your 6–12 digit PIN. Local protection only.';
+      return 'Създай ПИН код от 6 до 12 цифри. Той защитава профила само на този компютър.';
+    return 'Въведи ПИН кода си от 6 до 12 цифри. Той важи само за този компютър.';
   }
 
   async function signInOffline(event) {

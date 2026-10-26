@@ -1,6 +1,13 @@
 import { version as launcherVersion } from '../../../package.json';
-import { Box, ChevronRight, Home, Layers, Settings, Users } from 'lucide-react';
-import BrandLogo from '../BrandLogo';
+import {
+  Box,
+  ChevronDown,
+  Home,
+  Puzzle,
+  Settings,
+  Terminal,
+  Users,
+} from 'lucide-react';
 import PlayerHead from '../PlayerHead';
 
 export default function Sidebar({
@@ -11,6 +18,8 @@ export default function Sidebar({
   username,
   session,
   offlineSkin,
+  onAccount,
+  onConsole,
 }) {
   const offline = session?.authenticated && session.mode === 'offline';
   const playerName = offline ? username : account?.name;
@@ -22,46 +31,32 @@ export default function Sidebar({
         skinRevision: offlineSkin?.revision,
       }
     : account;
-  const navigation = [
-    {
-      id: 'home',
-      icon: Home,
-      label: 'Let’s play',
-      subtitle: 'Your adventure starts here',
-    },
-    {
-      id: 'modpack',
-      icon: Box,
-      label: 'Modpack',
-      subtitle: 'Patilanci Adventures',
-    },
-    {
-      id: 'players',
-      icon: Users,
-      label: 'Community',
-      subtitle: 'Better with your people',
-    },
-    {
-      id: 'mods',
-      icon: Layers,
-      label: 'Mods',
-      subtitle: 'The pack and your additions',
-    },
-  ];
-
   return (
     <aside className="sidebar">
       <button
         className="brand-link"
         onClick={() => onNavigate('home')}
-        aria-label="Patilanci home"
+        aria-label="Начало на Патиланци"
       >
-        <BrandLogo />
-        <span className="brand-caption">THE OFFICIAL LAUNCHER</span>
+        <span className="brand-monogram">
+          <img
+            className="brand-logo"
+            src="./brand/patilanci-monogram.svg"
+            alt="Patilanci"
+          />
+        </span>
+        <span className="brand-wordmark">
+          <strong>ПАТИЛАНЦИ</strong>
+          <small>ПРИЛОЖЕНИЕ</small>
+        </span>
       </button>
-      <div className="nav-caption">YOUR NEXT CHAPTER</div>
-      <nav aria-label="Main navigation">
-        {navigation.map(({ id, icon: Icon, label, subtitle }) => (
+      <div className="nav-caption">ИГРА</div>
+      <nav aria-label="Основна навигация">
+        {[
+          { id: 'home', icon: Home, label: 'Начало' },
+          { id: 'modpack', icon: Box, label: 'Пакет с добавки' },
+          { id: 'mods', icon: Puzzle, label: 'Моите добавки' },
+        ].map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             data-page={id}
@@ -69,58 +64,58 @@ export default function Sidebar({
             onClick={() => onNavigate(id)}
             aria-current={page === id ? 'page' : undefined}
           >
-            <Icon size={19} />
-            <span>
-              <strong>{label}</strong>
-              <small>{subtitle}</small>
-            </span>
-            {page === id && <ChevronRight className="nav-arrow" size={15} />}
+            <Icon size={22} />
+            <strong>{label}</strong>
           </button>
         ))}
       </nav>
-      <div className="community-note">
-        <span className="pixel-cross" />
-        <span className="overline">BUILT TOGETHER</span>
-        <h3>
-          Good people.
-          <br />
-          Great adventures.
-        </h3>
-        <p>One block at a time.</p>
-        <div className="brand-stripe">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
       <div className="sidebar-bottom">
         <button
-          className={`settings-link ${page === 'settings' ? 'is-active' : ''}`}
-          onClick={() => onNavigate('settings')}
+          data-page="players"
+          className={`nav-item community-link ${page === 'players' ? 'is-active' : ''}`}
+          onClick={() => onNavigate('players')}
+          aria-current={page === 'players' ? 'page' : undefined}
         >
-          <Settings size={17} />
-          Launcher settings
-          <ChevronRight size={14} />
+          <Users size={21} />
+          <strong>Общност</strong>
         </button>
-        <div className="sidebar-profile">
+        <button
+          data-page="settings"
+          className={`nav-item settings-link ${page === 'settings' ? 'is-active' : ''}`}
+          onClick={() => onNavigate('settings')}
+          aria-current={page === 'settings' ? 'page' : undefined}
+        >
+          <Settings size={22} />
+          <strong>Настройки</strong>
+        </button>
+        <button
+          data-page="console"
+          className={`nav-item ${page === 'console' ? 'is-active' : ''}`}
+          onClick={onConsole}
+          aria-current={page === 'console' ? 'page' : undefined}
+        >
+          <Terminal size={22} />
+          <strong>Логове</strong>
+        </button>
+        <button
+          className="sidebar-profile"
+          onClick={onAccount}
+          aria-label="Управление на профила"
+          aria-expanded={undefined}
+        >
           <div className="profile-avatar">
             <PlayerHead account={skinAccount} api={api} />
+            <i className={`profile-online ${playerName ? 'is-online' : ''}`} />
           </div>
           <div>
-            <strong>{playerName || 'Hey, adventurer'}</strong>
+            <strong>{playerName || 'Не си влязъл'}</strong>
             <small>
-              {offline
-                ? 'Offline profile · Local PIN'
-                : account
-                  ? 'Microsoft connected'
-                  : 'Your world is waiting'}
+              {playerName ? (offline ? 'Местен профил' : 'Microsoft') : 'Вход'}
             </small>
           </div>
-        </div>
-        <div className="launcher-version">
-          <span>PATILANCI SMP</span>
-          <span>v{launcherVersion}</span>
-        </div>
+          <ChevronDown size={16} />
+        </button>
+        <div className="launcher-version">v{launcherVersion}</div>
       </div>
     </aside>
   );

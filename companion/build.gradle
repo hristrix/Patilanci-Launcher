@@ -1,0 +1,32 @@
+plugins { id 'fabric-loom' version '1.13.6' }
+
+version = '1.0.0'
+group = 'com.hristrix'
+base { archivesName = 'patilanci-skin-companion' }
+repositories { mavenCentral() }
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21.10'
+    mappings 'net.fabricmc:yarn:1.21.10+build.2:v2'
+    modImplementation 'net.fabricmc:fabric-loader:0.17.3'
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.136.0+1.21.10'
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand 'version': project.version }
+}
+tasks.withType(JavaCompile).configureEach { options.release = 21 }
+java { sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21 }
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+tasks.register('verifySkinLogic', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.hristrix.skin.SkinApplicationTest'
+    enableAssertions = true
+}
+// The test source is an assertion-based executable, run by verifySkinLogic.
+tasks.named('test') { enabled = false }
+check.dependsOn verifySkinLogic

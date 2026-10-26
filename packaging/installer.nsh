@@ -11,6 +11,18 @@
 !macroend
 
 !macro customInstall
+  ; Updates preserve existing shortcuts. Notify Explorer that their executable
+  ; and icon changed even when those shortcut files were kept in place.
+  ; SHCNE_UPDATEITEM with SHCNF_PATHW | SHCNF_FLUSH.
+  System::Call 'shell32::SHChangeNotify(i 0x00002000, i 0x00001005, w "$appExe", p 0)'
+  ${if} ${FileExists} "$newStartMenuLink"
+    System::Call 'shell32::SHChangeNotify(i 0x00002000, i 0x00001005, w "$newStartMenuLink", p 0)'
+  ${endif}
+  ${if} ${FileExists} "$newDesktopLink"
+    System::Call 'shell32::SHChangeNotify(i 0x00002000, i 0x00001005, w "$newDesktopLink", p 0)'
+  ${endif}
+  ; Invalidate cached shell icons without restarting Explorer or changing pins.
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0x00001000, p 0, p 0)'
   ${if} ${isUpdated}
     Banner::destroy
   ${endif}

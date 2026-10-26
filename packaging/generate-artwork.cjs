@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { app, BrowserWindow } = require('electron');
+const { verifyTransparentIcon } = require('./verify-icon.cjs');
 
 const resources = path.join(__dirname, 'resources');
 const artworkProfile = path.resolve(__dirname, '../artifacts/artwork-profile');
@@ -38,9 +39,11 @@ function bitmap24(image) {
 
 function icon(image) {
   const sizes = [16, 24, 32, 48, 64, 128, 256];
-  const frames = sizes.map((size) =>
-    image.resize({ width: size, height: size }).toPNG(),
-  );
+  const frames = sizes.map((size) => {
+    const frame = image.resize({ width: size, height: size });
+    verifyTransparentIcon(frame, `${size}px Windows icon`);
+    return frame.toPNG();
+  });
   const header = Buffer.alloc(6 + sizes.length * 16);
   header.writeUInt16LE(1, 2);
   header.writeUInt16LE(sizes.length, 4);
@@ -65,6 +68,8 @@ async function render(layout, width, height) {
     useContentSize: true,
     width,
     height,
+    transparent: layout === 'icon',
+    backgroundColor: layout === 'icon' ? '#00000000' : '#0b0b0d',
     webPreferences: {
       sandbox: true,
       offscreen: true,
@@ -112,8 +117,17 @@ app
       bitmap24(header),
     );
 
+    const applicationIcon = await render('icon', 1024, 1024);
+    verifyTransparentIcon(applicationIcon, 'Application icon');
+    await fs.writeFile(
+      path.join(resources, 'patilanci.ico'),
+      icon(applicationIcon),
+    );
+    await fs.writeFile(
+      path.resolve(__dirname, '../public/brand/patilanci-icon.png'),
+      applicationIcon.resize({ width: 512, height: 512 }).toPNG(),
+    );
     const tile = await render('tile', 1024, 1024);
-    await fs.writeFile(path.join(resources, 'patilanci.ico'), icon(tile));
     for (const [name, size] of [
       ['StoreLogo', 50],
       ['Square44x44Logo', 44],
@@ -135,7 +149,7 @@ app
       tile.resize({ width: 300, height: 300 }).toPNG(),
     );
     console.log(
-      'Generated branded installer icons, wizard artwork, and Store tile assets.',
+      'Generated transparent monogram icons for application windows and installers, wizard artwork, and Store tile assets.',
     );
     app.quit();
   })

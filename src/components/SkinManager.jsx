@@ -4,6 +4,7 @@ import { Copy, ExternalLink, Upload, X } from 'lucide-react';
 import SkinPreview from './SkinPreview';
 import { skinCommand } from '../lib/skin-commands.mjs';
 import './skin-manager.css';
+import { localizeMessage } from '../../electron/messages.mjs';
 
 export default function SkinManager({
   api,
@@ -44,7 +45,7 @@ export default function SkinManager({
       .catch(() => {
         if (active)
           setError(
-            'Could not load the saved skin choice. You can save a new skin or reset it.',
+            'Запазеният външен вид не може да бъде зареден. Избери нов или възстанови първоначалния.',
           );
       })
       .finally(() => {
@@ -76,12 +77,7 @@ export default function SkinManager({
       try {
         await callback();
       } catch (error) {
-        setError(
-          error.message.replace(
-            /^Error invoking remote method '[^']+': Error: /,
-            '',
-          ),
-        );
+        setError(localizeMessage(error));
       }
     });
   }
@@ -91,11 +87,11 @@ export default function SkinManager({
     try {
       await navigator.clipboard.writeText(command);
       setNotice(
-        'Command copied. Join the server, paste it into Minecraft chat, and press Enter.',
+        'Командата е копирана. Влез в сървъра, постави я в разговора в Minecraft и натисни Enter.',
       );
     } catch {
       setError(
-        'Could not copy. Select the command below and copy it manually.',
+        'Копирането не успя. Избери командата по-долу и я копирай ръчно.',
       );
     }
   }
@@ -112,13 +108,13 @@ export default function SkinManager({
     >
       <div className="skin-dialog-heading">
         <div>
-          <span className="overline">MAKE IT YOURS</span>
-          <h2 id="skin-title">Set your skin</h2>
+          <span className="overline">ТВОЯТ ГЕРОЙ</span>
+          <h2 id="skin-title">Външен вид на героя</h2>
           <p>{name}</p>
         </div>
         <button
           className="icon-button"
-          aria-label="Close skin settings"
+          aria-label="Затвори избора на външен вид"
           disabled={busy}
           onClick={onClose}
         >
@@ -126,7 +122,11 @@ export default function SkinManager({
         </button>
       </div>
       {mode === 'microsoft' && (
-        <div className="skin-tabs" role="group" aria-label="Skin destination">
+        <div
+          className="skin-tabs"
+          role="group"
+          aria-label="Къде да се използва външният вид"
+        >
           <button
             className="outline-button"
             aria-pressed={tab === 'account'}
@@ -137,7 +137,7 @@ export default function SkinManager({
               setError('');
             }}
           >
-            Minecraft account
+            Профил в Minecraft
           </button>
           <button
             className="outline-button"
@@ -149,7 +149,7 @@ export default function SkinManager({
               setError('');
             }}
           >
-            Server skin
+            Външен вид в сървъра
           </button>
         </div>
       )}
@@ -170,14 +170,15 @@ export default function SkinManager({
             />
           </div>
           <div className="skin-upload-controls">
-            <h3>Your Minecraft Java skin</h3>
+            <h3>Външен вид в Minecraft Java</h3>
             <p>
-              Upload a skin to your premium account. Servers can override it
-              with a server skin.
+              Качи изображение за своя Minecraft профил. Някои сървъри могат да
+              зададат различен външен вид.
             </p>
             <p>
-              Choose a 64 × 64 PNG, or a legacy 64 × 32 Classic skin, up to 1
-              MB. Close Minecraft before uploading.
+              Избери PNG изображение с размер 64 × 64 или 64 × 32 точки, до 1
+              МБ. При размер 64 × 32 се използват стандартни ръце. Затвори
+              Minecraft преди качването.
             </p>
             <button
               className="outline-button"
@@ -193,20 +194,20 @@ export default function SkinManager({
               }
             >
               <Upload size={16} />
-              Choose PNG
+              Избери изображение
             </button>
             <span className="skin-file-name">
-              {selection?.name || 'No new skin selected'}
+              {selection?.name || 'Не е избрано ново изображение'}
             </span>
-            <label htmlFor="account-skin-model">Skin model</label>
+            <label htmlFor="account-skin-model">Форма на героя</label>
             <select
               id="account-skin-model"
               value={variant}
               disabled={busy || selection?.legacy}
               onChange={(event) => setVariant(event.target.value)}
             >
-              <option value="classic">Classic (wide arms)</option>
-              <option value="slim">Slim (narrow arms)</option>
+              <option value="classic">Стандартни ръце</option>
+              <option value="slim">Тънки ръце</option>
             </select>
             <button
               className="play-button"
@@ -216,30 +217,32 @@ export default function SkinManager({
                   await api.applySkin({ id: selection.id, variant });
                   setSelection(null);
                   setNotice(
-                    'Minecraft account skin updated. Launch or rejoin to see it. A server skin may need /skin reset first.',
+                    'Външният вид на Minecraft профила е обновен. Влез отново в играта, за да го видиш. Ако сървърът задава друг външен вид, първо използвай /skin reset.',
                   );
                   await onApplied();
                 })
               }
             >
-              Apply to Minecraft account
+              Запази в Minecraft профила
             </button>
           </div>
         </div>
       ) : (
         <div className="skin-server-editor">
           <p>
-            Set a skin for this server using SkinRestorer. Other players can see
-            it when the server applies it.
+            Избери външен вид за този сървър чрез SkinRestorer. Другите играчи
+            ще го виждат, след като сървърът го приложи.
           </p>
           <p>
-            Choose a source, copy the command, then run it in Minecraft chat
-            after joining.{' '}
+            Избери откъде да се вземе изображението, копирай командата и я
+            изпълни в разговора в Minecraft след влизане в сървъра.{' '}
             {mode === 'offline'
-              ? 'Save for launcher to remember this source and update your launcher preview.'
-              : 'The launcher preview stays separate from your server skin.'}
+              ? 'Избери „Запази за този профил“, за да се използва този външен вид и в приложението.'
+              : 'Изображението в приложението може да се различава от външния вид в сървъра.'}
           </p>
-          <label htmlFor="server-skin-source">Skin source</label>
+          <label htmlFor="server-skin-source">
+            Откъде да се вземе изображението
+          </label>
           <select
             id="server-skin-source"
             disabled={busy || loadingSelection}
@@ -250,16 +253,16 @@ export default function SkinManager({
               setNotice('');
             }}
           >
-            <option value="ely.by">Ely.by username</option>
-            <option value="mojang">Minecraft username</option>
-            <option value="web">Skin PNG URL</option>
+            <option value="ely.by">Потребителско име в Ely.by</option>
+            <option value="mojang">Потребителско име в Minecraft</option>
+            <option value="web">Връзка към PNG изображение</option>
           </select>
           {source === 'ely.by' && (
             <div className="skin-ely-help">
               <p>
-                For your own PNG, upload and apply it to your Ely.by account,
-                then enter that account's username here. You can use a different
-                name from your offline player name.
+                За свое изображение го качи в профила си в Ely.by и го избери
+                там. После въведи потребителското име от Ely.by тук. То може да
+                се различава от името ти в играта.
               </p>
               <button
                 className="outline-button"
@@ -267,16 +270,16 @@ export default function SkinManager({
                 onClick={() => act(() => api.skinHelp('ely'))}
               >
                 <ExternalLink size={14} />
-                Open Ely.by skins
+                Отвори изображенията в Ely.by
               </button>
             </div>
           )}
           <label htmlFor="server-skin-value">
             {source === 'web'
-              ? 'Public HTTPS link to the skin PNG'
+              ? 'Публична защитена връзка към PNG изображението'
               : source === 'mojang'
-                ? 'Minecraft username to copy the skin from'
-                : 'Ely.by username'}
+                ? 'Име на играча, чийто външен вид да се използва'
+                : 'Потребителско име в Ely.by'}
           </label>
           <input
             id="server-skin-value"
@@ -292,12 +295,12 @@ export default function SkinManager({
             placeholder={
               source === 'web'
                 ? 'https://example.com/skin.png'
-                : 'Skin owner name'
+                : 'Име на играча'
             }
           />
           {source === 'web' && (
             <>
-              <label htmlFor="server-skin-model">Skin model</label>
+              <label htmlFor="server-skin-model">Форма на героя</label>
               <select
                 id="server-skin-model"
                 disabled={busy || loadingSelection}
@@ -307,13 +310,13 @@ export default function SkinManager({
                   setNotice('');
                 }}
               >
-                <option value="classic">Classic (wide arms)</option>
-                <option value="slim">Slim (narrow arms)</option>
+                <option value="classic">Стандартни ръце</option>
+                <option value="slim">Тънки ръце</option>
               </select>
             </>
           )}
           <label htmlFor="server-skin-command">
-            Command to run in Minecraft
+            Команда за изпълнение в Minecraft
           </label>
           <textarea
             id="server-skin-command"
@@ -324,7 +327,7 @@ export default function SkinManager({
           />
           <small id="server-skin-validation">
             {commandError ||
-              'Ready to copy. Your server must allow this skin source and command.'}
+              'Готово за копиране. Сървърът трябва да позволява тази команда и избрания източник.'}
           </small>
           <div className="skin-command-actions">
             {mode === 'offline' && (
@@ -336,12 +339,12 @@ export default function SkinManager({
                     await api.saveOfflineSkin({ source, value, model });
                     await onApplied();
                     setNotice(
-                      'Skin saved for this offline profile. The launcher will remember it after restarting. Run the skin command in Minecraft to change the server skin.',
+                      'Външният вид е запазен за този местен профил и ще остане след рестартиране. Изпълни командата в Minecraft, за да го промениш и в сървъра.',
                     );
                   })
                 }
               >
-                Save for launcher
+                Запази за този профил
               </button>
             )}
             <button
@@ -350,7 +353,7 @@ export default function SkinManager({
               onClick={() => copy(command)}
             >
               <Copy size={16} />
-              Copy skin command
+              Копирай командата
             </button>
             {mode === 'offline' && (
               <button
@@ -364,19 +367,19 @@ export default function SkinManager({
                     setModel('classic');
                     await onApplied();
                     setNotice(
-                      'Launcher skin reset to the player-name lookup. Your server skin is unchanged.',
+                      'Външният вид в приложението отново се търси по името на играча. Външният вид в сървъра не е променен.',
                     );
                   })
                 }
               >
-                Reset launcher skin
+                Възстанови първоначалния вид
               </button>
             )}
             <button
               className="outline-button"
               onClick={() => copy('/skin reset')}
             >
-              Copy reset command
+              Копирай командата за възстановяване
             </button>
             <button
               className="outline-button"
@@ -384,13 +387,13 @@ export default function SkinManager({
               onClick={() => act(() => api.skinHelp('commands'))}
             >
               <ExternalLink size={14} />
-              Command help
+              Помощ за командите
             </button>
           </div>
           <p className="skin-server-note">
-            These commands work on servers with Lionarius's SkinRestorer and the
-            required permissions. A server skin applies on that server; it does
-            not change your Minecraft account skin.
+            Командите изискват сървърът да използва SkinRestorer на Lionarius и
+            да ти разрешава промяната. Те променят външния вид само в този
+            сървър, без да променят Minecraft профила ти.
           </p>
         </div>
       )}

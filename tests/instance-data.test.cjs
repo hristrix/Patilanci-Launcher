@@ -13,6 +13,7 @@ test('updates preserve keybinds, shader settings, user content and new config de
   const previous = path.join(directory, 'previous');
   const next = path.join(directory, 'next');
   const files = {
+    'CustomSkinLoader/CustomSkinLoader.json': '{"loadlist":[]}',
     'options.txt': 'key_key.forward:key.keyboard.r',
     'optionsshaders.txt': 'shaderPack=Custom.zip',
     'config/iris.properties': 'shaderPack=Custom.zip',

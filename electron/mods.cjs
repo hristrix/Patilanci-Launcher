@@ -353,6 +353,7 @@ async function preservePersonalMods(previousInstance, nextInstance) {
 }
 
 module.exports = {
+  scanMods,
   listMods,
   recordBundledMods,
   ensureModInventory,

@@ -40,6 +40,15 @@ export default function PlayerAccountCard({
   const { validName } = offlineForm;
   return (
     <div className={`login-card ${sessionMode ? 'is-signed-in' : ''}`}>
+      {!sessionMode && (
+        <div className="sign-in-intro">
+          <h2>Влез в играта.</h2>
+          <p>
+            Влез с Microsoft профил, за да играеш на сървърите на Патиланци и да
+            запазиш своя напредък.
+          </p>
+        </div>
+      )}
       <div className="login-avatar-stage">
         {mode === 'microsoft' && account ? (
           <SkinPreview account={account} api={api} />
@@ -62,8 +71,8 @@ export default function PlayerAccountCard({
         {sessionMode && (
           <button
             className="icon-button set-skin-button"
-            aria-label="Set skin"
-            title="Set skin"
+            aria-label="Промени външния вид"
+            title="Промени външния вид"
             disabled={busy}
             onClick={onManageSkin}
           >
@@ -72,29 +81,27 @@ export default function PlayerAccountCard({
         )}
         <strong className="home-player-name">
           {mode === 'microsoft'
-            ? account?.name || 'Your account'
+            ? account?.name || 'Твоят профил'
             : validName
               ? username
-              : 'Your player'}
+              : 'Твоят герой'}
         </strong>
         <span>
           {sessionMode === 'microsoft'
-            ? 'Minecraft Java · Premium'
+            ? 'Профил в Minecraft Java'
             : sessionMode === 'offline'
-              ? 'Offline profile · Signed in'
-              : 'Sign in to start your adventure'}
+              ? 'Местен профил · Успешен вход'
+              : 'Влез, за да започнеш приключението'}
         </span>
       </div>
       <div className="section-heading">
         <div>
-          <span className="overline">READY WHEN YOU ARE</span>
-          <h3>
-            {sessionMode ? 'Your player account.' : 'Choose how you play.'}
-          </h3>
+          <span className="overline">ГОТОВО ЗА ИГРА</span>
+          <h3>{sessionMode ? 'Твоят профил' : 'Избери как да продължиш'}</h3>
         </div>
         <Gamepad2 className="panel-heading-icon" size={24} />
       </div>
-      <div className="account-tabs" role="group" aria-label="Account type">
+      <div className="account-tabs" role="group" aria-label="Вид на профила">
         {(!sessionMode || sessionMode === 'microsoft') && (
           <button
             className={mode === 'microsoft' ? 'is-selected' : ''}
@@ -103,7 +110,7 @@ export default function PlayerAccountCard({
             aria-pressed={mode === 'microsoft'}
           >
             <MicrosoftMark />
-            Microsoft account{mode === 'microsoft' && <Check size={13} />}
+            Профил в Microsoft{mode === 'microsoft' && <Check size={13} />}
           </button>
         )}
         {(!sessionMode || sessionMode === 'offline') && (
@@ -114,11 +121,11 @@ export default function PlayerAccountCard({
             aria-pressed={mode === 'offline'}
           >
             <Users size={15} />
-            Offline profile{mode === 'offline' && <Check size={13} />}
+            Местен профил{mode === 'offline' && <Check size={13} />}
           </button>
         )}
       </div>
-      {mode === 'microsoft' ? (
+      {(mode === 'microsoft' || !sessionMode) && (
         <div className="account-details">
           <div className="account-symbol">
             <ShieldCheck size={20} />
@@ -127,8 +134,8 @@ export default function PlayerAccountCard({
             <strong>
               {account?.name ||
                 (sessionMode === 'microsoft'
-                  ? 'Your saved Microsoft account'
-                  : 'Your Minecraft account, right here.')}
+                  ? 'Запомненият ти профил в Microsoft'
+                  : 'Твоят профил в Minecraft')}
             </strong>
           </div>
           <button
@@ -137,32 +144,58 @@ export default function PlayerAccountCard({
             onClick={sessionMode === 'microsoft' ? onSignOut : onLogin}
             aria-label={
               account || sessionMode === 'microsoft'
-                ? 'Sign out of Microsoft'
-                : 'Sign in with Microsoft'
+                ? 'Излез от Microsoft'
+                : 'Влез с Microsoft'
             }
           >
             {account || sessionMode === 'microsoft' ? (
               <>
-                <LogOut size={14} /> Sign out
+                <LogOut size={14} /> Излез
               </>
             ) : (
               <>
-                Sign in
+                <MicrosoftMark /> Вход с Microsoft
                 <ArrowRight size={15} />
               </>
             )}
           </button>
         </div>
-      ) : (
-        <OfflineProfileForm
-          form={offlineForm}
-          username={username}
-          onUsernameChange={onUsernameChange}
-          sessionMode={sessionMode}
-          busy={busy}
-          running={game.running}
-          onSignOut={onSignOut}
-        />
+      )}
+      {(!sessionMode || mode === 'offline') && (
+        <>
+          {!sessionMode && (
+            <p className="microsoft-sign-in-help">
+              Отваря защитен вход в браузъра.
+            </p>
+          )}
+          {!sessionMode && <div className="sign-in-divider">или</div>}
+          <div className={!sessionMode ? 'local-profile-card' : undefined}>
+            {!sessionMode && (
+              <div className="local-profile-heading">
+                <h3>
+                  Местен профил{' '}
+                  <small className="offline-badge">● Местен</small>
+                </h3>
+                <p>
+                  Продължи с местен профил, ако искаш да играеш на сървъри,
+                  които позволяват местни профили.
+                </p>
+              </div>
+            )}
+            <OfflineProfileForm
+              form={offlineForm}
+              username={username}
+              onUsernameChange={(value) => {
+                if (mode !== 'offline') onModeChange('offline');
+                onUsernameChange(value);
+              }}
+              sessionMode={sessionMode}
+              busy={busy}
+              running={game.running}
+              onSignOut={onSignOut}
+            />
+          </div>
+        </>
       )}
     </div>
   );

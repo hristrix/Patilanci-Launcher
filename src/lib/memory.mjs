@@ -39,8 +39,8 @@ export function assessMemory(allocationGb, snapshot) {
     return {
       ...result,
       severity: 'danger',
-      title: 'This allocation is too high for this computer.',
-      message: `${allocationGb} GB for Minecraft plus about 1 GB for Java leaves too little of your ${format(totalGb)} GB RAM for the operating system. This can cause heavy stuttering or prevent startup.`,
+      title: 'За играта е избрано твърде много памет.',
+      message: `${allocationGb} ГБ за Minecraft и около 1 ГБ за Java оставят твърде малко от общо ${format(totalGb)} ГБ за операционната система. Това може да забави компютъра или да попречи на стартирането.`,
     };
   }
 
@@ -48,8 +48,8 @@ export function assessMemory(allocationGb, snapshot) {
     return {
       ...result,
       severity: 'warning',
-      title: 'High allocation may slow the whole computer.',
-      message: `Keep about ${format(systemReserveGb)} GB for the operating system and other apps, plus about 1 GB for Java outside the game heap. Lowering the allocation can reduce memory pressure and stuttering.`,
+      title: 'Избраната памет може да забави компютъра.',
+      message: `Остави около ${format(systemReserveGb)} ГБ за операционната система и другите приложения и още около 1 ГБ за Java. Избери по-малко памет за играта, за да намалиш забавянията.`,
     };
   }
 
@@ -57,8 +57,8 @@ export function assessMemory(allocationGb, snapshot) {
     return {
       ...result,
       severity: 'warning',
-      title: 'Memory is tight right now.',
-      message: `Only ${format(availableGb)} GB is free now. A ${allocationGb} GB game heap also needs memory for Java, so it may cause swapping and stuttering. Close other apps or reduce the allocation before playing.`,
+      title: 'В момента свободната памет е малко.',
+      message: `Само ${format(availableGb)} ГБ са свободни в момента. Играта с ${allocationGb} ГБ има нужда и от допълнителна памет за Java. Затвори други приложения или избери по-малко памет, преди да играеш.`,
     };
   }
 
@@ -66,17 +66,17 @@ export function assessMemory(allocationGb, snapshot) {
     return {
       ...result,
       severity: 'warning',
-      title: 'The modpack may need more game memory.',
+      title: 'Пакетът може да има нужда от повече памет.',
       message:
-        'Patilanci usually needs 4–6 GB. A smaller heap can cause frequent pauses or out-of-memory errors.',
+        'Патиланци обикновено се нуждае от 4–6 ГБ. По-малко памет може да доведе до прекъсвания или спиране на играта.',
     };
   }
 
   return {
     ...result,
     severity: 'ok',
-    title: 'This allocation leaves room for your system.',
+    title: 'Остава достатъчно памет и за компютъра.',
     message:
-      'Based on your installed RAM and the memory free now. Actual use depends on your world, mods, and other apps.',
+      'Препоръката отчита общата и свободната памет. Използваното количество зависи от света, добавките и другите отворени приложения.',
   };
 }

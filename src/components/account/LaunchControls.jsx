@@ -1,12 +1,12 @@
 import { ArrowDownToLine, ArrowRight, Check, Play, Square } from 'lucide-react';
 import LaunchProgress from './LaunchProgress';
 
-function launchButtonLabel(game, busy, launchPhase, installed) {
-  if (game.stopping) return 'STOPPING…';
-  if (game.running) return 'STOP MINECRAFT';
-  if (busy && launchPhase === 'starting') return 'STARTING…';
-  if (busy) return 'PREPARING…';
-  return `LAUNCH ${installed?.minecraft || 'MINECRAFT'}`;
+function launchButtonLabel(game, busy, launchPhase, signedIn) {
+  if (game.stopping) return 'СПИРАНЕ…';
+  if (game.running) return 'СПРИ ИГРАТА';
+  if (busy && launchPhase === 'starting') return 'СТАРТИРАНЕ…';
+  if (busy) return 'ПОДГОТОВКА…';
+  return signedIn ? 'ИГРАЙ' : 'ВЛЕЗ';
 }
 
 export default function LaunchControls({
@@ -17,6 +17,7 @@ export default function LaunchControls({
   progress,
   mode,
   offlineRemembered,
+  signedIn = true,
   onPlay,
   onStop,
 }) {
@@ -33,13 +34,13 @@ export default function LaunchControls({
           <div>
             <strong>
               {installed
-                ? 'Patilanci installed'
-                : 'We’ll install the latest pack'}
+                ? 'Патиланци е инсталиран'
+                : 'Ще инсталираме последната версия на пакета'}
             </strong>
             <small>
               {installed
-                ? `Minecraft ${installed.minecraft} · Updates automatic`
-                : 'Checked and updated before every launch'}
+                ? `Minecraft ${installed.minecraft} · Автоматично обновяване`
+                : 'Проверява се и се обновява преди всяко стартиране'}
             </small>
           </div>
         </div>
@@ -54,9 +55,9 @@ export default function LaunchControls({
           aria-label={
             game.running
               ? game.stopping
-                ? 'Stopping Minecraft'
-                : 'Stop Minecraft'
-              : 'Play Minecraft'
+                ? 'Спиране на Minecraft'
+                : 'Спри Minecraft'
+              : 'Играй Minecraft'
           }
         >
           {game.running ? (
@@ -64,7 +65,7 @@ export default function LaunchControls({
           ) : (
             <Play size={19} fill="currentColor" />
           )}
-          <span>{launchButtonLabel(game, busy, launchPhase, installed)}</span>
+          <span>{launchButtonLabel(game, busy, launchPhase, signedIn)}</span>
           <ArrowRight size={19} />
         </button>
       </div>

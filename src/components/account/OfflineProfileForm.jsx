@@ -24,21 +24,21 @@ export default function OfflineProfileForm({
     <form className="offline-profile" onSubmit={signInOffline}>
       <div className="offline-fields">
         <div>
-          <label htmlFor="minecraft-username">Player name</label>
+          <label htmlFor="minecraft-username">Име в играта</label>
           <input
             id="minecraft-username"
             value={username}
             onChange={(event) => onUsernameChange(event.target.value)}
-            placeholder="Your in-game name"
+            placeholder="Въведи потребителско име"
             maxLength={16}
             disabled={busy || running || sessionMode === 'offline'}
             autoComplete="off"
           />
         </div>
-        {!currentProfile?.remembered && (
+        {currentProfile && !currentProfile.remembered && (
           <div>
             <label htmlFor="offline-pin">
-              {creatingPin ? 'Create PIN' : 'Profile PIN'}
+              {creatingPin ? 'Създай ПИН код' : 'ПИН код на профила'}
             </label>
             <input
               id="offline-pin"
@@ -49,7 +49,7 @@ export default function OfflineProfileForm({
               maxLength={12}
               value={pin}
               onChange={(event) => setPin(event.target.value)}
-              placeholder="6–12 digits"
+              placeholder="От 6 до 12 цифри"
               disabled={busy || !currentProfile || locked}
               aria-describedby="offline-pin-help"
             />
@@ -57,7 +57,7 @@ export default function OfflineProfileForm({
         )}
         {creatingPin && (
           <div>
-            <label htmlFor="offline-pin-confirm">Confirm PIN</label>
+            <label htmlFor="offline-pin-confirm">Потвърди ПИН кода</label>
             <input
               id="offline-pin-confirm"
               type="password"
@@ -66,7 +66,7 @@ export default function OfflineProfileForm({
               maxLength={12}
               value={confirmPin}
               onChange={(event) => setConfirmPin(event.target.value)}
-              placeholder="Repeat your PIN"
+              placeholder="Въведи ПИН кода отново"
               disabled={busy}
               aria-describedby="offline-pin-help"
             />
@@ -82,7 +82,11 @@ export default function OfflineProfileForm({
           className="outline-button offline-sign-in"
           disabled={busy || running || !offlineReady}
         >
-          {creatingPin ? 'Create profile & sign in' : 'Confirm PIN & sign in'}
+          {creatingPin
+            ? 'Създай профил и влез'
+            : currentProfile
+              ? 'Потвърди ПИН кода и влез'
+              : 'Продължи с местен профил'}
         </button>
       )}
       {(sessionMode === 'offline' || currentProfile?.remembered) && (
@@ -92,7 +96,7 @@ export default function OfflineProfileForm({
           disabled={busy || running}
           onClick={() => signOut(onSignOut)}
         >
-          Sign out of saved sessions
+          Излез от запомнените профили
         </button>
       )}
     </form>

@@ -19,6 +19,9 @@ import './window.css';
 import './branded-home.css';
 import './atmosphere.css';
 import './splash.css';
+import './reference-ui.css';
+import './components/mods.css';
+import './secondary-ui.css';
 
 createRoot(document.getElementById('root')).render(
   window.location.hash === '#console' ? (

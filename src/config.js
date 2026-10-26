@@ -3,33 +3,40 @@ export const DEFAULT_SETTINGS = {
   memory: 6,
   javaPath: 'java',
   javaPaths: {},
+  gameWindow: { width: 1920, height: 1080, fullscreen: false },
+  hideOnLaunch: false,
   installed: null,
 };
 export const PAGES = {
   home: {
-    title: 'Welcome to Patilanci.',
-    description: 'A shared world. A new story every time you play.',
-    label: 'Play',
+    title: 'Добре дошъл в Патиланци',
+    description: 'Готово за следващото приключение.',
+    label: 'Начало',
+    home: true,
   },
   players: {
-    title: 'Your next adventure has company.',
-    description: 'See who’s spending time in the world right now.',
-    label: 'Community',
+    title: 'Общност',
+    description: 'Виж кой е в нашия свят в момента.',
+    label: 'Общност',
   },
   modpack: {
-    title: 'Familiar survival. More possibilities.',
-    description: 'The official Patilanci Adventures modpack, all in one place.',
-    label: 'Modpack',
+    title: 'Пакет с добавки',
+    description: 'Управлявай Patilanci Adventures.',
+    label: 'Пакет с добавки',
   },
   settings: {
-    title: 'Ready for your setup.',
-    description: 'Make a little room for your next adventure.',
-    label: 'Settings',
+    title: 'Настройки',
+    description: 'Настрой приложението за твоя компютър.',
+    label: 'Настройки',
   },
   mods: {
-    title: 'The essentials. And your extras.',
-    description:
-      'Explore the Patilanci collection and add a few things of your own.',
-    label: 'Mods',
+    title: 'Моите добавки',
+    description: 'Управлявай допълненията за играта.',
+    label: 'Моите добавки',
+  },
+  console: {
+    title: 'Логове',
+    description: 'Следи съобщенията на играта в реално време.',
+    label: 'Логове',
   },
 };

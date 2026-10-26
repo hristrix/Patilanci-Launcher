@@ -12,12 +12,18 @@ export default function PlayerPanel({
   return (
     <section className={`panel player-panel ${expanded ? 'is-expanded' : ''}`}>
       <div className="panel-title">
-        <span className="overline">THE COMMUNITY</span>
+        <span className="overline">ОБЩНОСТТА</span>
         <button
           className="icon-button"
-          title={refreshing ? 'Refreshing player list…' : 'Refresh player list'}
+          title={
+            refreshing
+              ? 'Обновяване на списъка с играчи…'
+              : 'Обнови списъка с играчи'
+          }
           aria-label={
-            refreshing ? 'Refreshing player list' : 'Refresh player list'
+            refreshing
+              ? 'Обновяване на списъка с играчи'
+              : 'Обнови списъка с играчи'
           }
           aria-busy={refreshing}
           disabled={refreshing}
@@ -30,22 +36,22 @@ export default function PlayerPanel({
         <Users size={21} />
         <strong>{hasServerResponse ? server.count : '—'}</strong>
         <span>
-          players online
+          играчи в момента
           <small>
             {hasServerResponse
-              ? `${server.max} places in the world`
-              : 'Waiting for the server'}
+              ? `${server.max} места в света`
+              : 'Изчакване на връзка със сървъра'}
           </small>
         </span>
       </div>
       <div className="player-divider" />
       <div className="section-heading">
-        <h3>In the world</h3>
+        <h3>В света</h3>
         <span className="live-label">
           <span
             className={`status-dot ${hasServerResponse ? 'is-online' : ''}`}
           />
-          LIVE
+          В МОМЕНТА
         </span>
       </div>
       {players.length > 0 ? (
@@ -60,7 +66,7 @@ export default function PlayerPanel({
               </div>
               <div>
                 <strong>{player.name}</strong>
-                <small>In the adventure</small>
+                <small>В играта</small>
               </div>
               <span className="status-dot is-online" />
             </div>
@@ -71,25 +77,25 @@ export default function PlayerPanel({
           <Swords size={29} />
           <strong>
             {hasServerResponse && !server.count
-              ? 'Make the first move.'
-              : 'A little quiet here.'}
+              ? 'Бъди първият в света.'
+              : 'Засега тук е спокойно.'}
           </strong>
           <p>
             {hasServerResponse
               ? server.count
-                ? 'The server is not sharing player names.'
-                : 'The next adventure could start with you.'
-              : 'Players appear here when the server is reachable.'}
+                ? 'Сървърът не предоставя имената на играчите.'
+                : 'Следващото приключение може да започне с теб.'
+              : 'Играчите ще се появят тук, когато има връзка със сървъра.'}
           </p>
         </div>
       )}
       <div className="player-panel-footer">
         <ShieldCheck size={13} />
-        <span>Names shared by the server</span>
+        <span>Имена, предоставени от сървъра</span>
         {hasServerResponse && (
           <span className="server-ping">
             <Signal size={12} />
-            {server.latency} ms
+            {server.latency} мс
           </span>
         )}
       </div>

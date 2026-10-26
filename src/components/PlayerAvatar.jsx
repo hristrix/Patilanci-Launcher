@@ -5,7 +5,7 @@ export default function PlayerAvatar() {
       className="player-voxel-avatar"
       viewBox="0 0 16 32"
       role="img"
-      aria-label="Steve"
+      aria-label="Стив"
       shapeRendering="crispEdges"
     >
       <path fill="#aa7d66" d="M4 0h8v8H4zM0 12h4v12H0zM12 12h4v12h-4z" />

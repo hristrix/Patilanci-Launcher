@@ -23,7 +23,13 @@ function createLauncherUpdates({
     updater.allowPrerelease = false;
     updater.disableWebInstaller = true;
     updater.on('download-progress', (progress) =>
-      update({ status: 'downloading', percent: Math.round(progress.percent) }),
+      update({
+        status: 'downloading',
+        percent: Math.round(progress.percent),
+        transferred: progress.transferred,
+        total: progress.total,
+        bytesPerSecond: progress.bytesPerSecond,
+      }),
     );
     updater.on('update-downloaded', (info) =>
       update({
