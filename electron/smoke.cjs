@@ -478,6 +478,34 @@ async function stopFixtureGame(window) {
   );
 }
 
+async function checkStaticHome(window) {
+  window.webContents.debugger.attach('1.3');
+  try {
+    for (const preference of ['no-preference', 'reduce']) {
+      await window.webContents.debugger.sendCommand(
+        'Emulation.setEmulatedMedia',
+        { features: [{ name: 'prefers-reduced-motion', value: preference }] },
+      );
+      await waitForPaint(window);
+      assert.deepEqual(
+        await window.webContents.executeJavaScript(`({
+          panorama: getComputedStyle(document.querySelector('.is-home .village-panorama')).animationName,
+          controls: document.querySelectorAll('.is-home .scene-motion-toggle').length,
+          animations: document.querySelector('.is-home').getAnimations({ subtree: true }).length,
+        })`),
+        { panorama: 'none', controls: 0, animations: 0 },
+        `Home stays static with motion preference ${preference}`,
+      );
+    }
+  } finally {
+    await window.webContents.debugger.sendCommand(
+      'Emulation.setEmulatedMedia',
+      { features: [] },
+    );
+    window.webContents.debugger.detach();
+  }
+}
+
 async function checkLayout(window, expectedHeading) {
   await waitForPaint(window);
   if (expectedHeading === 'Добре дошъл в Патиланци') {
@@ -491,6 +519,7 @@ async function checkLayout(window, expectedHeading) {
     hasHorizontalOverflow: document.documentElement.scrollWidth > innerWidth,
     logoLoaded: document.querySelector('.brand-logo')?.naturalWidth > 0,
     selectedPage: document.querySelector('[aria-current="page"]')?.textContent,
+    reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
   })`);
 
   assert.equal(layout.heading, expectedHeading);
@@ -638,45 +667,7 @@ app.whenReady().then(async () => {
       true,
       'A completed startup must not leave a 100% progress bar on Home',
     );
-    await window.webContents.executeJavaScript(
-      `document.querySelector('.scene-motion-toggle').click()`,
-    );
-    await waitForRenderer(
-      window,
-      `document.querySelector('.scene-motion-toggle').getAttribute('aria-pressed') === 'true'`,
-    );
-    assert.equal(
-      await window.webContents.executeJavaScript(
-        `getComputedStyle(document.querySelector('.village-panorama')).animationPlayState`,
-      ),
-      'paused',
-      'The scenery control pauses ambient animation',
-    );
-    await window.webContents.executeJavaScript(
-      `document.querySelector('.scene-motion-toggle').click()`,
-    );
-    window.webContents.debugger.attach('1.3');
-    try {
-      await window.webContents.debugger.sendCommand(
-        'Emulation.setEmulatedMedia',
-        {
-          features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
-        },
-      );
-      assert.deepEqual(
-        await window.webContents.executeJavaScript(`({
-          panorama: getComputedStyle(document.querySelector('.village-panorama')).animationName,
-        })`),
-        { panorama: 'none' },
-        'Reduced motion disables all ambient animation',
-      );
-    } finally {
-      await window.webContents.debugger.sendCommand(
-        'Emulation.setEmulatedMedia',
-        { features: [] },
-      );
-      window.webContents.debugger.detach();
-    }
+    await checkStaticHome(window);
     window.webContents.send('launcherUpdate', {
       status: 'downloaded',
       latestVersion: '99.0.0',
@@ -759,13 +750,12 @@ app.whenReady().then(async () => {
       window,
       `document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Обновяване')`,
     );
-    const refreshAnimation = await window.webContents.executeJavaScript(`({
-      name: getComputedStyle(document.querySelector('.refresh-link svg')).animationName,
-      reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
-    })`);
     assert.equal(
-      refreshAnimation.name,
-      refreshAnimation.reducedMotion ? 'none' : 'server-refresh-spin',
+      await window.webContents.executeJavaScript(
+        `getComputedStyle(document.querySelector('.refresh-link svg')).animationName`,
+      ),
+      'none',
+      'Home reports refreshing status without spinning the icon',
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -902,11 +892,8 @@ app.whenReady().then(async () => {
       ],
       'Sidebar head uses the signed-in skin face with its transparent hat overlay',
     );
-    // The skin shares Home's animated background. Freeze scenery while checking
-    // that dragging and time do not animate or rotate the character itself.
-    await window.webContents.executeJavaScript(
-      `document.querySelector('.scene-motion-toggle').click()`,
-    );
+    // Both the signed-in home page and its skin stay static.
+    await checkStaticHome(window);
     await waitForPaint(window);
     const skinBounds = await window.webContents.executeJavaScript(`(() => {
       const bounds = document.querySelector('.skin-preview').getBoundingClientRect();
@@ -945,9 +932,7 @@ app.whenReady().then(async () => {
       true,
       'The 3D skin stays fixed over time and after dragging',
     );
-    await window.webContents.executeJavaScript(
-      `document.querySelector('.scene-motion-toggle').click()`,
-    );
+
     assert.equal(
       await window.webContents.executeJavaScript(
         `document.querySelector('.skin-hint') === null && getComputedStyle(document.querySelector('.skin-preview canvas')).pointerEvents === 'none'`,

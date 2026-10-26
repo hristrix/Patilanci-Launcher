@@ -534,6 +534,13 @@ input[type='checkbox'] {
   display: none;
 }
 /* Panorama and dashboard. */
+.is-home *,
+.is-home *::before,
+.is-home *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 .is-home .home-overview {
   display: flex;
   flex-direction: column;

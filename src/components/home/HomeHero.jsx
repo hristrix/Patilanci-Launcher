@@ -13,7 +13,7 @@ export default function HomeHero({
   return (
     <section className="village-hero" aria-label="Patilanci Adventures">
       <div className="village-hero-art">
-        <Panorama controls />
+        <Panorama />
         <div className="village-shade" />
         <span
           className={`hero-server-status server-status ${server?.online ? 'is-online' : ''}`}

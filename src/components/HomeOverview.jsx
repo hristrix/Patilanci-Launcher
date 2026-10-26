@@ -27,7 +27,7 @@ export default function HomeOverview({
       {!sessionMode ? (
         <div className="sign-in-layout">
           <div className="sign-in-landscape">
-            <Panorama controls />
+            <Panorama />
             <div className="village-shade" />
             <span
               className={`hero-server-status server-status ${server?.online ? 'is-online' : ''}`}
