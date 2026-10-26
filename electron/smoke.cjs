@@ -183,7 +183,7 @@ ipcMain.handle('play', async (event, request) => {
   }
   if (pauseLaunch) {
     event.sender.send('progress', {
-      message: 'Preparing fixture launch…',
+      message: 'Подготовка на тестовото стартиране…',
       percent: null,
     });
     await new Promise((resolve) => {
@@ -440,22 +440,31 @@ ipcMain.handle('browseJava', (_, major) => `C:\\Java${major}\\bin\\java.exe`);
 async function waitForPaint(window) {
   await window.webContents.executeJavaScript(`(async () => {
     await document.fonts.ready;
-    await Promise.all(Array.from(document.images, image => image.decode()));
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // React may replace an image during account changes; decode() on the old
+    // element can remain pending. Observe the images still in the document.
+    const deadline = Date.now() + 5000;
+    while (Array.from(document.images).some(image => !image.complete)) {
+      if (Date.now() > deadline) throw new Error('Renderer images did not finish loading.');
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    await Promise.race([
+      new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      new Promise(resolve => setTimeout(resolve, 100)),
+    ]);
   })()`);
   await new Promise((resolve) => setTimeout(resolve, 150));
 }
 async function stopFixtureGame(window) {
   await waitForRenderer(
     window,
-    `document.querySelector('[aria-label="Stop Minecraft"]')?.disabled === false`,
+    `document.querySelector('[aria-label="Спри Minecraft"]')?.disabled === false`,
   );
   await window.webContents.executeJavaScript(
-    `document.querySelector('[aria-label="Stop Minecraft"]').click()`,
+    `document.querySelector('[aria-label="Спри Minecraft"]').click()`,
   );
   await waitForRenderer(
     window,
-    `document.querySelector('[aria-label="Stopping Minecraft"]')?.disabled === true`,
+    `document.querySelector('[aria-label="Спиране на Minecraft"]')?.disabled === true`,
   );
   assert.equal(
     fixtureGame.state().running,
@@ -465,12 +474,17 @@ async function stopFixtureGame(window) {
   finishGameStop();
   await waitForRenderer(
     window,
-    `document.querySelector('[aria-label="Play Minecraft"]')?.disabled === false`,
+    `document.querySelector('[aria-label="Играй Minecraft"]')?.disabled === false`,
   );
 }
 
 async function checkLayout(window, expectedHeading) {
   await waitForPaint(window);
+  if (expectedHeading === 'Добре дошъл в Патиланци') {
+    const session = await fixtureSessions.read();
+    const name = fixtureAccount?.name || session.offlineName;
+    if (name) expectedHeading = `Добре дошъл, ${name}`;
+  }
   const layout = await window.webContents.executeJavaScript(`({
     title: document.title,
     heading: document.querySelector('h1')?.textContent,
@@ -523,6 +537,17 @@ app.whenReady().then(async () => {
     });
     lockWindowZoom(window);
     fixtureWindow = window;
+    const execute = window.webContents.executeJavaScript.bind(
+      window.webContents,
+    );
+    window.webContents.executeJavaScript = async (script, ...args) => {
+      try {
+        return await execute(script, ...args);
+      } catch (error) {
+        console.error('Renderer check failed:', script);
+        throw error;
+      }
+    };
     observeWindowState(window);
     window.setContentSize(1344, 835);
 
@@ -530,10 +555,7 @@ app.whenReady().then(async () => {
     await window.loadFile(path.join(__dirname, '../dist/index.html'));
     await waitForRenderer(
       window,
-      process.argv.includes('--modpack-tabs') ||
-        process.argv.includes('--splash')
-        ? `document.querySelector('.splash-progress b')?.textContent === '35%'`
-        : `document.querySelector('.splash-progress')?.textContent.includes('Downloading startup update fixture')`,
+      `document.querySelector('.splash-progress b')?.textContent === '35%'`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -597,9 +619,9 @@ app.whenReady().then(async () => {
     }
     await waitForRenderer(
       window,
-      `!document.querySelector('.play-button').disabled && document.querySelector('.progress-summary')?.textContent.includes('Latest modpack ready')`,
+      `document.querySelector('.app-shell') !== null && !document.querySelector('.launch-bar .play-button').disabled`,
     );
-    const home = await checkLayout(window, 'Welcome to Patilanci.');
+    const home = await checkLayout(window, 'Добре дошъл в Патиланци');
     await window.webContents.executeJavaScript(
       `document.querySelector('.launcher-legal a').click()`,
     );
@@ -625,7 +647,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `getComputedStyle(document.querySelector('.world-cloud')).animationPlayState`,
+        `getComputedStyle(document.querySelector('.village-panorama')).animationPlayState`,
       ),
       'paused',
       'The scenery control pauses ambient animation',
@@ -643,19 +665,9 @@ app.whenReady().then(async () => {
       );
       assert.deepEqual(
         await window.webContents.executeJavaScript(`({
-          clouds: getComputedStyle(document.querySelector('.world-cloud')).animationName,
-          smoke: getComputedStyle(document.querySelector('.world-smoke rect')).animationName,
-          light: getComputedStyle(document.querySelector('.world-house-light')).animationName,
-          fireflies: getComputedStyle(document.querySelector('.world-fireflies rect')).animationName,
-          toggle: getComputedStyle(document.querySelector('.scene-motion-toggle')).display,
+          panorama: getComputedStyle(document.querySelector('.village-panorama')).animationName,
         })`),
-        {
-          clouds: 'none',
-          smoke: 'none',
-          light: 'none',
-          fireflies: 'none',
-          toggle: 'none',
-        },
+        { panorama: 'none' },
         'Reduced motion disables all ambient animation',
       );
     } finally {
@@ -681,7 +693,7 @@ app.whenReady().then(async () => {
     window.webContents.send('gameState', { running: true });
     await waitForRenderer(
       window,
-      `[...document.querySelectorAll('.update-notice .outline-button')].every(button => button.disabled) && document.querySelector('.update-notices').textContent.includes('Close Minecraft')`,
+      `[...document.querySelectorAll('.update-notice .outline-button')].every(button => button.disabled) && document.querySelector('.update-notices').textContent.includes('Затвори Minecraft')`,
     );
     await capture(window, 'launcher-update-notifications.png');
     window.webContents.send('gameState', { running: false });
@@ -709,13 +721,13 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.app-shell') !== null && document.querySelector('[role="alert"]')?.textContent.includes('Could not start launcher update')`,
+      `document.querySelector('.app-shell') !== null && document.querySelector('[role="alert"]')?.textContent.includes('Действието не можа да завърши')`,
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Dismiss error"]').click()`,
+      `document.querySelector('[aria-label="Скрий съобщението за грешка"]').click()`,
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Dismiss modpack update notification"]').click()`,
+      `document.querySelector('[aria-label="Скрий известието за пакета"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -745,7 +757,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Refreshing')`,
+      `document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Обновяване')`,
     );
     const refreshAnimation = await window.webContents.executeJavaScript(`({
       name: getComputedStyle(document.querySelector('.refresh-link svg')).animationName,
@@ -757,7 +769,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.server-status').textContent.includes('Checking server')`,
+        `document.querySelector('.server-status').textContent.includes('Проверка на връзката')`,
       ),
       true,
     );
@@ -765,16 +777,16 @@ app.whenReady().then(async () => {
     finishStatusRefresh();
     await waitForRenderer(
       window,
-      `!document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Refresh status')`,
+      `!document.querySelector('.refresh-link').disabled && document.querySelector('.refresh-link').textContent.includes('Провери връзката')`,
     );
     assert.deepEqual(
       await window.webContents.executeJavaScript(`({
         drag: getComputedStyle(document.querySelector('.window-titlebar')).getPropertyValue('-webkit-app-region'),
         controls: getComputedStyle(document.querySelector('.window-controls')).getPropertyValue('-webkit-app-region'),
         buttons: document.querySelectorAll('.window-control').length,
-        maximize: Boolean(document.querySelector('[aria-label="Maximize window"]')),
-        console: Boolean(document.querySelector('[aria-label="Open Minecraft console"]')),
-        folder: Boolean(document.querySelector('[aria-label="Open game folder"]')),
+        maximize: Boolean(document.querySelector('[aria-label="Увеличи прозореца"]')),
+        console: Boolean(document.querySelector('[aria-label="Отвори Логовеа на Minecraft"]')),
+        folder: Boolean(document.querySelector('[aria-label="Отвори папката на играта"]')),
       })`),
       {
         drag: 'drag',
@@ -830,7 +842,7 @@ app.whenReady().then(async () => {
       `!document.querySelector('.play-button').disabled`,
     );
     assert.equal(startupChecks, 1, 'Reload must reuse the startup update');
-    await checkLayout(window, 'Welcome to Patilanci.');
+    await checkLayout(window, 'Добре дошъл в Патиланци');
     assert.equal(
       window.webContents.getZoomFactor(),
       1,
@@ -838,7 +850,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+        `document.querySelector('.launch-bar .play-button').getBoundingClientRect().bottom <= innerHeight`,
       ),
       true,
       'The Play button must be visible without scrolling',
@@ -858,7 +870,7 @@ app.whenReady().then(async () => {
     await capture(window, 'launcher-desktop.png');
 
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Sign in with Microsoft"]').click()`,
+      `document.querySelector('[aria-label="Влез с Microsoft"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -871,6 +883,13 @@ app.whenReady().then(async () => {
       'Adventurer1234567',
     );
     assert.equal(fixtureSkinRequests, 1);
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.sidebar-profile').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.account-drawer.is-open') !== null`,
+    );
     assert.deepEqual(
       await window.webContents.executeJavaScript(`(() => {
       const context = document.querySelector('.player-skin-head').getContext('2d');
@@ -937,21 +956,21 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelectorAll('.account-tabs button').length === 1 && !document.querySelector('.account-tabs').textContent.includes('Offline')`,
+        `document.querySelectorAll('.account-tabs button').length === 1 && !document.querySelector('.account-tabs').textContent.includes('Местен профил')`,
       ),
       true,
       'Premium sign-in hides the offline account choice',
     );
     await capture(window, 'launcher-microsoft-skin-fixture.png');
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Set skin"]').click()`,
+      `document.querySelector('[aria-label="Промени външния вид"]').click()`,
     );
     await waitForRenderer(
       window,
       `document.querySelector('.skin-dialog[open]') !== null`,
     );
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.skin-dialog button')).find(button => button.textContent.includes('Choose PNG')).click()`,
+      `Array.from(document.querySelectorAll('.skin-dialog button')).find(button => button.textContent.includes('Избери изображение')).click()`,
     );
     await waitForRenderer(
       window,
@@ -962,11 +981,11 @@ app.whenReady().then(async () => {
       select.value = 'slim'; select.dispatchEvent(new Event('change', { bubbles: true }));
     })()`);
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.skin-dialog button')).find(button => button.textContent.includes('Apply to Minecraft account')).click()`,
+      `Array.from(document.querySelectorAll('.skin-dialog button')).find(button => button.textContent.includes('Запази в Minecraft профила')).click()`,
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.skin-notice')?.textContent.includes('account skin updated')`,
+      `document.querySelector('.skin-notice')?.textContent.includes('Minecraft профила е обновен')`,
     );
     assert.equal(fixtureSkinUploads, 1);
     await waitForRenderer(
@@ -981,7 +1000,7 @@ app.whenReady().then(async () => {
     );
     await capture(window, 'launcher-skin-account-settings.png');
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Close skin settings"]').click()`,
+      `document.querySelector('[aria-label="Затвори избора на външен вид"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1003,7 +1022,7 @@ app.whenReady().then(async () => {
       );
       assert.equal(
         await window.webContents.executeJavaScript(
-          `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+          `document.querySelector('.launch-bar .play-button').getBoundingClientRect().bottom <= innerHeight`,
         ),
         true,
       );
@@ -1020,7 +1039,7 @@ app.whenReady().then(async () => {
     }
     window.setContentSize(1344, 835);
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Sign out of Microsoft"]').click()`,
+      `document.querySelector('[aria-label="Излез от Microsoft"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1042,7 +1061,7 @@ app.whenReady().then(async () => {
     const requestsBeforeOfflineSignIn = fixtureSkinRequests;
     await window.webContents.executeJavaScript(`
       Array.from(document.querySelectorAll('.account-tabs button'))
-        .find(button => button.textContent.includes('Offline')).click();
+        .find(button => button.textContent.includes('Местен профил')).click();
     `);
     await waitForPaint(window);
     assert.equal(
@@ -1053,7 +1072,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+        `document.querySelector('.launch-bar .play-button').getBoundingClientRect().bottom <= innerHeight`,
       ),
       true,
       'The offline Play button must be visible without scrolling',
@@ -1113,7 +1132,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('#offline-pin') === null && document.querySelector('#offline-pin-help')?.textContent.includes('session is saved')`,
+      `document.querySelector('#offline-pin') === null && document.querySelector('#offline-pin-help')?.textContent.includes('Входът ти е запомнен')`,
     );
     assert.equal(
       fixtureGameStarts,
@@ -1133,7 +1152,7 @@ app.whenReady().then(async () => {
     );
     await capture(window, 'launcher-offline-public-skin-fixture.png');
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Set skin"]').click()`,
+      `document.querySelector('[aria-label="Промени външния вид"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1171,18 +1190,18 @@ app.whenReady().then(async () => {
     })()`);
     const lookupsBeforeSave = fixtureSkinRequests;
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.skin-command-actions button')).find(button => button.textContent === 'Save for launcher').click()`,
+      `Array.from(document.querySelectorAll('.skin-command-actions button')).find(button => button.textContent === 'Запази за този профил').click()`,
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.skin-notice')?.textContent.includes('Skin saved') && document.querySelector('.login-avatar-stage .skin-preview')?.dataset.skinState === 'ready'`,
+      `document.querySelector('.skin-notice')?.textContent.includes('Външният вид е запазен') && document.querySelector('.login-avatar-stage .skin-preview')?.dataset.skinState === 'ready'`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.skin-server-note')?.textContent.includes('in-game name')`,
+        `document.querySelector('.skin-server-note')?.textContent.includes('SkinRestorer на Lionarius')`,
       ),
       true,
-      'Offline skin settings explain the shared-name requirement',
+      'Offline skin settings explain the required server integration',
     );
     assert.equal(
       fixtureSkinRequests,
@@ -1208,7 +1227,7 @@ app.whenReady().then(async () => {
     );
     await capture(window, 'launcher-skin-server-settings-compact.png');
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Close skin settings"]').click()`,
+      `document.querySelector('[aria-label="Затвори избора на външен вид"]').click()`,
     );
     window.setContentSize(1344, 835);
     await window.reload();
@@ -1224,7 +1243,7 @@ app.whenReady().then(async () => {
       'The selected skin is restored after reopening the renderer',
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Set skin"]').click()`,
+      `document.querySelector('[aria-label="Промени външния вид"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1238,14 +1257,14 @@ app.whenReady().then(async () => {
       'Skin settings restore the source, URL, and model',
     );
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.skin-command-actions button')).find(button => button.textContent === 'Reset launcher skin').click()`,
+      `Array.from(document.querySelectorAll('.skin-command-actions button')).find(button => button.textContent === 'Възстанови първоначалния вид').click()`,
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.skin-notice')?.textContent.includes('Launcher skin reset')`,
+      `document.querySelector('.skin-notice')?.textContent.includes('Външният вид в приложението отново се търси')`,
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Close skin settings"]').click()`,
+      `document.querySelector('[aria-label="Затвори избора на външен вид"]').click()`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -1272,7 +1291,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.launch-controls').dataset.launchPhase === 'preparing' && document.querySelector('.progress-summary').textContent.includes('Preparing fixture launch')`,
+      `document.querySelector('.launch-controls').dataset.launchPhase === 'preparing' && document.querySelector('.progress-summary').textContent.includes('Подготовка на тестовото стартиране')`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -1288,7 +1307,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.launch-steps [aria-current="step"]').textContent.includes('Starting') && document.querySelector('.play-button').disabled`,
+        `document.querySelector('.launch-steps [aria-current="step"]').textContent.includes('Стартиране') && document.querySelector('.play-button').disabled`,
       ),
       true,
       'The starting step follows the launch event and prevents duplicate launches',
@@ -1298,12 +1317,12 @@ app.whenReady().then(async () => {
     finishLaunch();
     await waitForRenderer(
       window,
-      `document.querySelector('.play-button')?.textContent.includes('STOP MINECRAFT')`,
+      `document.querySelector('.play-button')?.textContent.includes('СПРИ ИГРАТА')`,
     );
     assert.equal(fixtureGameStarts, 1);
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.launch-steps [aria-current="step"]').textContent.includes('Running') && document.querySelector('.launch-controls .progress-track') === null`,
+        `document.querySelector('.launch-steps [aria-current="step"]').textContent.includes('Играта работи') && document.querySelector('.launch-controls .progress-track') === null`,
       ),
       true,
       'A running game completes the launch steps and clears the progress bar',
@@ -1311,11 +1330,11 @@ app.whenReady().then(async () => {
     await window.reload();
     await waitForRenderer(
       window,
-      `document.querySelector('.play-button')?.textContent.includes('STOP MINECRAFT')`,
+      `document.querySelector('.play-button')?.textContent.includes('СПРИ ИГРАТА')`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.play-button').textContent.includes('STOP MINECRAFT')`,
+        `document.querySelector('.play-button').textContent.includes('СПРИ ИГРАТА')`,
       ),
       true,
       'Reload retains the running-game Stop action',
@@ -1327,7 +1346,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('[role="alert"]')?.textContent.includes('Fixture: Minecraft preparation failed.') && !document.querySelector('.play-button').disabled`,
+      `document.querySelector('[role="alert"]')?.textContent.includes('Действието не можа да завърши') && !document.querySelector('.play-button').disabled`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -1337,7 +1356,7 @@ app.whenReady().then(async () => {
       'A failed launch clears its steps and progress so the player can retry',
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Dismiss error"]').click()`,
+      `document.querySelector('[aria-label="Скрий съобщението за грешка"]').click()`,
     );
     await window.webContents.executeJavaScript(
       `document.querySelector('.play-button').click()`,
@@ -1353,7 +1372,7 @@ app.whenReady().then(async () => {
     );
     await stopFixtureGame(window);
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('button')).find(button => button.textContent.includes('Sign out of saved sessions')).click()`,
+      `Array.from(document.querySelectorAll('button')).find(button => button.textContent.includes('Излез от запомнените профили')).click()`,
     );
     await waitForRenderer(
       window,
@@ -1371,7 +1390,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('[role="alert"]')?.textContent.includes('Incorrect local profile PIN')`,
+      `document.querySelector('[role="alert"]')?.textContent.includes('Неправилен ПИН код')`,
     );
     assert.equal(
       fixtureGameStarts,
@@ -1388,7 +1407,7 @@ app.whenReady().then(async () => {
       4,
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Dismiss error"]').click()`,
+      `document.querySelector('[aria-label="Скрий съобщението за грешка"]').click()`,
     );
     await fillInput(window, '#offline-pin', '654321');
     await window.webContents.executeJavaScript(
@@ -1408,7 +1427,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.play-button')?.textContent.includes('STOP MINECRAFT')`,
+      `document.querySelector('.play-button')?.textContent.includes('СПРИ ИГРАТА')`,
     );
     assert.equal(fixtureGameStarts, 3);
     await stopFixtureGame(window);
@@ -1420,7 +1439,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.skin-placeholder').textContent.includes('No public skin found')`,
+        `document.querySelector('.skin-placeholder').textContent.includes('Не е намерено достъпно изображение')`,
       ),
       true,
       'Missing public skins fall back to Steve',
@@ -1433,23 +1452,23 @@ app.whenReady().then(async () => {
     );
 
     await window.webContents.executeJavaScript(
-      `document.querySelectorAll('.nav-item')[1].click()`,
+      `document.querySelector('[data-page="modpack"]').click()`,
     );
-    await checkLayout(window, 'Familiar survival. More possibilities.');
+    await checkLayout(window, 'Пакет с добавки');
     await waitForRenderer(
       window,
-      `document.querySelector('.pack-storage')?.textContent.includes('3.25 GiB')`,
+      `document.querySelector('.pack-storage')?.textContent.includes('3.25 ГиБ')`,
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Refresh Minecraft size"]').click()`,
+      `document.querySelector('[aria-label="Провери заетото място от Minecraft"]').click()`,
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.pack-storage')?.textContent.includes('3.50 GiB')`,
+      `document.querySelector('.pack-storage')?.textContent.includes('3.50 ГиБ')`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.pack-storage').textContent.includes('Managed Java: 512.0 MiB')`,
+        `document.querySelector('.pack-storage').textContent.includes('Автоматично изтеглена Java: 512.0 МиБ')`,
       ),
       true,
     );
@@ -1461,7 +1480,7 @@ app.whenReady().then(async () => {
     );
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.pack-facts dd').textContent`,
+        `document.querySelectorAll('.pack-facts dd')[1].textContent`,
       ),
       fixturePack.releaseName,
       'Show the CurseForge release name even when its manifest version differs',
@@ -1477,17 +1496,17 @@ app.whenReady().then(async () => {
     await window.webContents.executeJavaScript(
       `document.querySelector('.pack-links .outline-button').click()`,
     );
-    await checkLayout(window, 'Familiar survival. More possibilities.');
+    await checkLayout(window, 'Пакет с добавки');
 
     await window.webContents.executeJavaScript(
-      `document.querySelectorAll('.nav-item')[2].click()`,
+      `document.querySelector('[data-page="players"]').click()`,
     );
-    await checkLayout(window, 'Your next adventure has company.');
+    await checkLayout(window, 'Общност');
 
     await window.webContents.executeJavaScript(
       `document.querySelector('.settings-link').click()`,
     );
-    await checkLayout(window, 'Ready for your setup.');
+    await checkLayout(window, 'Настройки');
     assert.equal(
       await window.webContents.executeJavaScript(
         `document.querySelectorAll('.java-version-row').length`,
@@ -1502,7 +1521,7 @@ app.whenReady().then(async () => {
       'All automatically managed Java fields start disabled',
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Browse for Java 21"]').click()`,
+      `document.querySelector('[aria-label="Избери файл за Java 21"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1516,7 +1535,7 @@ app.whenReady().then(async () => {
       'A custom Java executable enables editing',
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Reset Java 21 to automatic"]').click()`,
+      `document.querySelector('[aria-label="Върни Java 21 към автоматичен избор"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1530,7 +1549,7 @@ app.whenReady().then(async () => {
       'Reset returns the field to disabled managed mode',
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Browse for Java 17"]').click()`,
+      `document.querySelector('[aria-label="Избери файл за Java 17"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1550,7 +1569,7 @@ app.whenReady().then(async () => {
     );
     fixtureFreeMemoryGb = 3;
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Refresh memory information"]').click()`,
+      `document.querySelector('[aria-label="Провери паметта отново"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1560,11 +1579,11 @@ app.whenReady().then(async () => {
       await window.webContents.executeJavaScript(
         `document.querySelector('#memory-assessment').textContent`,
       ),
-      /Only 3 GB is free/,
+      /Само 3 ГБ са свободни/,
     );
     fixtureFreeMemoryGb = 10;
     await window.webContents.executeJavaScript(
-      `document.querySelector('[aria-label="Refresh memory information"]').click()`,
+      `document.querySelector('[aria-label="Провери паметта отново"]').click()`,
     );
     await waitForRenderer(
       window,
@@ -1604,10 +1623,10 @@ app.whenReady().then(async () => {
     await window.webContents.executeJavaScript(
       `document.querySelector('[data-page="mods"]').click()`,
     );
-    await checkLayout(window, 'The essentials. And your extras.');
+    await checkLayout(window, 'Моите добавки');
     await waitForRenderer(
       window,
-      `document.querySelectorAll('[data-origin="bundled"]').length === 1`,
+      `document.querySelector('.mods-heading .play-button')?.disabled === false`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -1632,11 +1651,14 @@ app.whenReady().then(async () => {
     await capture(window, 'launcher-mods-test-fixture.png');
     assert.equal((await listMods(fixtureInstance)).personal.length, 1);
     await window.webContents.executeJavaScript(
+      `document.querySelector('[data-origin="personal"] .mod-menu-button').click()`,
+    );
+    await window.webContents.executeJavaScript(
       `document.querySelector('.remove-mod-button').click()`,
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.mods-notice')?.textContent.includes('was removed')`,
+      `document.querySelector('.mods-notice')?.textContent.includes('е премахната')`,
     );
     assert.equal((await listMods(fixtureInstance)).personal.length, 0);
     assert.equal((await listMods(fixtureInstance)).bundled.length, 1);
@@ -1645,13 +1667,13 @@ app.whenReady().then(async () => {
     await window.webContents.executeJavaScript(
       `document.querySelector('[data-page="home"]').click()`,
     );
-    await checkLayout(window, 'Welcome to Patilanci.');
+    await checkLayout(window, 'Добре дошъл в Патиланци');
     await window.webContents.executeJavaScript(
       `document.querySelector('[data-page="mods"]').click()`,
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.mods-empty h3')?.textContent === 'Your collection starts with Patilanci.'`,
+      `document.querySelector('.mods-empty h3')?.textContent === 'Първо инсталирай Patilanci.'`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -1661,13 +1683,13 @@ app.whenReady().then(async () => {
     );
 
     await window.webContents.executeJavaScript(
-      `document.querySelectorAll('.nav-item')[0].click()`,
+      `document.querySelector('[data-page="home"]').click()`,
     );
     window.setContentSize(1034, 675);
-    await checkLayout(window, 'Welcome to Patilanci.');
+    await checkLayout(window, 'Добре дошъл в Патиланци');
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+        `document.querySelector('.launch-bar .play-button').getBoundingClientRect().bottom <= innerHeight`,
       ),
       true,
       'The offline Play button must fit the compact window',
@@ -1680,7 +1702,7 @@ app.whenReady().then(async () => {
       'The offline home page should also fit the compact window',
     );
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('button')).find(button => button.textContent.includes('Sign out of saved sessions')).click()`,
+      `Array.from(document.querySelectorAll('button')).find(button => button.textContent.includes('Излез от запомнените профили')).click()`,
     );
     await waitForRenderer(
       window,
@@ -1692,7 +1714,7 @@ app.whenReady().then(async () => {
     await waitForPaint(window);
     assert.equal(
       await window.webContents.executeJavaScript(
-        `document.querySelector('.play-button').getBoundingClientRect().bottom <= innerHeight`,
+        `document.querySelector('.launch-bar .play-button').getBoundingClientRect().bottom <= innerHeight`,
       ),
       true,
       'The Play button must fit the compact window',
@@ -1710,7 +1732,7 @@ app.whenReady().then(async () => {
     await window.webContents.executeJavaScript(
       `document.querySelector('[data-page="mods"]').click()`,
     );
-    await checkLayout(window, 'The essentials. And your extras.');
+    await checkLayout(window, 'Моите добавки');
     await capture(window, 'launcher-mods-compact-test-fixture.png');
 
     await verifyResponsiveText(window, waitForPaint, capture);
@@ -1720,7 +1742,7 @@ app.whenReady().then(async () => {
     await window.loadFile(path.join(__dirname, '../dist/index.html'));
     await waitForRenderer(
       window,
-      `document.querySelector('.splash-progress')?.textContent.includes('CurseForge is unreachable')`,
+      `document.querySelector('.splash-progress')?.textContent.includes('Подготовката е прекъсната') && document.querySelector('[data-step="modpack"][role="alert"]')?.textContent.includes('Няма връзка за изтегляне')`,
     );
     await capture(window, 'launcher-startup-failure.png');
     startupFailure = false;
@@ -1736,10 +1758,10 @@ app.whenReady().then(async () => {
     await window.loadFile(path.join(__dirname, '../dist/index.html'));
     await waitForRenderer(
       window,
-      `document.querySelector('.splash-progress')?.textContent.includes('CurseForge is unreachable')`,
+      `document.querySelector('.splash-progress')?.textContent.includes('Подготовката е прекъсната') && document.querySelector('[data-step="modpack"][role="alert"]')?.textContent.includes('Няма връзка за изтегляне')`,
     );
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.splash-actions button')).find(button => button.textContent.includes('Open launcher')).click()`,
+      `Array.from(document.querySelectorAll('.splash-actions button')).find(button => button.textContent.includes('Отвори приложението')).click()`,
     );
     await waitForRenderer(
       window,
@@ -1781,7 +1803,7 @@ app.whenReady().then(async () => {
     await window.loadFile(path.join(__dirname, '../dist/index.html'));
     await waitForRenderer(
       window,
-      `document.querySelector('.splash-actions .play-button')?.textContent.includes('Restart and update')`,
+      `document.querySelector('.splash-actions .play-button')?.textContent.includes('Рестартирай и обнови')`,
     );
     assert.equal(
       await window.webContents.executeJavaScript(
@@ -1813,7 +1835,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('.update-notices')?.textContent.includes('Launcher updated successfully')`,
+      `document.querySelector('.update-notices')?.textContent.includes('Приложението е обновено успешно')`,
     );
     await capture(window, 'launcher-update-complete.png');
 
@@ -1824,7 +1846,7 @@ app.whenReady().then(async () => {
     const closed = new Promise((resolve) => window.once('closed', resolve));
     window.webContents
       .executeJavaScript(
-        `document.querySelector('[aria-label="Close launcher"]').click()`,
+        `document.querySelector('[aria-label="Затвори приложението"]').click()`,
       )
       .catch(() => {});
     await closed;

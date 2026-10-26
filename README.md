@@ -136,7 +136,7 @@ Personal additions and their ownership records are carried into staged pack upda
 
 ### Automatic GitHub Releases
 
-`.github/workflows/release.yml` runs only on pushes to `master`. Pushes to other branches, pull requests, and tag pushes do not build or publish installers. Develop on feature or hotfix branches, update the version and changelog, then merge into `master` to release.
+`.github/workflows/release.yml` publishes on pushes to `master` and can also be started manually from Actions on `master` to retry an unpublished version. Other branches, pull requests, and tag pushes cannot publish stable releases; the validation workflow builds preview installers for branches and pull requests. Develop on feature or hotfix branches, update the version and changelog, then merge into `master` to release.
 
 Before the first release, configure the repository under **Settings > Secrets and variables > Actions**:
 
@@ -150,7 +150,7 @@ The workflow uses GitHub's automatic `GITHUB_TOKEN` with `contents: write` permi
 
 Each `master` push validates the version and release notes, installs locked dependencies, runs unit and desktop checks on Windows, and builds the production NSIS installer. Only `PUBLIC_DOWNLOAD_SERVICE_URL` is required; the certificate secrets in the table are optional. Without `CSC_LINK`, the workflow builds an unsigned production installer. It creates a draft release tagged `v<version>` at the pushed commit, uploads `Patilanci-Launcher-Setup-<version>-x64.exe`, `latest.yml`, and any blockmaps, then publishes it as the latest stable release. Download the installer from the repository's **Releases** section. Existing installed production launchers use the same metadata to detect updates.
 
-Published versions cannot be overwritten: increment the version and add changelog notes before another release. A failed upload leaves the release as a draft; rerunning the same commit resumes it. A draft belonging to a different commit requires a new version or removal of that abandoned draft. Missing service configuration fails with an actionable error. When signing credentials are explicitly supplied, signing and signature verification must succeed.
+Published versions cannot be overwritten: increment the version and add changelog notes before another release. A failed upload leaves the release as a draft; rerunning the same commit resumes it. Use **Re-run failed jobs** on that run, or manually start the release workflow on `master` if it still identifies the same commit. A draft belonging to a different commit requires a new version or removal of that abandoned draft. Validation failures save `artifacts/validation.log` alongside available screenshots and builder diagnostics. Missing service configuration fails with an actionable error. When signing credentials are explicitly supplied, signing and signature verification must succeed.
 
 ### Local builds
 

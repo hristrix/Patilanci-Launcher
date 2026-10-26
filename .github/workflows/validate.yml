@@ -29,7 +29,10 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Validate launcher
-        run: npm run validate
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          npm run validate 2>&1 | tee artifacts/validation.log
       - name: Build test installer
         run: npm run dist:preview
       - name: Save test installer

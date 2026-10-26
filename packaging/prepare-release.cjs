@@ -33,11 +33,11 @@ function checkExistingRelease(release, sha) {
 
 function releaseEnvironment(env) {
   if (
-    env.GITHUB_EVENT_NAME !== 'push' ||
+    !['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME) ||
     env.GITHUB_REF !== 'refs/heads/master'
   )
     throw new Error(
-      'Installer releases are allowed only for pushes to master.',
+      'Installer releases are allowed only for pushes or manual runs on master.',
     );
   if (!env.PUBLIC_DOWNLOAD_SERVICE_URL?.trim())
     throw new Error(

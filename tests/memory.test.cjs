@@ -21,7 +21,7 @@ test('allocation exceeding physical headroom warns even when memory is currently
   const result = await assess(7, 8, 8);
   assert.equal(result.severity, 'danger');
   assert.equal(result.recommendedGb, 5);
-  assert.match(result.message, /stuttering|startup/);
+  assert.match(result.message, /забави компютъра|стартирането/);
 });
 
 test('a high allocation reserves RAM for the OS and Java outside the heap', async () => {
@@ -42,7 +42,7 @@ test('currently busy apps trigger a warning without changing total installed RAM
 test('low heap allocations warn about the pack needs', async () => {
   const result = await assess(2, 16, 10);
   assert.equal(result.severity, 'warning');
-  assert.match(result.title, /need more game memory/);
+  assert.match(result.title, /нужда от повече памет/);
 });
 
 test('recommendations fit both physical and currently available headroom', async () => {

@@ -61,13 +61,13 @@ test('size requests coalesce, cache briefly, and refresh after invalidation', as
 test('storage formatting handles bytes, binary units, partial scans and unavailable values', async () => {
   const { formatBytes, storageLabel } = await import('../src/lib/storage.mjs');
   assert.equal(formatBytes(0), '0 B');
-  assert.equal(formatBytes(1024), '1.0 KiB');
-  assert.equal(formatBytes(1536 * 1024 * 1024), '1.50 GiB');
-  assert.equal(formatBytes(NaN), 'Unavailable');
-  assert.equal(storageLabel(null), 'Calculating…');
+  assert.equal(formatBytes(1024), '1.0 КиБ');
+  assert.equal(formatBytes(1536 * 1024 * 1024), '1.50 ГиБ');
+  assert.equal(formatBytes(NaN), 'Няма данни');
+  assert.equal(storageLabel(null), 'Изчисляване…');
   assert.equal(
     storageLabel({ status: 'partial', instanceBytes: 1024 }),
-    'At least 1.0 KiB',
+    'Поне 1.0 КиБ',
   );
-  assert.equal(storageLabel({ status: 'error' }), 'Unavailable');
+  assert.equal(storageLabel({ status: 'error' }), 'Няма данни');
 });

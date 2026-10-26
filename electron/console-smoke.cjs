@@ -67,7 +67,7 @@ app.whenReady().then(async () => {
       /secret-fixture-token/,
     );
     await window.webContents.executeJavaScript(`(() => {
-      const input = document.querySelector('[aria-label="Search console output"]');
+      const input = document.querySelector('[aria-label="Търси в Логовеа"]');
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'warning');
       input.dispatchEvent(new Event('input', {bubbles:true}));
     })()`);
@@ -76,16 +76,16 @@ app.whenReady().then(async () => {
       `document.querySelectorAll('.console-line').length === 1`,
     );
     await window.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.console-toolbar button')).find(b => b.textContent.includes('Copy')).click()`,
+      `Array.from(document.querySelectorAll('.console-actions button')).find(b => b.textContent.includes('Копирай')).click()`,
     );
     await waitFor(
       window,
-      `document.querySelector('.console-notice').textContent.includes('copied')`,
+      `document.querySelector('.console-notice').textContent.includes('копирани')`,
     );
     assert.match(clipboard.readText(), /resource warning/);
     assert.doesNotMatch(clipboard.readText(), /fixture error/);
     await window.webContents.executeJavaScript(`(() => {
-      const input = document.querySelector('[aria-label="Search console output"]');
+      const input = document.querySelector('[aria-label="Търси в Логовеа"]');
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '');
       input.dispatchEvent(new Event('input', {bubbles:true}));
     })()`);
@@ -109,7 +109,7 @@ app.whenReady().then(async () => {
     await window.webContents.executeJavaScript(`(() => {
       const select = document.querySelector('select');
       select.value = 'all'; select.dispatchEvent(new Event('change', {bubbles:true}));
-      document.querySelector('.console-footer input').click();
+      document.querySelector('.console-follow input').click();
       document.querySelector('.console-output').scrollTop = 0;
     })()`);
     for (let i = 0; i < 100; i++) log.write(`Fixture game output ${i}\n`);
@@ -124,7 +124,7 @@ app.whenReady().then(async () => {
       0,
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('.console-footer input').click()`,
+      `document.querySelector('.console-follow input').click()`,
     );
     await waitFor(
       window,
@@ -142,7 +142,7 @@ app.whenReady().then(async () => {
     window.close();
     await waitFor(
       window,
-      `document.body.textContent.includes('Fixture stop failed')`,
+      `Array.from(document.querySelectorAll('.console-line.is-error .console-message')).some(line => line.textContent.includes('Действието не можа да завърши'))`,
     );
     assert.equal(
       window.isDestroyed(),
@@ -153,7 +153,7 @@ app.whenReady().then(async () => {
     const closed = new Promise((resolve) => window.once('closed', resolve));
     await window.webContents
       .executeJavaScript(
-        `document.querySelector('[aria-label="Close console"]').click()`,
+        `document.querySelector('[aria-label="Затвори Логовеа"]').click()`,
       )
       .catch(() => {});
     await closed;
@@ -173,7 +173,7 @@ app.whenReady().then(async () => {
       `document.body.textContent.includes('Output while the console was closed')`,
     );
     await reopened.webContents.executeJavaScript(
-      `Array.from(document.querySelectorAll('.console-toolbar button')).find(b => b.textContent.includes('Clear')).click()`,
+      `document.querySelector('[aria-label="Изчисти Логовеа"]').click()`,
     );
     await waitFor(
       reopened,

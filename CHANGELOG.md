@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1 - 2026-10-26
+
+### Fixed
+
+- Restored release validation for the current Bulgarian interface so new Windows installers and automatic-update files can be published together.
+- Added manual release retries on master and saved validation logs with failure diagnostics.
+
 ## 2.0.0 - 2026-10-26
 
 ### Improved

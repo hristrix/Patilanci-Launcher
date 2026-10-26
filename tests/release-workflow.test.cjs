@@ -13,6 +13,14 @@ test('unsigned releases need the download service but no certificate secrets', (
     PUBLIC_DOWNLOAD_SERVICE_URL: 'https://patilanci.net/launcher',
   };
   assert.equal(releaseEnvironment(env), 'https://patilanci.net/launcher');
+  assert.equal(
+    releaseEnvironment({ ...env, GITHUB_EVENT_NAME: 'workflow_dispatch' }),
+    'https://patilanci.net/launcher',
+  );
+  assert.throws(
+    () => releaseEnvironment({ ...env, GITHUB_EVENT_NAME: 'pull_request' }),
+    /master/,
+  );
   assert.throws(
     () => releaseEnvironment({ ...env, PUBLIC_DOWNLOAD_SERVICE_URL: '' }),
     /PUBLIC_DOWNLOAD_SERVICE_URL/,
