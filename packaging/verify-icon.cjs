@@ -21,7 +21,8 @@ function verifyTransparentIcon(image, label) {
     cream < opaque * 0.99
   ) {
     throw new Error(
-      `${label}: expected a visible cream monogram on a transparent background.`,
+      `${label}: expected a visible cream monogram on a transparent background ` +
+        `(${width}x${height}, transparent=${transparent}/${count}, opaque=${opaque}/${count}, cream=${cream}/${opaque}).`,
     );
   }
   for (const offset of [

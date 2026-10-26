@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.3 - 2026-10-26
+
+### Fixed
+
+- Windows icons are rendered directly from the transparent monogram at each required size, avoiding downsampling artifacts that could block installer builds.
+
 ## 2.0.2 - 2026-10-26
 
 ### Improved

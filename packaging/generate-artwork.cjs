@@ -37,13 +37,19 @@ function bitmap24(image) {
   return output;
 }
 
-function icon(image) {
+async function icon() {
   const sizes = [16, 24, 32, 48, 64, 128, 256];
-  const frames = sizes.map((size) => {
-    const frame = image.resize({ width: size, height: size });
+  const frames = [];
+  for (const size of sizes) {
+    // Rasterize the vector at its final size. Resizing the large screenshot
+    // introduces filtering artifacts in the smallest Windows icon frames.
+    const frame = await render('icon', size, size);
+    const dimensions = frame.getSize();
+    if (dimensions.width !== size || dimensions.height !== size)
+      throw new Error(`${size}px Windows icon: incorrect rendered dimensions.`);
     verifyTransparentIcon(frame, `${size}px Windows icon`);
-    return frame.toPNG();
-  });
+    frames.push(frame.toPNG());
+  }
   const header = Buffer.alloc(6 + sizes.length * 16);
   header.writeUInt16LE(1, 2);
   header.writeUInt16LE(sizes.length, 4);
@@ -119,13 +125,10 @@ app
 
     const applicationIcon = await render('icon', 1024, 1024);
     verifyTransparentIcon(applicationIcon, 'Application icon');
-    await fs.writeFile(
-      path.join(resources, 'patilanci.ico'),
-      icon(applicationIcon),
-    );
+    await fs.writeFile(path.join(resources, 'patilanci.ico'), await icon());
     await fs.writeFile(
       path.resolve(__dirname, '../public/brand/patilanci-icon.png'),
-      applicationIcon.resize({ width: 512, height: 512 }).toPNG(),
+      (await render('icon', 512, 512)).toPNG(),
     );
     const tile = await render('tile', 1024, 1024);
     for (const [name, size] of [
