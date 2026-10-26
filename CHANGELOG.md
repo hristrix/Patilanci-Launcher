@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.4 - 2026-10-27
+
+### Fixed
+
+- Minecraft now remembers and uses the window size and fullscreen mode saved in launcher Settings, including switching back from fullscreen to a custom window size. Other in-game settings are preserved.
+
 ## 2.0.3 - 2026-10-26
 
 ### Fixed

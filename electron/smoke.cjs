@@ -19,6 +19,7 @@ const {
   createStartupFlow,
 } = require('./startup-update.cjs');
 const { createOfflineProfiles } = require('./offline-profiles.cjs');
+const { savePreferences } = require('./preferences.cjs');
 const { createSessionStore } = require('./sessions.cjs');
 const { createOfflineSkinSelections } = require('./offline-skin-selection.cjs');
 const { EventEmitter } = require('node:events');
@@ -36,6 +37,12 @@ const {
 } = require('./mods.cjs');
 
 let fixtureDirectory;
+let fixturePreferences = {
+  memory: 6,
+  javaPath: 'java',
+  javaPaths: {},
+  gameWindow: { width: 1920, height: 1080, fullscreen: false },
+};
 let fixtureInstance;
 let fixtureImport;
 let showModFixture = true;
@@ -399,10 +406,17 @@ async function fillInput(window, selector, value) {
 }
 
 // Keep UI checks deterministic without accessing accounts or downloading files.
+ipcMain.handle('save', async (_, data) => {
+  const file = path.join(fixtureDirectory, 'settings.json');
+  await savePreferences(file, data);
+  fixturePreferences = JSON.parse(await fs.readFile(file, 'utf8'));
+  return true;
+});
 ipcMain.handle('config', async () => ({
-  memory: 6,
-  javaPath: 'java',
-  javaPaths: {},
+  memory: fixturePreferences.memory,
+  javaPath: fixturePreferences.javaPath,
+  javaPaths: fixturePreferences.javaPaths,
+  gameWindow: fixturePreferences.gameWindow,
   installed: fixturePack,
   account: fixtureAccount,
   offlineSkin:
@@ -1604,6 +1618,49 @@ app.whenReady().then(async () => {
       ),
       6,
     );
+
+    // Settings must survive the real save path and a renderer reload.
+    await fillInput(window, '#game-width', '1600');
+    await fillInput(window, '#game-height', '900');
+    for (const fullscreen of [true, false]) {
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.game-window-settings input[type="checkbox"]').click()`,
+      );
+      await waitForRenderer(
+        window,
+        `document.querySelector('#game-width').disabled === ${fullscreen}`,
+      );
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.preferences-actions .play-button').click()`,
+      );
+      await waitForRenderer(
+        window,
+        `!document.querySelector('.preferences-actions .play-button').disabled`,
+      );
+      assert.deepEqual(fixturePreferences.gameWindow, {
+        width: 1600,
+        height: 900,
+        fullscreen,
+      });
+      await window.reload();
+      await waitForRenderer(
+        window,
+        `document.querySelector('.app-shell') !== null`,
+      );
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.settings-link').click()`,
+      );
+      await waitForRenderer(
+        window,
+        `document.querySelector('#game-width')?.value === '1600' && document.querySelector('#game-height')?.value === '900'`,
+      );
+      assert.equal(
+        await window.webContents.executeJavaScript(
+          `document.querySelector('.game-window-settings input[type="checkbox"]').checked`,
+        ),
+        fullscreen,
+      );
+    }
 
     await window.webContents.executeJavaScript(
       `document.querySelector('[data-page="mods"]').click()`,

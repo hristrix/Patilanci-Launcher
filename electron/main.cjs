@@ -21,6 +21,7 @@ const { Auth } = require('msmc');
 const { status } = require('minecraft-server-util');
 const { safePath } = require('./utils.cjs');
 const { savePreferences } = require('./preferences.cjs');
+const { normalizeGameWindow, prepareGameWindow } = require('./game-window.cjs');
 const { lockWindowZoom } = require('./window-zoom.cjs');
 const { enableInspectElement } = require('./inspect-element.cjs');
 const { createDiscordPresence } = require('./discord-presence.cjs');
@@ -303,6 +304,7 @@ async function settings() {
       if (JAVA_VERSIONS.includes(major)) s.javaPaths[major] = s.javaPath.trim();
     }
   }
+  s.gameWindow = normalizeGameWindow(s.gameWindow);
   return s;
 }
 async function json(url, headers = {}) {
@@ -619,6 +621,7 @@ ipcMain.handle('config', async () => {
     memory: s.memory,
     javaPath: s.javaPath,
     javaPaths: s.javaPaths,
+    gameWindow: s.gameWindow,
     installed: await installed(),
     host: HOST,
     account: playerProfile,
@@ -1030,10 +1033,13 @@ ipcMain.handle('play', async (_, p) => {
     });
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     send('Starting Minecraft…', null, 'starting');
+    const gameWindow = await prepareGameWindow(root(), s.gameWindow);
+    if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     attempt.service = startMinecraftService(
       {
         authorization,
         customArgs: skinArguments,
+        window: gameWindow,
         root: root(),
         javaPath,
         version: {

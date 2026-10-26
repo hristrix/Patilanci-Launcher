@@ -1,4 +1,5 @@
 const path = require('node:path');
+const { normalizeGameWindow } = require('./game-window.cjs');
 function safePath(root, relative) {
   if (
     typeof relative !== 'string' ||
@@ -44,6 +45,9 @@ function validateSettings(s) {
     memory: Number(s.memory),
     javaPath: s.javaPath.trim(),
     ...(javaPaths && { javaPaths }),
+    ...(s.gameWindow !== undefined && {
+      gameWindow: normalizeGameWindow(s.gameWindow),
+    }),
   };
 }
 module.exports = { safePath, validateSettings };
