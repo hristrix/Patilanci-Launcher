@@ -183,14 +183,16 @@ export default function ModpackPage({
             availableUpdate && !checking ? 'available' : updateState.status
           }
         >
-          <h3 className="installation-heading no-bottom-border">Информация за инсталацията</h3>
+          <h3 className="installation-heading no-bottom-border">
+            Информация за инсталацията
+          </h3>
           {(failed || availableUpdate || checking) && (
             <p className="pack-update-description">
               {failed
                 ? 'Последната версия не може да бъде подготвена. Провери връзката си и опитай отново. Ако проблемът продължи, свържи се с екипа на Патиланци.'
                 : availableUpdate
                   ? `${availableUpdate.releaseName} е налична. Затвори Minecraft, за да я инсталираш, или натисни „Играй“, за да се подготви преди следващата игра.`
-                  : 'Докато приложението е отворено, проверяваме за нова версия всяка минута. Последната версия се подготвя преди стартирането на Minecraft.'}
+                  : 'Докато приложението е отворено, проверяваме за нова версия на всеки 10 секунди. Последната версия се подготвя преди стартирането на Minecraft.'}
             </p>
           )}
 
@@ -198,7 +200,11 @@ export default function ModpackPage({
             <div>
               <dt>
                 <span className="pack-update-icon">
-                  {checking ? <RefreshCw size={22} /> : <ShieldCheck size={22} />}
+                  {checking ? (
+                    <RefreshCw size={22} />
+                  ) : (
+                    <ShieldCheck size={22} />
+                  )}
                 </span>
                 Статус:
               </dt>

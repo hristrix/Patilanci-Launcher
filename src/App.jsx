@@ -99,6 +99,26 @@ export default function App({ api }) {
         pageLabel={PAGES[page].label}
         onOpenFolder={() => actions.performAction(() => api.folder())}
         onOpenConsole={() => actions.performAction(() => api.openConsole())}
+        notificationControl={
+          <button
+            className="window-control notification-button"
+            aria-label="Известия"
+            title="Известия"
+            aria-controls="notifications-panel"
+            aria-expanded={notificationsOpen}
+            onClick={() => {
+              setNotificationsOpen(!notificationsOpen);
+              if (!notificationsOpen) void actions.checkUpdates();
+            }}
+          >
+            <Bell size={19} />
+            {(state.error ||
+              state.modpackUpdate?.status === 'available' ||
+              ['downloading', 'downloaded'].includes(
+                state.launcherUpdate?.status,
+              )) && <i />}
+          </button>
+        }
       />
       <div
         className={`app-shell page-${page} ${page === 'home' ? 'is-home' : ''}`}
@@ -116,29 +136,15 @@ export default function App({ api }) {
         />
         <main className="main-shell">
           <div className="page-content">
-            <div className="notification-area">
-              <button
-                className="notification-button"
-                aria-label="Известия"
-                aria-controls="notifications-panel"
-                aria-expanded={notificationsOpen}
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-              >
-                <Bell size={25} />
-                {(state.error ||
-                  state.modpackUpdate?.status === 'available' ||
-                  ['downloading', 'downloaded'].includes(
-                    state.launcherUpdate?.status,
-                  )) && <i />}
-              </button>
-              {notificationsOpen && (
+            {notificationsOpen && (
+              <div className="notification-area">
                 <NotificationsPanel
                   state={state}
                   actions={actions}
                   onClose={() => setNotificationsOpen(false)}
                 />
-              )}
-            </div>
+              </div>
+            )}
             {page !== 'mods' && page !== 'console' && (
               <PageHeading
                 page={PAGES[page]}

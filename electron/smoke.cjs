@@ -38,6 +38,7 @@ const {
 } = require('./mods.cjs');
 
 let fixtureDirectory;
+let fixtureUpdateChecks = 0;
 let fixturePreferences = {
   memory: 6,
   javaPath: 'java',
@@ -269,6 +270,10 @@ let fixtureStartupFlow = makeFixtureStartupFlow();
 ipcMain.handle('startup', () => fixtureStartupFlow.run());
 ipcMain.handle('retryStartup', () => fixtureStartupFlow.retry());
 ipcMain.handle('checkLauncherUpdate', () => fixtureLauncherUpdate);
+ipcMain.handle('checkUpdates', () => {
+  fixtureUpdateChecks++;
+  return {};
+});
 ipcMain.handle('installLauncherUpdate', async (event) => {
   fixtureLauncherInstalls++;
   const update = {
@@ -712,6 +717,21 @@ app.whenReady().then(async () => {
       window,
       `document.querySelectorAll('.notifications-panel .notification-item').length === 2`,
     );
+    assert.equal(
+      fixtureUpdateChecks,
+      1,
+      'Opening the title-bar bell checks for updates immediately',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(`(() => {
+      const bar = document.querySelector('.window-titlebar');
+      const bell = bar.querySelector('.notification-button');
+      const a = bell?.getBoundingClientRect(), b = bar.getBoundingClientRect();
+      return Boolean(a && a.top >= b.top && a.bottom <= b.bottom && getComputedStyle(bell).getPropertyValue('-webkit-app-region') === 'no-drag');
+    })()`),
+      true,
+      'The bell belongs to the clickable window controls',
+    );
     window.webContents.send('gameState', { running: true });
     await waitForRenderer(
       window,
@@ -883,7 +903,7 @@ app.whenReady().then(async () => {
       {
         drag: 'drag',
         controls: 'no-drag',
-        buttons: 5,
+        buttons: 6,
         maximize: true,
         console: true,
         folder: true,

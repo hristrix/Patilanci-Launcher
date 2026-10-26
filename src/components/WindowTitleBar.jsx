@@ -6,6 +6,7 @@ export default function WindowTitleBar({
   pageLabel,
   onOpenFolder,
   onOpenConsole,
+  notificationControl,
   closeLabel = 'Затвори приложението',
   startup = false,
 }) {
@@ -61,6 +62,7 @@ export default function WindowTitleBar({
         <span className="window-brand-divider" />
       </div>
       <div className="window-controls">
+        {notificationControl}
         {onOpenConsole && (
           <button
             className="window-control"

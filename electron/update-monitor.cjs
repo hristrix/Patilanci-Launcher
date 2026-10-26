@@ -1,4 +1,4 @@
-const UPDATE_INTERVAL_MS = 60000;
+const UPDATE_INTERVAL_MS = 10000;
 
 function createUpdateMonitor({
   getInstalled,
@@ -11,7 +11,7 @@ function createUpdateMonitor({
   schedule = setInterval,
   unschedule = clearInterval,
 }) {
-  let pending, timer;
+  let pending, timer, pendingLauncher, pendingPack, joinedLauncher, joinedPack;
   let state = { status: 'idle', fileId: null, releaseName: null };
   const announced = new Set();
   function notice(key, title, body) {
@@ -73,14 +73,33 @@ function createUpdateMonitor({
     }
   }
   function check() {
-    if (pending) return pending;
-    if (!canCheck()) return Promise.resolve();
-    pending = Promise.allSettled([
-      Promise.resolve().then(checkLauncher).then(launcherState),
-      checkPack(),
-    ]).finally(() => {
-      pending = null;
-    });
+    if (!canCheck()) return pending || Promise.resolve();
+    // A slow launcher download must not postpone newer modpack checks.
+    pendingLauncher ||= Promise.resolve()
+      .then(checkLauncher)
+      .then(launcherState)
+      .finally(() => {
+        pendingLauncher = null;
+      });
+    pendingPack ||= Promise.resolve()
+      .then(checkPack)
+      .finally(() => {
+        pendingPack = null;
+      });
+    if (
+      pending &&
+      joinedLauncher === pendingLauncher &&
+      joinedPack === pendingPack
+    )
+      return pending;
+    joinedLauncher = pendingLauncher;
+    joinedPack = pendingPack;
+    const result = Promise.allSettled([pendingLauncher, pendingPack]).finally(
+      () => {
+        if (pending === result) pending = null;
+      },
+    );
+    pending = result;
     return pending;
   }
   function start() {

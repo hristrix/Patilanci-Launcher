@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.0 - 2026-10-27
+
+### Improved
+
+- Moved the notification bell into the window title bar, accessible from every main-launcher page. Notifications retain their own space without covering errors.
+- Launcher and modpack updates are checked every 10 seconds, on window focus, and immediately when opening the bell. New modpack checks continue during launcher downloads, and detected changes appear immediately.
+- Update actions remain blocked while Minecraft is running; checks and launcher downloads can continue without changing the active game.
+
 ## 2.1.1 - 2026-10-27
 
 ### Fixed

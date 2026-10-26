@@ -242,6 +242,13 @@ export default function useLauncher(api) {
       setLauncherUpdate(await api.checkLauncherUpdate()),
     );
   }
+  function checkUpdates() {
+    if (!api) return Promise.resolve();
+    // Checking is allowed during gameplay; applying updates remains guarded.
+    return api
+      .checkUpdates()
+      .catch((error) => setError(localizeMessage(error)));
+  }
   function installLauncherUpdate() {
     return performAction(() => api.installLauncherUpdate());
   }
@@ -289,6 +296,7 @@ export default function useLauncher(api) {
       reloadConfiguration,
       signOut,
       checkLauncherUpdate,
+      checkUpdates,
       installLauncherUpdate,
       retryStartup: () => runStartup(true),
       openAfterStartupFailure,

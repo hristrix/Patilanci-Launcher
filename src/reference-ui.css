@@ -2011,7 +2011,8 @@ input[type='checkbox'] {
 .notification-button {
   position: relative;
   color: #c4c9d4;
-  padding: 5px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 .notification-button i {
   position: absolute;
@@ -2019,8 +2020,8 @@ input[type='checkbox'] {
   height: 8px;
   border-radius: 50%;
   background: #ff4233;
-  right: 4px;
-  top: 4px;
+  right: 10px;
+  top: calc(50% - 10px);
   box-shadow: 0 0 0 2px #101214;
 }
 .notifications-panel {
@@ -2122,9 +2123,6 @@ input[type='checkbox'] {
 }
 .is-home:has(.needs-sign-in) .page-content {
   padding: 0;
-}
-.is-home:has(.needs-sign-in) .notification-area {
-  display: none;
 }
 .is-home:has(.needs-sign-in) .page-footer {
   display: none;

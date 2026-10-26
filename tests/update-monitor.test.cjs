@@ -84,7 +84,7 @@ test('retains known updates across outages while launcher and modpack checks fai
   );
 });
 
-test('coalesces timer and focus checks, skips busy operations and cancels the minute timer on quit', async () => {
+test('coalesces timer and focus checks, skips busy operations and cancels the ten-second timer on quit', async () => {
   let resolveLatest,
     callback,
     interval,
@@ -112,7 +112,7 @@ test('coalesces timer and focus checks, skips busy operations and cancels the mi
   });
   monitor.start();
   monitor.start();
-  assert.equal(interval, 60000);
+  assert.equal(interval, 10000);
   assert.equal(interval, UPDATE_INTERVAL_MS);
   await monitor.check();
   assert.equal(checks, 0);
@@ -128,6 +128,35 @@ test('coalesces timer and focus checks, skips busy operations and cancels the mi
   monitor.stop();
   monitor.stop();
   assert.equal(stops, 1);
+});
+
+test('new modpacks are announced while a launcher download is still pending', async () => {
+  let finishLauncher,
+    launcherChecks = 0;
+  const { monitor, notices, release } = fixture({
+    checkLauncher: () => {
+      launcherChecks++;
+      return new Promise((resolve) => {
+        finishLauncher = resolve;
+      });
+    },
+  });
+  const first = monitor.check();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(monitor.state().fileId, 2);
+  release({ id: 3, displayName: 'New pack during launcher download' });
+  const second = monitor.check();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(monitor.state().fileId, 3);
+  assert.equal(monitor.state().status, 'available');
+  assert.equal(launcherChecks, 1, 'Do not start a second launcher download');
+  assert.deepEqual(
+    notices.map((notice) => notice.key),
+    ['modpack:2', 'modpack:3'],
+  );
+  finishLauncher({ status: 'downloaded', latestVersion: '2.2.0' });
+  await Promise.all([first, second]);
+  assert.equal(notices.at(-1).key, 'launcher:2.2.0');
 });
 
 test('rechecks installed pack after the network reply to avoid a false notice during installation', async () => {

@@ -33,6 +33,7 @@ for (const name of [
   'startup',
   'retryStartup',
   'checkLauncherUpdate',
+  'checkUpdates',
   'installLauncherUpdate',
   'play',
   'gameState',

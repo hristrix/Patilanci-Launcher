@@ -870,6 +870,13 @@ updateMonitor = createUpdateMonitor({
 });
 ipcMain.handle('startup', () => startupFlow.run());
 ipcMain.handle('retryStartup', () => startupFlow.retry());
+ipcMain.handle('checkUpdates', async () => {
+  await updateMonitor.check();
+  return {
+    launcherUpdate: launcherUpdates.state(),
+    modpackUpdate: updateMonitor.state(),
+  };
+});
 ipcMain.handle('checkLauncherUpdate', () => {
   if (busy || running)
     throw new Error(
