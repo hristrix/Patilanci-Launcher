@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0 - 2026-10-27
+
+### Added
+
+- The notification bell now offers actions to restart and install a launcher update or update the modpack, with both updates shown together. Actions wait while Minecraft is running or the launcher is busy.
+- The bell shows launcher download progress, lets players dismiss errors, and closes with Escape or a click outside the panel.
+
 ## 2.0.4 - 2026-10-27
 
 ### Fixed

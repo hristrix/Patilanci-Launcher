@@ -2030,6 +2030,8 @@ input[type='checkbox'] {
   border-radius: 8px;
   background: #121517;
   box-shadow: 0 15px 50px #0009;
+  max-height: calc(100dvh - var(--titlebar-height) - 110px);
+  overflow-y: auto;
 }
 .notifications-panel h3 {
   font: 600 1.5rem var(--font-display);
@@ -2040,8 +2042,36 @@ input[type='checkbox'] {
   color: var(--muted);
   overflow-wrap: anywhere;
 }
-.notifications-panel .icon-button {
-  float: right;
+.notifications-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.notifications-heading h3 {
+  margin: 0;
+}
+.notifications-list {
+  display: grid;
+  gap: 16px;
+}
+.notification-item {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.notification-item + .notification-item {
+  border-top: 1px solid #3b414b;
+  padding-top: 16px;
+}
+.notification-item strong {
+  font-size: var(--text-small);
+}
+.notification-item .outline-button {
+  width: 100%;
+  justify-content: center;
+  white-space: normal;
 }
 .sidebar .community-link {
   display: none;

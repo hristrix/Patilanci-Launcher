@@ -682,6 +682,9 @@ app.whenReady().then(async () => {
       'A completed startup must not leave a 100% progress bar on Home',
     );
     await checkStaticHome(window);
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').click()`,
+    );
     window.webContents.send('launcherUpdate', {
       status: 'downloaded',
       latestVersion: '99.0.0',
@@ -695,19 +698,26 @@ app.whenReady().then(async () => {
       window,
       `document.querySelectorAll('.update-notice').length === 2`,
     );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.notification-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelectorAll('.notifications-panel .notification-item').length === 2`,
+    );
     window.webContents.send('gameState', { running: true });
     await waitForRenderer(
       window,
-      `[...document.querySelectorAll('.update-notice .outline-button')].every(button => button.disabled) && document.querySelector('.update-notices').textContent.includes('Затвори Minecraft')`,
+      `[...document.querySelectorAll('.update-notice .outline-button, .notifications-panel .outline-button')].every(button => button.disabled) && document.querySelector('.notifications-panel').textContent.includes('Затвори Minecraft')`,
     );
     await capture(window, 'launcher-update-notifications.png');
     window.webContents.send('gameState', { running: false });
     await waitForRenderer(
       window,
-      `[...document.querySelectorAll('.update-notice .outline-button')].every(button => !button.disabled)`,
+      `[...document.querySelectorAll('.update-notice .outline-button, .notifications-panel .outline-button')].every(button => !button.disabled)`,
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector('[data-update-kind="launcher"] .outline-button').click()`,
+      `document.querySelector('.notifications-panel [data-notification="launcher"] button').click()`,
     );
     await waitForRenderer(
       window,
@@ -730,6 +740,12 @@ app.whenReady().then(async () => {
     );
     await window.webContents.executeJavaScript(
       `document.querySelector('[aria-label="Скрий съобщението за грешка"]').click()`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[aria-label="Затвори известията"]').click()`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
     );
     await window.webContents.executeJavaScript(
       `document.querySelector('[aria-label="Скрий известието за пакета"]').click()`,
@@ -755,6 +771,45 @@ app.whenReady().then(async () => {
     await waitForRenderer(
       window,
       `document.querySelectorAll('.update-notice').length === 0`,
+    );
+    window.webContents.send('modpackUpdate', {
+      status: 'available',
+      fileId: 902,
+      releaseName: 'Bell update fixture',
+    });
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').click()`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.notification-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.notifications-panel [data-notification="modpack"] button')?.disabled === false`,
+    );
+    const installsBeforeBell = retryUpdates;
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.notifications-panel [data-notification="modpack"] button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `!document.querySelector('.notifications-panel [data-notification="modpack"] button').disabled`,
+    );
+    assert.equal(
+      retryUpdates,
+      installsBeforeBell + 1,
+      'The bell updates the modpack through the desktop bridge',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.notification-button').focus(); document.querySelector('.notification-button').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.notifications-panel') === null`,
+    );
+    window.webContents.send('modpackUpdate', { status: 'current' });
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
     );
     pauseStatusRefresh = true;
     await window.webContents.executeJavaScript(
@@ -1779,6 +1834,7 @@ app.whenReady().then(async () => {
 
     await verifyResponsiveText(window, waitForPaint, capture);
 
+    const installsBeforeStartupFailure = retryUpdates;
     startupFailure = true;
     fixtureStartupFlow = makeFixtureStartupFlow();
     await window.loadFile(path.join(__dirname, '../dist/index.html'));
@@ -1831,7 +1887,7 @@ app.whenReady().then(async () => {
       `document.querySelector('.pack-update')?.dataset.updateStatus === 'ready' && document.querySelector('.pack-retry') === null`,
     );
     assert.equal(
-      retryUpdates,
+      retryUpdates - installsBeforeStartupFailure,
       1,
       'Retry must run the update and restore the ready view',
     );

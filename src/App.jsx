@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { PAGES } from './config';
 import { storageLabel } from './lib/storage.mjs';
 import useLauncher from './hooks/useLauncher';
@@ -19,6 +19,7 @@ import WindowTitleBar from './components/WindowTitleBar';
 import UpdateRestartScreen from './components/UpdateRestartScreen';
 import LaunchBar from './components/layout/LaunchBar';
 import GameConsole from './components/GameConsole';
+import NotificationsPanel from './components/NotificationsPanel';
 
 // Page composition lives here; desktop requests and subscriptions live in useLauncher.
 export default function App({ api }) {
@@ -105,33 +106,23 @@ export default function App({ api }) {
         <button
           className="notification-button"
           aria-label="Известия"
+          aria-controls="notifications-panel"
           aria-expanded={notificationsOpen}
           onClick={() => setNotificationsOpen(!notificationsOpen)}
         >
           <Bell size={25} />
           {(state.error ||
             state.modpackUpdate?.status === 'available' ||
-            state.launcherUpdate?.status === 'downloaded') && <i />}
+            ['downloading', 'downloaded'].includes(
+              state.launcherUpdate?.status,
+            )) && <i />}
         </button>
         {notificationsOpen && (
-          <section className="notifications-panel" aria-label="Известия">
-            <button
-              className="icon-button"
-              aria-label="Затвори известията"
-              onClick={() => setNotificationsOpen(false)}
-            >
-              <X size={18} />
-            </button>
-            <h3>Известия</h3>
-            <p>
-              {state.error ||
-                (state.launcherUpdate?.status === 'downloaded'
-                  ? `Версия ${state.launcherUpdate.latestVersion} на приложението е готова за инсталиране.`
-                  : state.modpackUpdate?.status === 'available'
-                    ? `Налична е нова версия: ${state.modpackUpdate.releaseName}`
-                    : 'Няма нови известия.')}
-            </p>
-          </section>
+          <NotificationsPanel
+            state={state}
+            actions={actions}
+            onClose={() => setNotificationsOpen(false)}
+          />
         )}
         <Sidebar
           api={api}
