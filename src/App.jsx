@@ -120,6 +120,13 @@ export default function App({ api }) {
           </button>
         }
       />
+      {notificationsOpen && (
+        <NotificationsPanel
+          state={state}
+          actions={actions}
+          onClose={() => setNotificationsOpen(false)}
+        />
+      )}
       <div
         className={`app-shell page-${page} ${page === 'home' ? 'is-home' : ''}`}
       >
@@ -136,15 +143,6 @@ export default function App({ api }) {
         />
         <main className="main-shell">
           <div className="page-content">
-            {notificationsOpen && (
-              <div className="notification-area">
-                <NotificationsPanel
-                  state={state}
-                  actions={actions}
-                  onClose={() => setNotificationsOpen(false)}
-                />
-              </div>
-            )}
             {page !== 'mods' && page !== 'console' && (
               <PageHeading
                 page={PAGES[page]}

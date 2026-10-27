@@ -24,6 +24,8 @@ const { createSessionStore } = require('./sessions.cjs');
 const { createOfflineSkinSelections } = require('./offline-skin-selection.cjs');
 const { EventEmitter } = require('node:events');
 const { createGameProcess } = require('./game-process.cjs');
+const { createConsoleLog } = require('./console-log.cjs');
+const { createConsoleWindow } = require('./console-window.cjs');
 const {
   windowState,
   windowAction,
@@ -302,7 +304,10 @@ ipcMain.handle('memoryInfo', () => ({
 
 ipcMain.handle('mods', async () =>
   showModFixture
-    ? { ...(await listMods(fixtureInstance)), canModify: true }
+    ? {
+        ...(await listMods(fixtureInstance)),
+        canModify: !fixtureGame.state().running,
+      }
     : { installed: false, bundled: [], personal: [], canModify: true },
 );
 ipcMain.handle('addMods', async () => {
@@ -429,6 +434,7 @@ ipcMain.handle('config', async () => ({
   javaPath: fixturePreferences.javaPath,
   javaPaths: fixturePreferences.javaPaths,
   gameWindow: fixturePreferences.gameWindow,
+  hideOnLaunch: fixturePreferences.hideOnLaunch === true,
   installed: fixturePack,
   account: fixtureAccount,
   offlineSkin:
@@ -592,6 +598,13 @@ app.whenReady().then(async () => {
     });
     lockWindowZoom(window);
     fixtureWindow = window;
+    const embeddedLog = createConsoleLog();
+    const consoleController = createConsoleWindow({
+      BrowserWindow,
+      ipcMain,
+      log: embeddedLog,
+      getLauncherWindow: () => window,
+    });
     const execute = window.webContents.executeJavaScript.bind(
       window.webContents,
     );
@@ -677,6 +690,59 @@ app.whenReady().then(async () => {
       `document.querySelector('.app-shell') !== null && !document.querySelector('.launch-bar .play-button').disabled`,
     );
     const home = await checkLayout(window, 'Добре дошъл в Патиланци');
+    embeddedLog.start();
+    embeddedLog.setStatus('running');
+    embeddedLog.write('[Render thread/INFO] Embedded log history fixture\n');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="console"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.game-console.is-embedded .console-status.is-running') && document.querySelector('.console-output').textContent.includes('Embedded log history fixture')`,
+    );
+    embeddedLog.write('[Render thread/WARN] Embedded live output fixture\n');
+    await waitForRenderer(
+      window,
+      `document.querySelector('.console-output').textContent.includes('Embedded live output fixture')`,
+    );
+    assert.equal(
+      consoleController.getWindow(),
+      undefined,
+      'Embedded logs work without creating a separate console window',
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('.console-notice').textContent.includes('временно не е достъпен')`,
+      ),
+      false,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.console-actions .icon-button').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.console-empty') !== null`,
+    );
+    assert.equal(embeddedLog.snapshot().entries.length, 0);
+    embeddedLog.setStatus('stopped');
+    embeddedLog.write('Embedded history after navigation fixture\n');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.game-console') === null`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="console"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.console-status.is-stopped') && document.querySelector('.console-output').textContent.includes('Embedded history after navigation fixture')`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
+    );
     await window.webContents.executeJavaScript(
       `document.querySelector('.launcher-legal a').click()`,
     );
@@ -776,15 +842,22 @@ app.whenReady().then(async () => {
       await waitForPaint(window);
       assert.deepEqual(
         await window.webContents.executeJavaScript(`(() => {
-        const controls = [...document.querySelectorAll('.notification-button, .notifications-panel')];
-        const alerts = [...document.querySelectorAll('.error-banner, .launcher-update-notice, .update-notice')];
-        return controls.flatMap(control => alerts.filter(alert => {
-          const a = control.getBoundingClientRect(), b = alert.getBoundingClientRect();
-          return a.width && a.height && b.width && b.height && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-        }).map(alert => control.className + ' overlaps ' + alert.className));
+        const panel = document.querySelector('.notifications-panel');
+        const bounds = panel.getBoundingClientRect();
+        const content = document.querySelector('.page-content');
+        const before = content.getBoundingClientRect();
+        panel.style.display = 'none';
+        const after = content.getBoundingClientRect();
+        panel.style.display = '';
+        return {
+          floating: getComputedStyle(panel).position === 'fixed',
+          visible: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= document.querySelector('.window-titlebar').getBoundingClientRect().bottom && bounds.bottom <= innerHeight,
+          stable: before.top === after.top && before.height === after.height,
+          onTop: panel.contains(document.elementFromPoint(bounds.left + 20, bounds.top + 20)),
+        };
       })()`),
-        [],
-        'Notifications must never overlap error or update banners',
+        { floating: true, visible: true, stable: true, onTop: true },
+        'Notifications float above the page without shifting content at either window size',
       );
     }
     await capture(window, 'launcher-notifications-error-mods.png');
@@ -1231,7 +1304,8 @@ app.whenReady().then(async () => {
       await window.webContents.executeJavaScript(
         `document.querySelector('.play-button').disabled`,
       ),
-      true,
+      false,
+      'The bottom sign-in action stays available while PIN confirmation prevents playing',
     );
     await fillInput(window, '#offline-pin-confirm', '654321');
     await window.webContents.executeJavaScript(
@@ -1392,6 +1466,13 @@ app.whenReady().then(async () => {
       0,
       'Restoring a session does not launch Minecraft',
     );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').click()`,
+    );
+    await fillInput(window, '#game-width', '1440');
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
+    );
     pauseLaunch = true;
     await window.webContents.executeJavaScript(
       `document.querySelector('.play-button').click()`,
@@ -1427,6 +1508,19 @@ app.whenReady().then(async () => {
       `document.querySelector('.play-button')?.textContent.includes('СПРИ ИГРАТА')`,
     );
     assert.equal(fixtureGameStarts, 1);
+    await window.webContents.executeJavaScript(
+      `document.querySelector('.settings-link').click()`,
+    );
+    assert.equal(
+      await window.webContents.executeJavaScript(
+        `document.querySelector('#game-width').value`,
+      ),
+      '1440',
+      'Launching Minecraft preserves unsaved settings edits',
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
+    );
     assert.equal(
       await window.webContents.executeJavaScript(
         `document.querySelector('.launch-steps [aria-current="step"]').textContent.includes('Играта работи') && document.querySelector('.launch-controls .progress-track') === null`,
@@ -1446,7 +1540,21 @@ app.whenReady().then(async () => {
       true,
       'Reload retains the running-game Stop action',
     );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="mods"]').click()`,
+    );
+    await waitForRenderer(
+      window,
+      `document.querySelector('.mods-edit-warning') !== null`,
+    );
     await stopFixtureGame(window);
+    await waitForRenderer(
+      window,
+      `document.querySelector('.mods-heading .play-button')?.disabled === false && !document.querySelector('.mods-edit-warning')`,
+    );
+    await window.webContents.executeJavaScript(
+      `document.querySelector('[data-page="home"]').click()`,
+    );
     failNextLaunch = true;
     await window.webContents.executeJavaScript(
       `document.querySelector('.play-button').click()`,
@@ -1483,7 +1591,7 @@ app.whenReady().then(async () => {
     );
     await waitForRenderer(
       window,
-      `document.querySelector('#offline-pin') !== null && document.querySelector('.play-button').disabled`,
+      `document.querySelector('#offline-pin') !== null && !document.querySelector('.launch-bar .play-button').disabled && document.querySelector('.launch-bar .play-button').textContent.includes('ВЛЕЗ')`,
     );
     assert.deepEqual(
       await fixtureSessions.read(),
@@ -1732,7 +1840,7 @@ app.whenReady().then(async () => {
     await fillInput(window, '#game-height', '900');
     for (const fullscreen of [true, false]) {
       await window.webContents.executeJavaScript(
-        `document.querySelector('.game-window-settings input[type="checkbox"]').click()`,
+        `document.querySelector('.game-window-settings input[type="checkbox"]').click(); document.querySelector('.startup-settings input').click()`,
       );
       await waitForRenderer(
         window,
@@ -1750,6 +1858,11 @@ app.whenReady().then(async () => {
         height: 900,
         fullscreen,
       });
+      assert.equal(
+        fixturePreferences.hideOnLaunch,
+        fullscreen,
+        'Hide-on-launch passes through the real settings save path',
+      );
       await window.reload();
       await waitForRenderer(
         window,
@@ -1767,6 +1880,13 @@ app.whenReady().then(async () => {
           `document.querySelector('.game-window-settings input[type="checkbox"]').checked`,
         ),
         fullscreen,
+      );
+      assert.equal(
+        await window.webContents.executeJavaScript(
+          `document.querySelector('.startup-settings input').checked`,
+        ),
+        fullscreen,
+        'Hide-on-launch survives renderer reloads',
       );
     }
 
@@ -1944,6 +2064,21 @@ app.whenReady().then(async () => {
     await waitForRenderer(
       window,
       `document.querySelector('.preferences-actions .play-button')?.disabled === false`,
+    );
+    assert.deepEqual(
+      await window.webContents.executeJavaScript(`({
+      memory: Number(document.querySelector('#memory').value),
+      width: Number(document.querySelector('#game-width').value),
+      height: Number(document.querySelector('#game-height').value),
+      hideOnLaunch: document.querySelector('.startup-settings input').checked,
+    })`),
+      {
+        memory: fixturePreferences.memory,
+        width: fixturePreferences.gameWindow.width,
+        height: fixturePreferences.gameWindow.height,
+        hideOnLaunch: fixturePreferences.hideOnLaunch,
+      },
+      'Continuing after startup failure loads saved preferences rather than defaults',
     );
     await window.webContents.executeJavaScript(
       `document.querySelector('[data-page="modpack"]').click()`,

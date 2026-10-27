@@ -35,6 +35,29 @@ app.whenReady().then(async () => {
     await new Promise((resolve) =>
       window.webContents.once('did-finish-load', resolve),
     );
+    const untrusted = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.cjs'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+    await untrusted.loadURL('about:blank');
+    for (const expression of [
+      'window.launcher.consoleSnapshot(0)',
+      'window.launcher.clearConsole()',
+    ]) {
+      assert.equal(
+        await untrusted.webContents.executeJavaScript(
+          `${expression}.then(() => false, () => true)`,
+        ),
+        true,
+        'Untrusted windows cannot read or clear game logs',
+      );
+    }
+    untrusted.destroy();
     await waitFor(window, `document.querySelector('.console-empty') !== null`);
     assert.equal(
       await window.webContents.executeJavaScript('typeof window.launcher'),

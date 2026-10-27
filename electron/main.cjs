@@ -6,6 +6,7 @@ const {
   safeStorage,
   dialog,
   nativeImage,
+  screen,
 } = require('electron');
 const fs = require('node:fs/promises'),
   path = require('node:path'),
@@ -45,6 +46,7 @@ const {
   reuseGameDownloads,
 } = require('./instance-data.cjs');
 const { createGameProcess, terminate } = require('./game-process.cjs');
+const { createGameVisibility } = require('./game-visibility.cjs');
 const { createConsoleLog } = require('./console-log.cjs');
 const { createConsoleWindow } = require('./console-window.cjs');
 const { createOfflineSkinResolver } = require('./offline-skins.cjs');
@@ -96,14 +98,17 @@ const gameConsole = createConsoleWindow({
   BrowserWindow,
   ipcMain,
   log: consoleLog,
+  getLauncherWindow: () => win,
   onClose: stopConsoleGame,
 });
 let lastConsoleMessage = '';
+const gameVisibility = createGameVisibility(() => win);
 const game = createGameProcess({
   kill: (child) =>
     launchAttempt?.service ? launchAttempt.service.stop() : terminate(child),
   onChange(state) {
     running = state.running;
+    gameVisibility.update(state, launchAttempt?.hideOnLaunch);
     discord.setActivity(state.running ? 'playing' : 'launcher');
     consoleLog.setStatus(
       state.stopping ? 'stopping' : state.running ? 'running' : 'stopped',
@@ -623,6 +628,7 @@ ipcMain.handle('config', async () => {
     javaPath: s.javaPath,
     javaPaths: s.javaPaths,
     gameWindow: s.gameWindow,
+    hideOnLaunch: s.hideOnLaunch === true,
     installed: await installed(),
     host: HOST,
     account: playerProfile,
@@ -980,7 +986,6 @@ ipcMain.handle('play', async (_, p) => {
   discord.setActivity('launching');
   consoleLog.start([authorization.access_token, authorization.client_token]);
   lastConsoleMessage = '';
-  gameConsole.open();
   const preparationStarted = performance.now();
   try {
     const {
@@ -1016,6 +1021,7 @@ ipcMain.handle('play', async (_, p) => {
       },
     });
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
+    attempt.hideOnLaunch = s.hideOnLaunch === true;
     send('Preparing shared skins…', null, 'starting');
     const savedSkin =
       p.mode === 'offline'
@@ -1041,7 +1047,15 @@ ipcMain.handle('play', async (_, p) => {
     });
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     send('Starting Minecraft…', null, 'starting');
-    const gameWindow = await prepareGameWindow(root(), s.gameWindow);
+    const display =
+      win && !win.isDestroyed()
+        ? screen.getDisplayMatching(win.getBounds())
+        : screen.getPrimaryDisplay();
+    const gameWindow = await prepareGameWindow(
+      root(),
+      s.gameWindow,
+      display.workAreaSize,
+    );
     if (attempt.cancelled) throw new Error('Minecraft launch cancelled.');
     attempt.service = startMinecraftService(
       {

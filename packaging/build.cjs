@@ -93,6 +93,7 @@ async function main() {
   if (artwork.error) throw artwork.error;
   if (artwork.status !== 0)
     throw new Error('Installer artwork generation failed.');
+  if (!store) runNode('packaging/setup/build.cjs');
   runNode('node_modules/vite/bin/vite.js', ['build']);
 
   const config = {

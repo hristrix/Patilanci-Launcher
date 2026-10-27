@@ -1,6 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const assert = require('node:assert/strict');
 const { configureLauncherExit } = require('./launcher-exit.cjs');
+const { createGameVisibility } = require('./game-visibility.cjs');
 app.disableHardwareAcceleration();
 const timeout = setTimeout(() => {
   console.error('Launcher exit timed out.');
@@ -31,6 +32,11 @@ app
       'data:text/html,<title>Launcher exit smoke test</title>',
     );
     window.show();
+    const visibility = createGameVisibility(() => window);
+    visibility.update({ running: true }, true);
+    assert.equal(window.isVisible(), false);
+    visibility.update({ running: false });
+    assert.equal(window.isVisible(), true);
     window.close();
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(window.isDestroyed(), false);

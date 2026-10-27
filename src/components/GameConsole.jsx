@@ -26,6 +26,7 @@ export default function GameConsole({
   const [level, setLevel] = useState('all');
   const [follow, setFollow] = useState(true);
   const [notice, setNotice] = useState('');
+  const [unavailable, setUnavailable] = useState(false);
   const [copied, setCopied] = useState(false);
   const output = useRef(null);
   const cursor = useRef({ lastId: 0, generation: null });
@@ -40,6 +41,7 @@ export default function GameConsole({
           ? api.consoleSnapshot(cursor.current.lastId)
           : api.snapshot(cursor.current.lastId));
         if (!active) return;
+        setUnavailable(false);
         const reset = next.generation !== cursor.current.generation;
         cursor.current = { lastId: next.lastId, generation: next.generation };
         setSnapshot((previous) =>
@@ -58,7 +60,7 @@ export default function GameConsole({
               },
         );
       } catch {
-        if (active) setNotice('Логовеът временно не е достъпен.');
+        if (active) setUnavailable(true);
       }
       if (active) timer = setTimeout(update, 350);
     }
@@ -270,7 +272,7 @@ export default function GameConsole({
               последните {snapshot.limit.toLocaleString()} реда
             </span>
             <span className="console-notice" role="status">
-              {notice ||
+              {(unavailable ? 'Логовеът временно не е достъпен.' : notice) ||
                 (embedded
                   ? 'Логовеът се обновява в реално време.'
                   : 'Затварянето на този прозорец спира Minecraft.')}

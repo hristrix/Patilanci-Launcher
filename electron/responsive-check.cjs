@@ -11,7 +11,7 @@ const VIEWPORTS = [
   [2560, 1440],
   [3840, 2160],
 ];
-const PAGES = ['home', 'modpack', 'players', 'mods', 'settings'];
+const PAGES = ['home', 'modpack', 'players', 'mods', 'settings', 'console'];
 
 async function verifyResponsiveText(window, waitForPaint, capture) {
   const report = [];

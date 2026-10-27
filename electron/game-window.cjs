@@ -29,8 +29,14 @@ function normalizeGameWindow(
   };
 }
 
-async function prepareGameWindow(instance, value) {
+async function prepareGameWindow(instance, value, workArea) {
   const window = normalizeGameWindow(value);
+  if (!window.fullscreen && workArea) {
+    // Minecraft dimensions describe its client area. Leave room for the native
+    // title bar and resize borders, including on displays with a taskbar.
+    window.width = Math.min(window.width, Math.max(1, workArea.width - 32));
+    window.height = Math.min(window.height, Math.max(1, workArea.height - 64));
+  }
   const file = path.join(instance, 'options.txt');
   let original = '';
   try {

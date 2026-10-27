@@ -14,6 +14,7 @@ export default function useLauncher(api) {
   const [launchPhase, setLaunchPhase] = useState('idle');
   const sessionLoaded = useRef(false);
   const [busy, setBusy] = useState(Boolean(api));
+  const actionPending = useRef(false);
   const [updateState, setUpdateState] = useState({
     status: api ? 'checking' : 'idle',
   });
@@ -105,7 +106,7 @@ export default function useLauncher(api) {
   }
   async function openAfterStartupFailure() {
     try {
-      await loadConfiguration({ resetDraft: false });
+      await loadConfiguration();
     } catch (error) {
       setError(localizeMessage(error));
     }
@@ -158,8 +159,9 @@ export default function useLauncher(api) {
       );
       return;
     }
-    if (busy) return;
+    if (busy || actionPending.current) return;
 
+    actionPending.current = true;
     setBusy(true);
     setError('');
     try {
@@ -167,6 +169,7 @@ export default function useLauncher(api) {
     } catch (error) {
       setError(localizeMessage(error));
     } finally {
+      actionPending.current = false;
       setBusy(false);
     }
   }
@@ -196,7 +199,7 @@ export default function useLauncher(api) {
       setProgress({ message: 'Подготовка на приключението…', percent: null });
       try {
         await api.play({ mode, name: username });
-        await loadConfiguration();
+        await loadConfiguration({ resetDraft: false });
       } finally {
         setLaunchPhase('idle');
       }

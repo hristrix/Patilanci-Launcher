@@ -21,6 +21,8 @@ function validateSettings(s) {
   )
     throw Error('Memory must be 2–32 GB');
   if (typeof s.javaPath !== 'string') throw Error('Invalid settings');
+  if (s.hideOnLaunch !== undefined && typeof s.hideOnLaunch !== 'boolean')
+    throw Error('Invalid settings');
   let javaPaths;
   if (s.javaPaths !== undefined) {
     if (
@@ -44,6 +46,7 @@ function validateSettings(s) {
   return {
     memory: Number(s.memory),
     javaPath: s.javaPath.trim(),
+    ...(s.hideOnLaunch !== undefined && { hideOnLaunch: s.hideOnLaunch }),
     ...(javaPaths && { javaPaths }),
     ...(s.gameWindow !== undefined && {
       gameWindow: normalizeGameWindow(s.gameWindow),

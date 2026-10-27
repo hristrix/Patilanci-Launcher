@@ -39,6 +39,8 @@ for (const name of [
   'gameState',
   'stopMinecraft',
   'openConsole',
+  'consoleSnapshot',
+  'clearConsole',
   'offlineProfile',
   'loginOffline',
   'folder',

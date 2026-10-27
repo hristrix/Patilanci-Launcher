@@ -2001,13 +2001,6 @@ input[type='checkbox'] {
 .is-embedded .console-line {
   grid-template-columns: 120px 55px minmax(0, 1fr);
 }
-.notification-area {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  margin-bottom: 12px;
-}
 .notification-button {
   position: relative;
   color: #c4c9d4;
@@ -2025,14 +2018,17 @@ input[type='checkbox'] {
   box-shadow: 0 0 0 2px #101214;
 }
 .notifications-panel {
-  position: relative;
-  width: 100%;
+  position: fixed;
+  z-index: 40;
+  top: calc(var(--titlebar-height) + 8px);
+  right: 12px;
+  width: min(400px, calc(100vw - 24px));
   padding: 20px;
   border: 1px solid #3b414b;
   border-radius: 8px;
   background: #121517;
   box-shadow: 0 15px 50px #0009;
-  max-height: calc(100dvh - var(--titlebar-height) - 110px);
+  max-height: calc(100dvh - var(--titlebar-height) - 24px);
   overflow-y: auto;
 }
 .notifications-panel h3 {
@@ -2056,7 +2052,7 @@ input[type='checkbox'] {
 }
 .notifications-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }

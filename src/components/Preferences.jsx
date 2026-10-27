@@ -53,6 +53,7 @@ export default function Preferences({
           <MemorySettings
             api={api}
             allocation={draft.memory}
+            disabled={busy}
             onChange={(memory) => onChange({ ...draft, memory })}
           />
           <JavaSettings

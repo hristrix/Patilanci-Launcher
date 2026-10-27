@@ -62,6 +62,29 @@ test('window settings survive saving and produce Minecraft windowed and fullscre
   }
 });
 
+test('windowed launches leave room for native borders without changing saved dimensions', async (t) => {
+  const root = await fixture(t);
+  const saved = { width: 1920, height: 1080, fullscreen: false };
+  const workArea = { width: 1920, height: 1040 };
+  assert.deepEqual(await prepareGameWindow(root, saved, workArea), {
+    width: 1888,
+    height: 976,
+    fullscreen: false,
+  });
+  assert.deepEqual(saved, { width: 1920, height: 1080, fullscreen: false });
+  const options = await fs.readFile(path.join(root, 'options.txt'), 'utf8');
+  assert.match(options, /^fullscreen:false$/m);
+  assert.match(options, /^overrideWidth:1888$/m);
+  assert.match(options, /^overrideHeight:976$/m);
+  const smaller = { width: 1280, height: 720, fullscreen: false };
+  assert.deepEqual(await prepareGameWindow(root, smaller, workArea), smaller);
+  const fullscreen = { ...saved, fullscreen: true };
+  assert.deepEqual(
+    await prepareGameWindow(root, fullscreen, workArea),
+    fullscreen,
+  );
+});
+
 test('video updates preserve other Minecraft options and replace old size and fullscreen overrides', async (t) => {
   const root = await fixture(t);
   const file = path.join(root, 'options.txt');

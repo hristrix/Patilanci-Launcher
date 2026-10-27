@@ -2,7 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Cpu, RefreshCw } from 'lucide-react';
 import { assessMemory, BYTES_PER_GB } from '../lib/memory.mjs';
 
-export default function MemorySettings({ api, allocation, onChange }) {
+export default function MemorySettings({
+  api,
+  allocation,
+  onChange,
+  disabled,
+}) {
   const [snapshot, setSnapshot] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,6 +65,7 @@ export default function MemorySettings({ api, allocation, onChange }) {
         <select
           aria-label="Памет за играта"
           value={allocation}
+          disabled={disabled}
           onChange={(event) => onChange(Number(event.target.value))}
         >
           {Array.from({ length: 31 }, (_, i) => i + 2).map((gb) => (
@@ -76,6 +82,7 @@ export default function MemorySettings({ api, allocation, onChange }) {
         max="32"
         step="1"
         value={allocation}
+        disabled={disabled}
         style={{ '--memory-fill': `${((allocation - 2) / 30) * 100}%` }}
         onChange={(event) => onChange(Number(event.target.value))}
         aria-describedby="memory-guidance memory-assessment"
@@ -139,6 +146,7 @@ export default function MemorySettings({ api, allocation, onChange }) {
                       <button
                         type="button"
                         className="outline-button"
+                        disabled={disabled}
                         onClick={() => onChange(assessment.recommendedGb)}
                       >
                         Използвай {assessment.recommendedGb} ГБ

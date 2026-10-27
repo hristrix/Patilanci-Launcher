@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.3.0 - 2026-10-27
+
+### Added
+
+- Custom Bulgarian installation and uninstall windows based on the supplied designs, with village artwork, three-step navigation, folder selection, available disk space, shortcut choices, live operation state, and completion screens.
+- Uninstall keeps worlds, mods, profiles, and settings by default. Removing saved data requires an explicit choice and a second confirmation.
+
+### Improved
+
+- Manual setup uses the custom native window while NSIS continues to handle application registration and file operations. Automatic updates and explicitly silent commands skip the visible setup flow.
+- Setup rejects system roots and nonempty shared folders, reports backend failures, and prevents closing while files are changing.
+
+## 2.2.5 - 2026-10-27
+
+### Fixed
+
+- The hide-after-launch preference now saves correctly, hides the launcher when Minecraft starts, and restores it when the game exits.
+- Continuing after a failed startup loads saved settings instead of displaying defaults. Launching Minecraft also preserves unsaved settings edits.
+- The bottom sign-in button remains available after signing out of an offline profile.
+- Mod controls automatically unlock after Minecraft closes, and completed operations refresh the inventory.
+- Repeated actions are guarded against overlap, and memory controls lock consistently while the launcher is busy.
+- Removed a React warning from the launch bar.
+
+## 2.2.4 - 2026-10-27
+
+### Fixed
+
+- Restored live Minecraft logs, game status, and clearing on the launcher's Logs page without requiring a separate console window. Returning to the page restores the current session's history.
+- The temporary log-unavailable message now clears when the connection recovers.
+
+## 2.2.3 - 2026-10-27
+
+### Fixed
+
+- Starting Minecraft no longer opens a separate log window; logs remain available on the launcher's Logs page.
+- Windowed Minecraft launches fit within the display's usable area, leaving room for the native title bar and borders while retaining saved size preferences.
+- The notification bell now opens a floating panel above the current page without moving its content. Escape and clicks outside still close it.
+
 ## 2.2.2 - 2026-10-27
 
 ### Improved

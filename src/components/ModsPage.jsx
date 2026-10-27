@@ -60,7 +60,10 @@ export default function ModsPage({
     api
       .mods()
       .then((result) => {
-        if (active) setInventory(result);
+        if (active) {
+          setInventory(result);
+          setLoadError('');
+        }
       })
       .catch((error) => {
         if (active) setLoadError(localizeMessage(error));
@@ -68,7 +71,7 @@ export default function ModsPage({
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, busy]);
 
   useEffect(() => {
     setFilter('all');

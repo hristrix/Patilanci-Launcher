@@ -1,16 +1,37 @@
-; Patilanci's artwork uses the same palette as the launcher.
-; Keep the wizard's system controls for keyboard access and Windows scaling.
+!include "${BUILD_RESOURCES_DIR}\..\setup\bridge.nsh"
 
 !macro customInit
+  ${StdUtils.GetParameter} $setupState "patilanci-state" ""
   ; Older launchers send --updated without /S. Keep those upgrades silent too.
-  ; A manual first installation still uses the normal setup wizard.
+  ; Silent installation and updater command lines never open the custom UI.
   ${if} ${isUpdated}
     SetSilent silent
     Banner::show /NOUNLOAD /set 76 "Applying launcher update..." /set 1030 "Please wait. Patilanci will reopen automatically." "Patilanci Launcher - Updating"
+  ${elseIfNot} ${Silent}
+    !insertmacro launchPatilanciSetup "install"
   ${endif}
 !macroend
 
 !macro customInstall
+  ${if} $setupState != ""
+    ; A manual setup explicitly applies both shortcut choices. Automatic
+    ; updates retain the existing electron-builder shortcut behavior.
+    ReadINIStr $setupOption "$setupState\options.ini" "setup" "desktop"
+    ${if} $setupOption == "1"
+      CreateShortCut "$newDesktopLink" "$appExe" "" "$appExe" 0
+      WinShell::SetLnkAUMI "$newDesktopLink" "${APP_ID}"
+    ${else}
+      Delete "$newDesktopLink"
+    ${endif}
+    ReadINIStr $setupOption "$setupState\options.ini" "setup" "startMenu"
+    ${if} $setupOption == "1"
+      !insertmacro createMenuDirectory
+      CreateShortCut "$newStartMenuLink" "$appExe" "" "$appExe" 0
+      WinShell::SetLnkAUMI "$newStartMenuLink" "${APP_ID}"
+    ${else}
+      Delete "$newStartMenuLink"
+    ${endif}
+  ${endif}
   ; Updates preserve existing shortcuts. Notify Explorer that their executable
   ; and icon changed even when those shortcut files were kept in place.
   ; SHCNE_UPDATEITEM with SHCNF_PATHW | SHCNF_FLUSH.
@@ -25,6 +46,10 @@
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0x00001000, p 0, p 0)'
   ${if} ${isUpdated}
     Banner::destroy
+  ${endif}
+  ${if} $setupState != ""
+    WriteINIStr "$setupState\progress.ini" "progress" "percent" "100"
+    WriteINIStr "$setupState\progress.ini" "progress" "complete" "1"
   ${endif}
 !macroend
 

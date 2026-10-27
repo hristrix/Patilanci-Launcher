@@ -49,7 +49,10 @@ export default function LaunchControls({
           disabled={
             busy ||
             game.stopping ||
-            (!game.running && mode === 'offline' && !offlineRemembered)
+            (!game.running &&
+              signedIn &&
+              mode === 'offline' &&
+              !offlineRemembered)
           }
           onClick={game.running ? onStop : onPlay}
           aria-label={

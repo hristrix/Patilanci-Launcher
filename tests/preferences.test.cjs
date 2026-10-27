@@ -66,6 +66,24 @@ test('invalid preferences and corrupt saved settings are not written over', asyn
   assert.equal(await fs.readFile(file, 'utf8'), 'corrupt settings');
 });
 
+test('hide-on-launch persists in both directions and invalid values cannot replace settings', async (context) => {
+  const file = await fixture(context);
+  for (const hideOnLaunch of [true, false]) {
+    await savePreferences(file, { memory: 6, javaPath: 'java', hideOnLaunch });
+    assert.equal(
+      JSON.parse(await fs.readFile(file, 'utf8')).hideOnLaunch,
+      hideOnLaunch,
+    );
+  }
+  const existing = await fs.readFile(file, 'utf8');
+  for (const hideOnLaunch of ['false', 1, null, {}]) {
+    await assert.rejects(
+      savePreferences(file, { memory: 6, javaPath: 'java', hideOnLaunch }),
+    );
+    assert.equal(await fs.readFile(file, 'utf8'), existing);
+  }
+});
+
 test('version-specific Java paths persist with whitespace removed and reset to automatic', async (context) => {
   const file = await fixture(context);
   await savePreferences(file, {

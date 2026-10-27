@@ -12,6 +12,7 @@ function createConsoleWindow({
   BrowserWindow,
   ipcMain,
   log,
+  getLauncherWindow = () => null,
   onClose = async () => {},
 }) {
   let window;
@@ -19,14 +20,24 @@ function createConsoleWindow({
     if (!window || window.isDestroyed() || event.sender !== window.webContents)
       throw new Error('Console window required.');
   }
-  ipcMain.handle('consoleSnapshot', (event, after) => {
+  function requireLogReader(event) {
+    const launcher = getLauncherWindow();
+    if (
+      launcher &&
+      !launcher.isDestroyed() &&
+      event.sender === launcher.webContents
+    )
+      return;
     requireConsole(event);
+  }
+  ipcMain.handle('consoleSnapshot', (event, after) => {
+    requireLogReader(event);
     if (after !== undefined && (!Number.isSafeInteger(after) || after < 0))
       throw new Error('Invalid console cursor.');
     return log.snapshot(after);
   });
   ipcMain.handle('clearConsole', (event) => {
-    requireConsole(event);
+    requireLogReader(event);
     log.clear();
   });
   ipcMain.handle('consoleWindowState', (event) => {
