@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.2 - 2026-10-27
+
+### Improved
+
+- Updated the launcher release version to 2.2.2, including the title-bar notification bell, 10-second update checks, and update actions that wait until Minecraft closes.
+
 ## 2.2.0 - 2026-10-27
 
 ### Improved

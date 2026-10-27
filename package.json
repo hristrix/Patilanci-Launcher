@@ -1,6 +1,6 @@
 {
   "name": "patilanci-launcher",
-  "version": "2.2.0",
+  "version": "2.2.2",
   "description": "Patilanci SMP desktop launcher",
   "dependencies": {
     "@fontsource/manrope": "5.3.0",
