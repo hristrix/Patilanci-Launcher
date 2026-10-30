@@ -39,6 +39,18 @@ The renderer separates page composition, desktop operations, and presentation:
 
 Pass the desktop bridge as `api` from the entry point; components receive data and callbacks through props. Keep desktop requests in the coordinating hooks or existing feature components. Preserve DOM classes when moving markup because the responsive styles use those classes and their parent relationships. `npm run validate` exercises sign-in, PINs, launch states, updates, skins, and responsive layouts through the actual renderer.
 
+## Seasonal templates
+
+Seasonal loading screens also play original 16-second sound loops at low volume: eerie Halloween ambience, Christmas bells, and New Year chimes with gentle firework swells. **Звук: включен / изключен** toggles sound and remembers the choice locally. Sound pauses while the window is hidden and stops when the loading screen closes or changes theme; the original template is silent. Browser previews that block autoplay show **Пусни звука**. The soundtracks work offline; their source and reproduction command are in `public/audio/README.md`.
+
+Each season has dedicated bundled village artwork, matching surfaces and action colors, and atmospheric details: embers and mist for Halloween, snowfall for Christmas, and champagne sparkles for New Year. Home remains static; loading screens use the same landscape across the full window with subtle ambient motion. Motion pauses when hidden and respects reduced-motion preferences. Image provenance and the exact generation prompts are recorded in `public/artwork/seasonal-prompts.md`.
+
+The launcher and loading screen automatically follow the player's local calendar: **Halloween October 24–31**, **Christmas December 1–26**, and **New Year December 27–January 2**. The original template appears on all other dates. The theme refreshes while the launcher stays open and when the window regains focus, including after sleep. Date rules live in `src/lib/seasonal-theme.mjs`; palettes and scenery live in `src/seasonal.css` and `src/components/SeasonalScenery.jsx`.
+
+Unpackaged Electron runs (`npm start`) and the browser dev server (`npm run dev`) show a **DEV** template selector in the title bar. Choose the original template, any seasonal template, or **По дата** for automatic selection. **Виж зареждането** previews the loading screen without restarting startup or performing game actions; **Към launcher** returns to the launcher. The selected template persists locally for debugging. Packaged builds hide these controls and always use the calendar, ignoring saved development overrides.
+
+Run `npm run test:desktop -- --themes --disable-gpu` after building for focused seasonal checks and screenshots in `artifacts/`.
+
 ## Run
 
 Development requires Node.js 22+ and uses npm 10.9.4, matching GitHub builds. On Windows x64, the launcher installs the modpack's required Java runtime automatically; players do not need to install Java separately.

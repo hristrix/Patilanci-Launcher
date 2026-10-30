@@ -561,6 +561,7 @@ app.whenReady().then(() => {
     show: false,
     webPreferences: {
       devTools: !app.isPackaged,
+      autoplayPolicy: 'no-user-gesture-required',
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
@@ -606,6 +607,7 @@ ipcMain.handle('openConsole', (event) => {
     throw new Error('Launcher window required.');
   gameConsole.open();
 });
+ipcMain.handle('environment', () => ({ development: !app.isPackaged }));
 ipcMain.handle('windowState', (event) => {
   if (event.sender !== win?.webContents)
     throw new Error('Launcher window required.');

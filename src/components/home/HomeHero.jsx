@@ -1,6 +1,8 @@
 import { ArrowUpRight, Box, CheckCircle2 } from 'lucide-react';
 import Panorama from '../Panorama';
 import GrassBlock from '../GrassBlock';
+import { SeasonalGreeting, useSeasonalTheme } from '../SeasonalTheme';
+import { THEMES } from '../../lib/seasonal-theme.mjs';
 
 export default function HomeHero({
   installed,
@@ -10,6 +12,7 @@ export default function HomeHero({
   updateAvailable,
   refreshing,
 }) {
+  const { theme } = useSeasonalTheme();
   return (
     <section className="village-hero" aria-label="Patilanci Adventures">
       <div className="village-hero-art">
@@ -27,9 +30,12 @@ export default function HomeHero({
               : 'Няма връзка със сървъра'}
         </span>
         <div className="village-hero-copy">
+          <SeasonalGreeting />
           <span className="overline">ОФИЦИАЛЕН ПАКЕТ</span>
           <h2>Patilanci Adventures</h2>
-          <p>Нашият свят. Твоите приключения.</p>
+          <p>
+            {THEMES[theme].description || 'Нашият свят. Твоите приключения.'}
+          </p>
         </div>
       </div>
       <div className="hero-specs">

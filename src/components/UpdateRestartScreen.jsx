@@ -1,13 +1,22 @@
 import { Check, LoaderCircle, RefreshCw } from 'lucide-react';
 import BrandLogo from './BrandLogo';
+import Panorama from './Panorama';
+import { useSeasonalTheme } from './SeasonalTheme';
+import SeasonalLoadingSound from './SeasonalLoadingSound';
 
 export default function UpdateRestartScreen({ version }) {
+  const { theme } = useSeasonalTheme();
   return (
     <main
       className="startup-splash update-restart-screen"
       aria-label="Рестартиране за обновяване"
       aria-busy="true"
     >
+      {theme !== 'original' && (
+        <div className="splash-landscape" aria-hidden="true">
+          <Panorama />
+        </div>
+      )}
       <section className="splash-card">
         <div className="splash-brand">
           <BrandLogo />
@@ -66,6 +75,11 @@ export default function UpdateRestartScreen({ version }) {
           Изчакай приложението да се отвори отново. Не е необходимо да стартираш
           инсталацията или да го отваряш повторно.
         </p>
+        {theme !== 'original' && (
+          <div className="restart-sound-control">
+            <SeasonalLoadingSound />
+          </div>
+        )}
       </section>
     </main>
   );

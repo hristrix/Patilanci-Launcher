@@ -11,6 +11,7 @@ window.addEventListener(
 
 const api = {};
 for (const name of [
+  'environment',
   'config',
   'windowState',
   'windowAction',

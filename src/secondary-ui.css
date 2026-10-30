@@ -34,8 +34,8 @@
   border-bottom: 1px solid var(--border);
 }
 .skin-tabs [aria-pressed='true'] {
-  color: #ff6255;
-  background: #211719;
+  color: var(--selection-accent, #ff6255);
+  background: var(--selection-surface, #211719);
 }
 .skin-preview,
 .is-home .login-avatar-stage {
@@ -125,7 +125,7 @@
   color: #a7b3c4;
 }
 .account-tabs button.is-selected > svg:last-child {
-  color: #ff6255;
+  color: var(--selection-accent, #ff6255);
 }
 .account-panel .offline-profile > .secondary-button {
   display: flex;

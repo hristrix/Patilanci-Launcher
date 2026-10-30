@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import HomeHero from './home/HomeHero';
 import HomeDashboard from './home/HomeDashboard';
 import Panorama from './Panorama';
+import { SeasonalGreeting } from './SeasonalTheme';
 
 export default function HomeOverview({
   config,
@@ -42,6 +43,7 @@ export default function HomeOverview({
             </span>
           </div>
           <div className="sign-in-welcome">
+            <SeasonalGreeting />
             <h2>Добре дошъл в Патиланци</h2>
             <p>Избери как да продължиш.</p>
           </div>

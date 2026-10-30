@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Copy, Folder, Minus, Square, Terminal, X } from 'lucide-react';
+import { ThemePicker } from './SeasonalTheme';
 
 export default function WindowTitleBar({
   api,
@@ -62,6 +63,7 @@ export default function WindowTitleBar({
         <span className="window-brand-divider" />
       </div>
       <div className="window-controls">
+        <ThemePicker />
         {notificationControl}
         {onOpenConsole && (
           <button

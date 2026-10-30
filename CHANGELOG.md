@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.5.1 - 2026-10-30
+
+### Fixed
+
+- Selected Modpack and Settings tabs, enabled switches, the memory slider, skin/account selections, and search focus outlines now follow the selected seasonal template instead of retaining red accents. Enabled switches use a contrasting thumb. The original template keeps its existing colors.
+
+## 2.5.0 - 2026-10-30
+
+### Added
+
+- Original seasonal loading soundtracks: eerie ambience and bells for Halloween, a festive bell melody for Christmas, and bright chimes with soft firework swells for New Year.
+- A loading-screen sound control remembers the player's mute choice. Sound plays quietly, pauses while hidden, and stops when loading finishes or the template changes. The original template stays silent.
+- Development loading previews include the matching soundtrack. Blocked browser autoplay offers an explicit play button, and sound failures never interrupt startup.
+
+## 2.4.1 - 2026-10-30
+
+### Improved
+
+- Rebuilt each seasonal template around its own cinematic village artwork: a moonlit pumpkin valley for Halloween, a snowy Christmas village, and a midnight New Year celebration with fireworks.
+- Added matching seasonal badges, card finishes, action colors, and subtle embers, snowfall, and sparkles. Seasonal loading screens now show the landscape across the whole window.
+
+### Fixed
+
+- The **Добави файл** button now uses readable text and matching normal, hover, pressed, and keyboard-focus colors in the original and all seasonal templates.
+
+## 2.4.0 - 2026-10-30
+
+### Added
+
+- Halloween, Christmas, and New Year templates with distinct colors, seasonal village decorations, and matching loading screens.
+- Automatic seasonal selection using the player's local date: October 24–31, December 1–26, and December 27–January 2 respectively. Other dates use the original template, and open launchers refresh when the date changes.
+- Development-only selection of all four templates, an automatic date option, and a loading-screen preview. Packaged launchers always follow the calendar and ignore saved preview choices.
+
 ## 2.3.0 - 2026-10-27
 
 ### Added

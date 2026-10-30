@@ -316,7 +316,7 @@ select {
   box-shadow: none;
 }
 :is(.mods-search, .console-search):focus-within {
-  outline: 2px solid #f4594d;
+  outline: 2px solid var(--selection-accent, #f4594d);
   outline-offset: 2px;
 }
 :is(.mods-search, .console-search) input:focus-visible {
@@ -1184,11 +1184,11 @@ input[type='checkbox'] {
   border-bottom: 3px solid transparent;
 }
 .pack-section-tabs .is-active {
-  border-bottom-color: #fa392e;
-  color: #fff1df;
+  border-bottom-color: var(--selection-accent, #fa392e);
+  color: var(--selection-accent, #fff1df);
 }
 .pack-section-tabs .is-active svg {
-  color: #ff3c2e;
+  color: var(--selection-accent, #ff3c2e);
 }
 .pack-about {
   grid-column: 1;
@@ -1420,8 +1420,8 @@ input[type='checkbox'] {
   background: #101214;
 }
 .preferences-tabs button[aria-selected='true'] {
-  border-bottom-color: #ff3d2e;
-  color: #ff4b3c;
+  border-bottom-color: var(--selection-accent, #ff3d2e);
+  color: var(--selection-accent, #ff4b3c);
 }
 .preferences-game-grid {
   display: grid;
@@ -1464,7 +1464,7 @@ input[type='checkbox'] {
   border-radius: 8px;
   background: linear-gradient(
     to right,
-    #ff3d30 var(--memory-fill),
+    var(--selection-accent, #ff3d30) var(--memory-fill),
     #363940 var(--memory-fill)
   );
 }
@@ -1474,8 +1474,8 @@ input[type='checkbox'] {
   height: 20px;
   border: 2px solid #fff3df;
   border-radius: 50%;
-  background: #ff3d30;
-  box-shadow: 0 0 0 3px #ff3d3033;
+  background: var(--selection-accent, #ff3d30);
+  box-shadow: 0 0 0 3px var(--selection-glow, #ff3d3033);
 }
 .memory-scale {
   display: flex;
@@ -1647,11 +1647,12 @@ input[type='checkbox'] {
 }
 .settings-toggle input:checked,
 .console-follow input:checked {
-  background: #ff3d30;
+  background: var(--switch-on, #ff3d30);
 }
 .settings-toggle input:checked::before,
 .console-follow input:checked::before {
   transform: translateX(24px);
+  background: var(--switch-thumb-on, #f3f3f3);
 }
 .startup-settings .settings-toggle {
   border: 0;
@@ -1776,13 +1777,18 @@ input[type='checkbox'] {
   color: var(--muted);
 }
 .mods-heading > .play-button {
-  background: transparent;
-  border-color: #fb4236;
-  color: #ff4b3e;
+  background: var(--control-primary-readable, #b93025);
+  border-color: var(--control-primary-border, #f44134);
+  color: var(--control-primary-text, #fff6e8);
   min-width: 190px;
   font-family: var(--font-sans);
   font-size: 1.05rem;
   min-height: 48px;
+}
+.mods-heading > .play-button:hover:not(:disabled),
+.mods-heading > .play-button:active:not(:disabled) {
+  background: var(--control-primary-readable-hover, #c4382a);
+  color: var(--control-primary-text, #fff6e8);
 }
 .mods-policy {
   background: #101a24;

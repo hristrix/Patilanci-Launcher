@@ -20,6 +20,11 @@ import UpdateRestartScreen from './components/UpdateRestartScreen';
 import LaunchBar from './components/layout/LaunchBar';
 import GameConsole from './components/GameConsole';
 import NotificationsPanel from './components/NotificationsPanel';
+import {
+  useSeasonalTheme,
+  previewStartupState,
+  previewStartupProgress,
+} from './components/SeasonalTheme';
 
 // Page composition lives here; desktop requests and subscriptions live in useLauncher.
 export default function App({ api }) {
@@ -28,6 +33,7 @@ export default function App({ api }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [modsCollection, setModsCollection] = useState('personal');
   const { state, actions } = useLauncher(api);
+  const { previewStartup } = useSeasonalTheme();
   const updateBusy = state.busy || state.game.running;
   function navigate(nextPage) {
     if (nextPage === 'mods') setModsCollection('personal');
@@ -47,17 +53,17 @@ export default function App({ api }) {
     );
   }
 
-  if (state.bootVisible) {
+  if (state.bootVisible || previewStartup) {
     return (
       <>
         <WindowTitleBar api={api} pageLabel="Подготовка" startup />
         <StartupSplash
-          state={state.bootState}
-          progress={state.progress}
-          logs={state.logs}
-          update={state.launcherUpdate}
-          afterUpdate={state.afterUpdate}
-          error={state.error}
+          state={previewStartup ? previewStartupState : state.bootState}
+          progress={previewStartup ? previewStartupProgress : state.progress}
+          logs={previewStartup ? [] : state.logs}
+          update={previewStartup ? undefined : state.launcherUpdate}
+          afterUpdate={!previewStartup && state.afterUpdate}
+          error={previewStartup ? undefined : state.error}
           onRetry={actions.retryStartup}
           onContinue={actions.openAfterStartupFailure}
           onInstall={actions.installLauncherUpdate}

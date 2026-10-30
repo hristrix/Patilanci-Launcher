@@ -65,7 +65,7 @@ async function checkStartupSplash(window, { waitForRenderer, capture }) {
   await capture(window, 'launcher-startup-reference.png');
 
   await run(
-    `document.querySelector('.splash-footer button').focus(); document.querySelector('.splash-footer button').click()`,
+    `document.querySelector('.splash-log-button').focus(); document.querySelector('.splash-log-button').click()`,
   );
   await waitForRenderer(
     window,
@@ -92,7 +92,7 @@ async function checkStartupSplash(window, { waitForRenderer, capture }) {
   );
   assert.equal(
     await run(
-      `document.activeElement === document.querySelector('.splash-footer button')`,
+      `document.activeElement === document.querySelector('.splash-log-button')`,
     ),
     true,
   );

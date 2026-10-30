@@ -218,10 +218,11 @@
   transition: transform 140ms ease;
 }
 .mods-page .mod-toggle.is-enabled {
-  background: #ff3d30;
+  background: var(--switch-on, #ff3d30);
 }
 .mods-page .mod-toggle.is-enabled > span {
   transform: translateX(20px);
+  background: var(--switch-thumb-on, #f8fafc);
 }
 .mods-page .mod-toggle:disabled {
   opacity: 1;

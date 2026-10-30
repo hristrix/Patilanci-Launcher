@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import GameConsole from './components/GameConsole';
+import SeasonalTheme from './components/SeasonalTheme';
 import '@fontsource/manrope/400.css';
 import '@fontsource/manrope/500.css';
 import '@fontsource/manrope/600.css';
@@ -22,11 +23,14 @@ import './splash.css';
 import './reference-ui.css';
 import './components/mods.css';
 import './secondary-ui.css';
+import './seasonal.css';
 
 createRoot(document.getElementById('root')).render(
   window.location.hash === '#console' ? (
     <GameConsole />
   ) : (
-    <App api={window.launcher} />
+    <SeasonalTheme api={window.launcher}>
+      <App api={window.launcher} />
+    </SeasonalTheme>
   ),
 );

@@ -14,6 +14,7 @@ const { lockWindowZoom } = require('./window-zoom.cjs');
 const { verifyResponsiveText } = require('./responsive-check.cjs');
 const { checkModpackTabs } = require('./modpack-tabs-check.cjs');
 const { checkStartupSplash } = require('./startup-splash-check.cjs');
+const { checkSeasonalThemes } = require('./seasonal-theme-check.cjs');
 const {
   createStartupUpdate,
   createStartupFlow,
@@ -40,6 +41,8 @@ const {
 } = require('./mods.cjs');
 
 let fixtureDirectory;
+let fixtureDevelopment = false;
+ipcMain.handle('environment', () => ({ development: fixtureDevelopment }));
 let fixtureUpdateChecks = 0;
 let fixturePreferences = {
   memory: 6,
@@ -594,6 +597,7 @@ app.whenReady().then(async () => {
         sandbox: true,
         backgroundThrottling: false,
         offscreen: true,
+        autoplayPolicy: 'no-user-gesture-required',
       },
     });
     lockWindowZoom(window);
@@ -649,6 +653,20 @@ app.whenReady().then(async () => {
       return;
     }
     finishStartup();
+    if (process.argv.includes('--themes')) {
+      await waitForRenderer(window, `document.querySelector('.app-shell')`);
+      await checkSeasonalThemes(window, {
+        waitForRenderer,
+        capture,
+        setDevelopment: (value) => {
+          fixtureDevelopment = value;
+        },
+      });
+      window.destroy();
+      await fs.rm(fixtureDirectory, { recursive: true, force: true });
+      app.exit(0);
+      return;
+    }
     if (process.argv.includes('--modpack-tabs')) {
       await waitForRenderer(
         window,
@@ -2145,6 +2163,13 @@ app.whenReady().then(async () => {
     );
     await capture(window, 'launcher-update-complete.png');
 
+    await checkSeasonalThemes(window, {
+      waitForRenderer,
+      capture,
+      setDevelopment: (value) => {
+        fixtureDevelopment = value;
+      },
+    });
     console.log('Electron UI checks passed:', JSON.stringify(home));
     console.log(
       'Verified 100% zoom, zoom input blocking, reload reset, all five pages, mod protections, and both window sizes.',

@@ -13,6 +13,8 @@ import BrandLogo from './BrandLogo';
 import Panorama from './Panorama';
 import { localizeMessage } from '../../electron/messages.mjs';
 import { version } from '../../package.json';
+import { SeasonalGreeting } from './SeasonalTheme';
+import SeasonalLoadingSound from './SeasonalLoadingSound';
 
 const titles = {
   launcher: 'Launcher',
@@ -89,6 +91,7 @@ export default function StartupSplash({
       </div>
       <div className="splash-card">
         <div className="splash-heading">
+          <SeasonalGreeting />
           <h1>
             {failed
               ? 'Нека подготвим играта.'
@@ -249,7 +252,12 @@ export default function StartupSplash({
       </div>
       <footer className="splash-footer">
         <span>v{version}</span>
-        <button type="button" onClick={() => logDialog.current.showModal()}>
+        <SeasonalLoadingSound />
+        <button
+          className="splash-log-button"
+          type="button"
+          onClick={() => logDialog.current.showModal()}
+        >
           <TerminalSquare /> Виж лога
         </button>
       </footer>
