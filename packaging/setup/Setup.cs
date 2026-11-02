@@ -27,7 +27,7 @@ public sealed class SetupWindow : Window {
     readonly DispatcherTimer timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
     string destination, error = "", stage = "settings";
     bool desktop = true, startMenu = true, keepData = true, run = true, busy;
-    int parentId;
+    int parentId, rowsDone;
     Process operation;
     ProgressBar progress;
     TextBlock percent, detail, selectedPath, freeSpace;
@@ -165,10 +165,12 @@ public sealed class SetupWindow : Window {
     void Settings() {
         Card(549, 400, 866, 510);
         Text("Папка за инсталиране", 582, 427, 700, 29, true, "#f2f1ef");
-        var input = Place(new TextBox { Text = destination, FontFamily = body, FontSize = 23, Foreground = Brush("#c4cbd8"), Background = Brush("#101214"), BorderBrush = Brush("#525966"), BorderThickness = new Thickness(1), Padding = new Thickness(18, 12, 10, 8), VerticalContentAlignment = VerticalAlignment.Center }, 582, 478, 615, 60);
-        input.Template = (ControlTemplate)XamlReader.Parse("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='TextBox'><Border Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='{TemplateBinding BorderThickness}' CornerRadius='6'><ScrollViewer x:Name='PART_ContentHost' Margin='{TemplateBinding Padding}'/></Border></ControlTemplate>");
+        var input = Place(new TextBox { Text = destination, FontFamily = body, FontSize = 23, Foreground = Brush("#c4cbd8"), Background = Brush("#101214"), BorderBrush = Brush("#525966"), BorderThickness = new Thickness(1), Padding = new Thickness(18, 12, 10, 8), VerticalContentAlignment = VerticalAlignment.Center, CaretBrush = Brushes.White, SelectionBrush = Brush("#f43e30"), MaxLength = 260, ToolTip = "Папка за инсталиране" }, 582, 478, 615, 60);
+        input.Template = (ControlTemplate)XamlReader.Parse("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='TextBox'><Border x:Name='frame' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='{TemplateBinding BorderThickness}' CornerRadius='6'><ScrollViewer x:Name='PART_ContentHost' Margin='{TemplateBinding Padding}'/></Border><ControlTemplate.Triggers><Trigger Property='IsKeyboardFocusWithin' Value='True'><Setter TargetName='frame' Property='BorderBrush' Value='#fff3df'/></Trigger></ControlTemplate.Triggers></ControlTemplate>");
         System.Windows.Automation.AutomationProperties.SetName(input, "Папка за инсталиране");
         input.TextChanged += delegate { destination = input.Text; UpdateSpace(); };
+        input.GotKeyboardFocus += delegate { input.SelectAll(); };
+        input.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Enter && primary != null && primary.IsEnabled) { e.Handled = true; Begin(); } };
         var browse = ActionButton("Избери", 1215, 478, 169, false, delegate {
             using (var picker = new Forms.FolderBrowserDialog { Description = "Избери папка за Patilanci Launcher", SelectedPath = Directory.Exists(destination) ? destination : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) }) {
                 if (picker.ShowDialog() == Forms.DialogResult.OK) input.Text = picker.SelectedPath;
@@ -213,13 +215,17 @@ public sealed class SetupWindow : Window {
         progress = Place(new ProgressBar { Minimum = 0, Maximum = 100, Value = preview ? 68 : 0, IsIndeterminate = !preview, Foreground = Brush("#ff4636"), Background = Brush("#292d35"), BorderThickness = new Thickness(0) }, 584, 487, 796, 23);
         progress.Loaded += delegate { progress.Clip = new RectangleGeometry(new Rect(0, 0, progress.ActualWidth, progress.ActualHeight), 12, 12); };
         Text(uninstall ? "Премахване на файлове…" : "Копиране на файлове…", 584, 532, 780, 24, false, "#f5f5f3");
-        detail = Text(preview ? "resources\\app.asar" : "Подготовка…", 584, 568, 780, 22);
+        detail = Text("Подготовка…", 584, 568, 780, 22);
         Line(584, 614, 796);
         string[] rows = { "Файлове на launcher-а", "Пряк път на работния плот", "Меню Старт" };
+        bool[] included = { true, uninstall || desktop, uninstall || startMenu };
+        int shown = 0, last = included[2] ? 2 : included[1] ? 1 : 0;
         for (int i = 0; i < rows.Length; i++) {
-            double y = 647 + 64 * i; Icon(i == 0 ? "file" : i == 1 ? "screen" : "list", 599, y, i == 0 ? "#ff4d3d" : "#e5e6e5", 31);
-            Text(rows[i], 668, y - 2, 650, 24, false, "#f4f4f2"); Circle("", 1348, y, 29, "#4b5260", false);
-            if (i < 2) Line(584, y + 45, 796);
+            if (!included[i]) continue;
+            double y = 647 + 64 * shown++; bool done = rowsDone > i;
+            Icon(i == 0 ? "file" : i == 1 ? "screen" : "list", 599, y, i == 0 ? "#ff4d3d" : "#e5e6e5", 31);
+            Text(rows[i], 668, y - 2, 650, 24, false, "#f4f4f2"); Circle(done ? "✓" : "", 1348, y, 29, done ? "#88f59b" : "#4b5260", false);
+            if (i < last) Line(584, y + 45, 796);
         }
         Line(584, 838, 796); Text(uninstall ? (keepData ? "ⓘ   Данните на играта се запазват." : "ⓘ   Изтриват се и данните на играта.") : "ⓘ   Модпакът ще се изтегли при първото стартиране.", 584, 862, 800, 22);
     }
@@ -239,7 +245,15 @@ public sealed class SetupWindow : Window {
         // remain the last argument, without shell quoting or shell execution.
         return remove ? arguments + (preserve ? "" : " --delete-app-data") + " _?=" + directory : arguments + " /D=" + directory;
     }
+    // Pasted paths often carry surrounding quotes, spaces, or %VARIABLES%.
+    public static string NormalizeDestination(string value) {
+        if (value == null) return "";
+        value = value.Trim();
+        if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') value = value.Substring(1, value.Length - 2).Trim();
+        return Environment.ExpandEnvironmentVariables(value);
+    }
     public static string ValidateDestination(string value) {
+        value = NormalizeDestination(value);
         if (string.IsNullOrWhiteSpace(value) || value.IndexOfAny(new [] { '\"', '\r', '\n', '\0' }) >= 0 || !System.IO.Path.IsPathRooted(value)) throw new Exception("Избери валидна папка за инсталиране.");
         string full = System.IO.Path.GetFullPath(value).TrimEnd('\\');
         string root = System.IO.Path.GetPathRoot(full).TrimEnd('\\');
@@ -274,8 +288,12 @@ public sealed class SetupWindow : Window {
         if (!busy || operation == null) return;
         try {
             int measured;
-            if (int.TryParse(Status("percent", ""), out measured)) { progress.IsIndeterminate = false; progress.Value = Math.Max(0, Math.Min(100, measured)); percent.Text = measured + "%"; }
-            detail.Text = Status("detail", uninstall ? "Премахване на приложението…" : "resources\\app.asar");
+            if (int.TryParse(Status("percent", ""), out measured)) {
+                int reached = measured >= 100 ? 3 : measured >= 85 ? 1 : 0;
+                if (reached != rowsDone) { rowsDone = reached; Draw(); }
+                progress.IsIndeterminate = false; progress.Value = Math.Max(0, Math.Min(100, measured)); percent.Text = measured + "%";
+            }
+            detail.Text = Status("detail", uninstall ? "Премахване на приложението…" : "Копиране на файлове…");
             if (!operation.HasExited) return;
             bool ok = operation.ExitCode == 0 && Status("complete", "0") == "1";
             bool present = File.Exists(System.IO.Path.Combine(destination, "Patilanci Launcher.exe"));
@@ -334,6 +352,7 @@ public sealed class SetupWindow : Window {
         bool blocked = false; try { ValidateDestination(shared); } catch { blocked = true; } check(blocked);
         string own = System.IO.Path.Combine(fixture, "Нов Launcher"); Directory.CreateDirectory(own);
         check(ValidateDestination(own) == own);
+        check(ValidateDestination("  \"" + own + "\"  ") == own);
         File.WriteAllText(System.IO.Path.Combine(own, "Patilanci Launcher.exe"), "fixture");
         File.WriteAllText(System.IO.Path.Combine(own, "Uninstall Patilanci Launcher.exe"), "fixture"); check(ValidateDestination(own) == own);
         check(BackendArguments(false, true, "currentuser", own).EndsWith(" /D=" + own, StringComparison.Ordinal));

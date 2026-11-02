@@ -73,6 +73,8 @@ export default function useOfflineProfile({
     if (!currentProfile) return 'Проверка на защитата на профила…';
     if (currentProfile.remembered)
       return 'Вече си влязъл на този компютър. Входът ти е запомнен.';
+    if (creatingPin && confirmPin && !pin.startsWith(confirmPin))
+      return 'ПИН кодовете не съвпадат.';
     if (creatingPin)
       return 'Създай ПИН код от 6 до 12 цифри. Той защитава профила само на този компютър.';
     return 'Въведи ПИН кода си от 6 до 12 цифри. Той важи само за този компютър.';

@@ -117,16 +117,30 @@ export default function useLauncher(api) {
   useEffect(() => {
     let active = true;
     // Listen before requesting the update so the first progress event is visible.
+    // Download progress can arrive many times a second; render at most every 100 ms.
+    let queued = null;
+    let flushTimer = 0;
+    function flushProgress() {
+      flushTimer = 0;
+      if (!active || !queued) return;
+      const { latest, messages } = queued;
+      queued = null;
+      setProgress(latest);
+      if (latest.launchPhase === 'starting') setLaunchPhase('starting');
+      setLogs((previous) => {
+        let next = previous;
+        for (const message of messages)
+          if (next.at(-1) !== message) next = [...next.slice(-99), message];
+        return next;
+      });
+    }
     const unsubscribe = api?.onProgress((update) => {
       if (!active) return;
-      setProgress({ ...update, message: localizeMessage(update.message) });
-      if (update.launchPhase === 'starting') setLaunchPhase('starting');
       const message = localizeMessage(update.message);
-      setLogs((previous) =>
-        previous.at(-1) === message
-          ? previous
-          : [...previous.slice(-99), message],
-      );
+      queued ||= { latest: null, messages: [] };
+      queued.latest = { ...update, message };
+      if (queued.messages.at(-1) !== message) queued.messages.push(message);
+      flushTimer ||= window.setTimeout(flushProgress, 100);
     });
     const unsubscribeGame = api?.onGameState((state) => {
       if (active) setGame(state);
@@ -144,6 +158,7 @@ export default function useLauncher(api) {
 
     return () => {
       active = false;
+      window.clearTimeout(flushTimer);
       unsubscribe?.();
       unsubscribeGame?.();
       unsubscribeStartup?.();

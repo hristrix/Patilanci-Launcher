@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Copy, Download, Search, Terminal, Trash2 } from 'lucide-react';
 import WindowTitleBar from './WindowTitleBar';
 import '../console.css';
@@ -12,6 +12,32 @@ const STATUS = {
   stopped: 'Minecraft е затворен',
   failed: 'Неуспешно стартиране',
 };
+
+const CLOCK = new Intl.DateTimeFormat('en-GB', {
+  hour12: false,
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+const COPY_CLOCK = new Intl.DateTimeFormat('bg-BG', { timeStyle: 'medium' });
+const LEVEL_LABEL = { info: 'Информация', warn: 'Внимание', error: 'Грешка' };
+const formatEntry = (entry) =>
+  `[${COPY_CLOCK.format(entry.time)}] [${entry.source === 'minecraft' ? 'Игра' : 'Приложение'}] ${entry.message}`;
+
+// Entries never change once received, so unchanged lines skip rendering.
+const ConsoleLine = memo(function ConsoleLine({ entry }) {
+  return (
+    <div className={`console-line is-${entry.level}`}>
+      <time dateTime={new Date(entry.time).toISOString()}>
+        [{CLOCK.format(entry.time)}]
+      </time>
+      <span className="console-source">
+        {LEVEL_LABEL[entry.level] || 'Съобщение'}
+      </span>
+      <span className="console-message">{entry.message}</span>
+    </div>
+  );
+});
 
 export default function GameConsole({
   embedded = false,
@@ -37,6 +63,10 @@ export default function GameConsole({
     async function update() {
       try {
         if (!api) return;
+        if (document.hidden) {
+          timer = setTimeout(update, 1500);
+          return;
+        }
         const next = await (embedded
           ? api.consoleSnapshot(cursor.current.lastId)
           : api.snapshot(cursor.current.lastId));
@@ -74,24 +104,30 @@ export default function GameConsole({
     if (follow && output.current)
       output.current.scrollTop = output.current.scrollHeight;
   }, [snapshot.entries, follow, query, level]);
-  const visible = snapshot.entries.filter(
-    (entry) =>
-      (level === 'all' ||
-        (level === 'warnings'
-          ? entry.level !== 'info'
-          : entry.level === 'error')) &&
-      entry.message.toLowerCase().includes(query.toLowerCase()),
-  );
+  const visible = useMemo(() => {
+    const needle = query.toLowerCase();
+    return snapshot.entries.filter(
+      (entry) =>
+        (level === 'all' ||
+          (level === 'warnings'
+            ? entry.level !== 'info'
+            : entry.level === 'error')) &&
+        entry.message.toLowerCase().includes(needle),
+    );
+  }, [snapshot.entries, query, level]);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  // Scrolling up to read older lines pauses following instead of fighting the user.
+  function onOutputScroll(event) {
+    const el = event.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight > 40) setFollow(false);
+  }
   async function copy() {
     try {
-      await navigator.clipboard.writeText(
-        visible
-          .map(
-            (entry) =>
-              `[${new Date(entry.time).toLocaleTimeString('bg-BG')}] [${entry.source === 'minecraft' ? 'Игра' : 'Приложение'}] ${entry.message}`,
-          )
-          .join('\n'),
-      );
+      await navigator.clipboard.writeText(visible.map(formatEntry).join('\n'));
       setCopied(true);
       setNotice('Показаните съобщения са копирани.');
     } catch {
@@ -110,17 +146,9 @@ export default function GameConsole({
     }
   }
   function saveLog() {
-    const file = new Blob(
-      [
-        visible
-          .map(
-            (entry) =>
-              `[${new Date(entry.time).toLocaleTimeString('bg-BG')}] [${entry.source === 'minecraft' ? 'Игра' : 'Приложение'}] ${entry.message}`,
-          )
-          .join('\n'),
-      ],
-      { type: 'text/plain;charset=utf-8' },
-    );
+    const file = new Blob([visible.map(formatEntry).join('\n')], {
+      type: 'text/plain;charset=utf-8',
+    });
     const url = URL.createObjectURL(file);
     const link = document.createElement('a');
     link.href = url;
@@ -226,29 +254,13 @@ export default function GameConsole({
           <div
             className="console-output"
             ref={output}
+            onScroll={onOutputScroll}
             tabIndex="0"
             aria-label="Съобщения от Minecraft"
           >
             {visible.length ? (
               visible.map((entry) => (
-                <div
-                  className={`console-line is-${entry.level}`}
-                  key={entry.id}
-                >
-                  <time dateTime={new Date(entry.time).toISOString()}>
-                    [
-                    {new Date(entry.time).toLocaleTimeString('en-GB', {
-                      hour12: false,
-                    })}
-                    ]
-                  </time>
-                  <span className="console-source">
-                    {{ info: 'Информация', warn: 'Внимание', error: 'Грешка' }[
-                      entry.level
-                    ] || 'Съобщение'}
-                  </span>
-                  <span className="console-message">{entry.message}</span>
-                </div>
+                <ConsoleLine entry={entry} key={entry.id} />
               ))
             ) : (
               <div className="console-empty">

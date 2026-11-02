@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useState,
 } from 'react';
 import { Ghost, Snowflake, Sparkles } from 'lucide-react';
@@ -52,7 +53,12 @@ export default function SeasonalTheme({ api, children }) {
   }, [theme]);
 
   useEffect(() => {
-    const refresh = () => setDate(new Date());
+    // Keep the previous Date unless the day changed so the app does not re-render for nothing.
+    const refresh = () =>
+      setDate((previous) => {
+        const now = new Date();
+        return now.toDateString() === previous.toDateString() ? previous : now;
+      });
     const timer = window.setInterval(refresh, 30_000);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
@@ -71,19 +77,19 @@ export default function SeasonalTheme({ api, children }) {
     } catch {}
   }
 
+  const value = useMemo(
+    () => ({
+      theme,
+      development,
+      override,
+      selectTheme,
+      previewStartup: development && previewStartup,
+      setPreviewStartup,
+    }),
+    [theme, development, override, previewStartup],
+  );
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        development,
-        override,
-        selectTheme,
-        previewStartup: development && previewStartup,
-        setPreviewStartup,
-      }}
-    >
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 }
 

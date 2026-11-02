@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.5.2 - 2026-11-02
+
+### Improved
+
+- Download and preparation progress now updates the interface at most ten times per second, keeping the launcher responsive during large installs.
+- The server status check no longer runs while the launcher is hidden, and background checks no longer flash the refresh indicator.
+- The seasonal template no longer re-renders the whole launcher every 30 seconds; it updates only when the day changes.
+- The log viewer renders only new lines, filters faster, and pauses logging requests while the window is hidden.
+
+### Fixed
+
+- Scrolling up in the log viewer now pauses automatic scrolling instead of jumping back to the bottom on each new line.
+- The log viewer's copy button no longer stays marked as copied forever.
+- Setup no longer shows the internal file name `resourcespp.asar` while installing; the progress steps now tick off as they finish and skip shortcuts you did not choose.
+- The setup folder box now shows a visible caret, selection and focus outline, accepts Enter to continue, and accepts pasted paths wrapped in quotes, padded with spaces, or containing `%VARIABLES%`.
+- Offline profile fields accept only valid characters (letters, digits, underscore for the name; digits for the PIN) and say when the two PIN entries do not match.
+- The skin link field no longer shows a fake example URL.
+
 ## 2.5.1 - 2026-10-30
 
 ### Fixed

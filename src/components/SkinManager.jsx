@@ -293,9 +293,7 @@ export default function SkinManager({
               setNotice('');
             }}
             placeholder={
-              source === 'web'
-                ? 'https://example.com/skin.png'
-                : 'Име на играча'
+              source === 'web' ? 'Постави връзка към PNG файл' : 'Име на играча'
             }
           />
           {source === 'web' && (
