@@ -28,9 +28,13 @@ export default function OfflineProfileForm({
           <input
             id="minecraft-username"
             value={username}
-            onChange={(event) => onUsernameChange(event.target.value)}
+            onChange={(event) =>
+              onUsernameChange(event.target.value.replace(/[^A-Za-z0-9_]/g, ''))
+            }
             placeholder="Въведи потребителско име"
             maxLength={16}
+            spellCheck={false}
+            autoCapitalize="off"
             disabled={busy || running || sessionMode === 'offline'}
             autoComplete="off"
           />
@@ -48,7 +52,9 @@ export default function OfflineProfileForm({
               minLength={6}
               maxLength={12}
               value={pin}
-              onChange={(event) => setPin(event.target.value)}
+              onChange={(event) =>
+                setPin(event.target.value.replace(/\D/g, ''))
+              }
               placeholder="От 6 до 12 цифри"
               disabled={busy || !currentProfile || locked}
               aria-describedby="offline-pin-help"
@@ -65,7 +71,9 @@ export default function OfflineProfileForm({
               autoComplete="new-password"
               maxLength={12}
               value={confirmPin}
-              onChange={(event) => setConfirmPin(event.target.value)}
+              onChange={(event) =>
+                setConfirmPin(event.target.value.replace(/\D/g, ''))
+              }
               placeholder="Въведи ПИН кода отново"
               disabled={busy}
               aria-describedby="offline-pin-help"
